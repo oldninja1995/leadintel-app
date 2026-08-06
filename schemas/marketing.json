@@ -1,0 +1,64 @@
+{
+  "resource": "marketing",
+  "generatedFrom": "data/generated/marketing.js",
+  "fields": {
+    "mktHero": {
+      "kind": "list",
+      "item": [
+        "delta",
+        "deltaColor",
+        "icon",
+        "label",
+        "spark",
+        "src",
+        "srcBorder",
+        "srcColor",
+        "sub",
+        "tip",
+        "value"
+      ]
+    },
+    "mktKpis": {
+      "kind": "list",
+      "item": [
+        "delta",
+        "deltaColor",
+        "label",
+        "src",
+        "srcBorder",
+        "srcColor",
+        "tip",
+        "value"
+      ]
+    },
+    "mktFunnel": {
+      "kind": "list",
+      "item": [
+        "label",
+        "n",
+        "pct",
+        "w"
+      ]
+    },
+    "platforms": {
+      "kind": "list",
+      "item": [
+        "bookings",
+        "cpa",
+        "cpl",
+        "icon",
+        "mer",
+        "name",
+        "netColor",
+        "netRoas",
+        "rec",
+        "recBorder",
+        "recColor",
+        "rev",
+        "roas",
+        "spark",
+        "spend"
+      ]
+    }
+  }
+}

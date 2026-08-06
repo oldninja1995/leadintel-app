@@ -1,0 +1,20 @@
+{
+  "_note": "SYNTHETIC. Not TeleCRM's data and not real. Phone numbers appear in the four formats an Indian CRM actually accumulates, and timestamps are local IST — one of them lands on the previous UTC day, which is the case that catches a timezone bug. The deal value on D-5001 deliberately disagrees with the PMS folio for the same booking. See PHASES.md, Phase 4.",
+
+  "lead": [
+    { "lead_id": "L-7781", "name": "  ANJALI  MENON ", "phone": "+91 98470 12345", "email": "Anjali.Menon@example.com", "created_at": "2026-07-14T02:15:00+05:30", "stage": "qualified", "owner": "Reshma K", "utm_campaign": "meta | Munnar Honeymoon — JUL", "ad_id": "99201", "property": "Munnar Hillside" },
+    { "lead_id": "L-7782", "name": "rahul  nair", "phone": "9847098765", "email": "rahul.nair@example.com", "created_at": "2026-07-14T11:40:00+05:30", "stage": "contacted", "owner": "Vivek S", "utm_campaign": "Meta|Alleppey Houseboat Weekend|Jul", "ad_id": null, "property": "Alleppey Lake Villas" },
+    { "lead_id": "L-7783", "name": "Sneha  Thomas", "phone": "098470-11223", "email": "sneha.t@example.com", "created_at": "2026-07-15T09:05:00+05:30", "stage": "quoted", "owner": "Reshma K", "utm_campaign": "brand search", "ad_id": null, "property": "Kumarakom Backwaters" },
+    { "lead_id": "L-7784", "name": "George  Kurien", "phone": "0091 8547 663311", "email": "g.kurien@example.com", "created_at": "2026-07-15T20:30:00+05:30", "stage": "booked", "owner": "Vivek S", "utm_campaign": "meta | munnar honeymoon — jul", "ad_id": "99201", "property": "Munnar Hillside" }
+  ],
+
+  "lead_event": [
+    { "event_id": "E-90011", "lead_id": "L-7781", "type": "first_response", "at": "2026-07-14T02:53:00+05:30", "by": "Reshma K" },
+    { "event_id": "E-90012", "lead_id": "L-7784", "type": "stage_change", "at": "2026-07-15T21:10:00+05:30", "from": "quoted", "to": "booked" }
+  ],
+
+  "deal": [
+    { "deal_id": "D-5001", "lead_id": "L-7784", "booking_ref": "B-1001", "currency": "INR", "value": "₹46,000", "stage": "closed_won", "updated_at": "2026-07-15T21:10:00+05:30" },
+    { "deal_id": "D-5002", "lead_id": "L-7783", "booking_ref": null, "currency": "INR", "value": "₹1,23,456", "stage": "quoted", "updated_at": "2026-07-15T09:40:00+05:30" }
+  ]
+}

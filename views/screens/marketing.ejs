@@ -1,0 +1,88 @@
+<div style="animation:li-fade .25s ease;">
+          <div style="display:flex; align-items:baseline; gap:12px; margin-bottom:14px;">
+            <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:19px;">Marketing Dashboard</h1>
+            <span style="font-size:11.5px; color:var(--color-neutral-600);">all platforms · CRM-verified revenue</span>
+            <div style="flex:1;"></div>
+            <div class="hv-3" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-neutral-500); border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; cursor:pointer;"><i class="ph ph-export" style="font-size:13px;"></i>Export</div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:12px;">
+            <% (mktHero || []).forEach(function (k) { %>
+              <div class="hv-4" style="background:linear-gradient(180deg, var(--color-surface), #1e202c); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px 12px; cursor:pointer;">
+                <div title="<%= k.tip %>" style="display:flex; align-items:center; gap:6px; font-size:10.5px; letter-spacing:.08em; color:var(--color-neutral-500); text-transform:uppercase;"><i class="<%= k.icon %>" style="font-size:13px; color:var(--color-accent-400);"></i><%= k.label %><span style="flex:1;"></span><span style="font-size:8.5px; letter-spacing:.05em; border:1px solid <%= k.srcBorder %>; border-radius:4px; padding:1px 5px; color:<%= k.srcColor %>;"><%= k.src %></span></div>
+                <div style="display:flex; align-items:baseline; gap:9px; margin-top:7px;"><span style="font-size:26px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:11.5px; font-weight:500; color:<%= k.deltaColor %>;"><%= k.delta %></span></div>
+                <div style="font-size:10.5px; color:var(--color-neutral-600); margin-top:2px;"><%= k.sub %></div>
+                <svg viewBox="0 0 120 26" style="width:100%; height:26px; margin-top:8px;" preserveAspectRatio="none"><polyline points="<%= k.spark %>" fill="none" stroke="var(--color-accent-500)" stroke-width="1.6" stroke-linejoin="round" opacity="0.9"></polyline></svg>
+              </div>
+            <% }); %>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:12px;">
+            <% (mktKpis || []).forEach(function (k) { %>
+              <div class="hv-4" title="Click to drill down · hover for benchmark" style="background:var(--color-surface); border-radius:10px; box-shadow:var(--shadow-sm); padding:9px 12px; cursor:pointer;">
+                <div title="<%= k.tip %>" style="display:flex; align-items:center; gap:5px;"><span style="font-size:9.5px; letter-spacing:.06em; color:var(--color-neutral-500); text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= k.label %></span><span style="flex:1;"></span><span style="font-size:8px; border:1px solid <%= k.srcBorder %>; border-radius:4px; padding:0.5px 4px; color:<%= k.srcColor %>;"><%= k.src %></span></div>
+                <div style="display:flex; align-items:baseline; gap:6px; margin-top:3px;"><span style="font-size:15px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:10px; color:<%= k.deltaColor %>;"><%= k.delta %></span></div>
+              </div>
+            <% }); %>
+          </div>
+          <div style="display:grid; grid-template-columns:1.8fr 1fr; gap:12px; margin-bottom:12px;">
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+                <div style="font-size:13px; font-weight:500;">Spend by platform vs revenue</div>
+                <div style="flex:1;"></div>
+                <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-700);"></span>Meta</span>
+                <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-2-600);"></span>Google</span>
+                <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-neutral-700);"></span>Other</span>
+                <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);"><span style="width:12px;height:2px;background:var(--color-accent-300);"></span>Revenue</span>
+              </div>
+              <svg viewBox="0 0 640 200" style="width:100%; height:200px;" preserveAspectRatio="none">
+                <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="50" x2="640" y2="50"></line><line x1="0" y1="100" x2="640" y2="100"></line><line x1="0" y1="150" x2="640" y2="150"></line></g>
+                <g>
+                  <rect x="20" y="128" width="26" height="24" fill="var(--color-neutral-700)"></rect><rect x="20" y="92" width="26" height="36" fill="var(--color-accent-2-600)"></rect><rect x="20" y="152" width="26" height="28" fill="var(--color-accent-700)" transform="translate(0,-72)"></rect>
+                  <rect x="98" y="122" width="26" height="28" fill="var(--color-neutral-700)"></rect><rect x="98" y="84" width="26" height="38" fill="var(--color-accent-2-600)"></rect><rect x="98" y="52" width="26" height="32" fill="var(--color-accent-700)"></rect>
+                  <rect x="176" y="130" width="26" height="26" fill="var(--color-neutral-700)"></rect><rect x="176" y="94" width="26" height="36" fill="var(--color-accent-2-600)"></rect><rect x="176" y="60" width="26" height="34" fill="var(--color-accent-700)"></rect>
+                  <rect x="254" y="118" width="26" height="34" fill="var(--color-neutral-700)"></rect><rect x="254" y="80" width="26" height="38" fill="var(--color-accent-2-600)"></rect><rect x="254" y="44" width="26" height="36" fill="var(--color-accent-700)"></rect>
+                  <rect x="332" y="124" width="26" height="30" fill="var(--color-neutral-700)"></rect><rect x="332" y="88" width="26" height="36" fill="var(--color-accent-2-600)"></rect><rect x="332" y="50" width="26" height="38" fill="var(--color-accent-700)"></rect>
+                  <rect x="410" y="114" width="26" height="38" fill="var(--color-neutral-700)"></rect><rect x="410" y="74" width="26" height="40" fill="var(--color-accent-2-600)"></rect><rect x="410" y="36" width="26" height="38" fill="var(--color-accent-700)"></rect>
+                  <rect x="488" y="120" width="26" height="34" fill="var(--color-neutral-700)"></rect><rect x="488" y="78" width="26" height="42" fill="var(--color-accent-2-600)"></rect><rect x="488" y="38" width="26" height="40" fill="var(--color-accent-700)"></rect>
+                  <rect x="566" y="108" width="26" height="44" fill="var(--color-neutral-700)"></rect><rect x="566" y="66" width="26" height="42" fill="var(--color-accent-2-600)"></rect><rect x="566" y="24" width="26" height="42" fill="var(--color-accent-700)"></rect>
+                </g>
+                <path d="M33,140 L111,118 L189,124 L267,96 L345,102 L423,72 L501,66 L579,38" fill="none" stroke="var(--color-accent-300)" stroke-width="2" stroke-linejoin="round"></path>
+                <circle cx="579" cy="38" r="3.5" fill="var(--color-accent-200)"></circle>
+              </svg>
+              <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--color-neutral-700); padding:2px 8px 0;"><span>W1 Jun</span><span>W2</span><span>W3</span><span>W4</span><span>W1 Jul</span><span>W2</span><span>W3</span><span>W4</span></div>
+            </div>
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px; display:flex; flex-direction:column;">
+              <div style="display:flex; align-items:center; margin-bottom:10px;"><div style="font-size:13px; font-weight:500;">Marketing funnel</div><div style="flex:1;"></div><a href="#" style="font-size:11px;">Full funnel →</a></div>
+              <div style="flex:1; display:flex; flex-direction:column; gap:9px; justify-content:center;">
+                <% (mktFunnel || []).forEach(function (s) { %>
+                  <div>
+                    <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px;"><span style="color:var(--color-neutral-400);"><%= s.label %></span><span style="font-variant-numeric:tabular-nums;"><span style="color:var(--color-neutral-200); font-weight:500;"><%= s.n %></span> <span style="color:var(--color-neutral-600);">· <%= s.pct %></span></span></div>
+                    <div style="height:8px; border-radius:99px; background:var(--color-neutral-900); overflow:hidden;"><div style="height:100%; width:<%= s.w %>; border-radius:99px; background:linear-gradient(90deg, var(--color-accent-700), var(--color-accent-400));"></div></div>
+                  </div>
+                <% }); %>
+              </div>
+            </div>
+          </div>
+          <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
+            <div style="display:flex; align-items:center; margin-bottom:8px;"><div style="font-size:13px; font-weight:500;">Platform comparison</div><span style="font-size:10.5px; color:var(--color-neutral-600); margin-left:8px;">CRM-attributed · last 30 days</span><div style="flex:1;"></div><a href="#" style="font-size:11px;">Attribution →</a></div>
+            <table style="width:100%; border-collapse:collapse; font-size:12px;">
+              <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:7px 8px 7px 0; font-weight:500;">PLATFORM</th><th style="padding:7px 8px; text-align:right; font-weight:500;">SPEND</th><th style="padding:7px 8px; text-align:right; font-weight:500;">REVENUE</th><th style="padding:7px 8px; text-align:right; font-weight:500;">BOOKINGS</th><th style="padding:7px 8px; text-align:right; font-weight:500;">ROAS</th><th style="padding:7px 8px; text-align:right; font-weight:500;">NET ROAS</th><th style="padding:7px 8px; text-align:right; font-weight:500;">MER</th><th style="padding:7px 8px; text-align:right; font-weight:500;">CPA</th><th style="padding:7px 8px; text-align:right; font-weight:500;">CPL</th><th style="padding:7px 8px; font-weight:500;">TREND</th><th style="padding:7px 0 7px 8px; font-weight:500;">AI RECOMMENDATION</th></tr></thead>
+              <tbody>
+                <% (platforms || []).forEach(function (p) { %>
+                  <tr class="hv-1" style="border-top:1px solid var(--color-neutral-900); cursor:pointer;">
+                    <td style="padding:8.5px 8px 8.5px 0; color:var(--color-neutral-200); font-weight:500;"><span style="display:flex; align-items:center; gap:8px;"><i class="<%= p.icon %>" style="font-size:15px; color:var(--color-accent-400);"></i><%= p.name %></span></td>
+                    <td style="padding:8.5px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= p.spend %></td>
+                    <td style="padding:8.5px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-200);"><%= p.rev %></td>
+                    <td style="padding:8.5px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= p.bookings %></td>
+                    <td style="padding:8.5px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= p.roas %></td>
+                    <td style="padding:8.5px 8px; text-align:right;"><span style="font-weight:500; font-variant-numeric:tabular-nums; color:<%= p.netColor %>;"><%= p.netRoas %></span></td>
+                    <td style="padding:8.5px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= p.mer %></td>
+                    <td style="padding:8.5px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= p.cpa %></td>
+                    <td style="padding:8.5px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= p.cpl %></td>
+                    <td style="padding:8.5px 8px;"><svg viewBox="0 0 60 18" style="width:60px; height:18px;"><polyline points="<%= p.spark %>" fill="none" stroke="var(--color-accent-500)" stroke-width="1.4"></polyline></svg></td>
+                    <td style="padding:8.5px 0 8.5px 8px;"><span style="font-size:10.5px; border:1px solid <%= p.recBorder %>; border-radius:5px; padding:2px 8px; color:<%= p.recColor %>;"><%= p.rec %></span></td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </div>

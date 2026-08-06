@@ -1,0 +1,371 @@
+<div style="animation:li-fade .25s ease;" data-screen-label="AI Command Center">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:19px;">AI Command Center</h1>
+            <span style="font-size:11.5px; color:var(--color-neutral-600);">reads Meta · Google · CRM · PMS · engine · GA4 · calls · WhatsApp</span>
+            <div style="flex:1;"></div>
+            <div class="hv-7" data-action="toggleAi" style="display:flex; flex:none; white-space:nowrap; align-items:center; gap:6px; font-size:11.5px; color:var(--color-accent-300); border:1px solid var(--color-accent-600); border-radius:7px; padding:5px 11px; cursor:pointer;"><i class="ph-fill ph-sparkle" style="font-size:12px;"></i>Ask a question</div>
+          </div>
+          <div style="display:flex; gap:4px; margin-bottom:12px; border-bottom:1px solid var(--color-neutral-900); overflow-x:auto;">
+            <% (aiTabs || []).forEach(function (t) { %>
+              <div class="hv-5" data-action="<%= t.go %>" style="padding:8px 13px; font-size:12.5px; cursor:pointer; white-space:nowrap; color:<%= t.color %>; border-bottom:2px solid <%= t.border %>; margin-bottom:-1px;"><%= t.label %></div>
+            <% }); %>
+          </div>
+
+          <!-- COMMAND CENTER -->
+          <% if (aiCommand) { %>
+            <div style="background:linear-gradient(160deg, var(--color-section) 0%, #1c1f3d 75%); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px 18px; margin-bottom:12px;">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                <i class="ph-fill ph-sparkle" style="color:var(--color-accent-300); font-size:15px;"></i>
+                <div style="font-size:13px; font-weight:500;"><%= sumTitle %></div>
+                <div style="flex:1;"></div>
+                <div style="display:flex; border:1px solid var(--color-section-ghost); border-radius:7px; overflow:hidden;">
+                  <% (sumRanges || []).forEach(function (r) { %>
+                    <div class="hv-8" data-action="<%= r.go %>" style="padding:4.5px 12px; font-size:11px; cursor:pointer; color:<%= r.color %>; background:<%= r.bg %>;"><%= r.label %></div>
+                  <% }); %>
+                </div>
+              </div>
+              <div style="font-size:13px; color:var(--color-accent-100); line-height:1.65; max-width:860px;"><%= sumNarrative %></div>
+              <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-top:14px;">
+                <% (sumKpis || []).forEach(function (k) { %>
+                  <div style="border:1px solid var(--color-section-ghost); border-radius:9px; padding:8px 11px;">
+                    <div style="font-size:9px; letter-spacing:.06em; color:var(--color-accent-2-300); opacity:.8;"><%= k.label %></div>
+                    <div style="display:flex; align-items:baseline; gap:6px; margin-top:2px;"><span style="font-size:15px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:10px; color:<%= k.deltaColor %>;"><%= k.delta %></span></div>
+                  </div>
+                <% }); %>
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:12px;">
+              <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+                <div style="display:flex; align-items:center; gap:7px; margin-bottom:8px;"><i class="ph ph-warning-octagon" style="color:<%= down %>; font-size:14px;"></i><div style="font-size:13px; font-weight:500;">Top risks</div></div>
+                <% (aiRisks || []).forEach(function (r) { %>
+                  <div style="display:flex; gap:9px; padding:8px 0; border-top:1px solid var(--color-neutral-900); align-items:flex-start;">
+                    <span style="width:7px; height:7px; border-radius:99px; background:<%= r.dot %>; margin-top:5px; flex:none;"></span>
+                    <div style="flex:1;"><div style="font-size:12px; color:var(--color-neutral-200); line-height:1.4;"><%= r.text %></div><div style="font-size:10.5px; color:var(--color-neutral-600); margin-top:2px;"><%= r.meta %></div></div>
+                  </div>
+                <% }); %>
+              </div>
+              <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+                <div style="display:flex; align-items:center; gap:7px; margin-bottom:8px;"><i class="ph ph-trend-up" style="color:<%= up %>; font-size:14px;"></i><div style="font-size:13px; font-weight:500;">Top opportunities</div></div>
+                <% (aiOpps || []).forEach(function (r) { %>
+                  <div style="display:flex; gap:9px; padding:8px 0; border-top:1px solid var(--color-neutral-900); align-items:flex-start;">
+                    <span style="width:7px; height:7px; border-radius:99px; background:var(--color-accent-400); margin-top:5px; flex:none;"></span>
+                    <div style="flex:1;"><div style="font-size:12px; color:var(--color-neutral-200); line-height:1.4;"><%= r.text %></div><div style="font-size:10.5px; color:var(--color-neutral-600); margin-top:2px;"><%= r.meta %></div></div>
+                  </div>
+                <% }); %>
+              </div>
+              <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+                <div style="display:flex; align-items:center; gap:7px; margin-bottom:8px;"><i class="ph ph-lightning" style="color:<%= warn %>; font-size:14px;"></i><div style="font-size:13px; font-weight:500;">Action required</div></div>
+                <% (aiActions || []).forEach(function (r) { %>
+                  <div style="display:flex; gap:9px; padding:8px 0; border-top:1px solid var(--color-neutral-900); align-items:center;">
+                    <div style="flex:1;"><div style="font-size:12px; color:var(--color-neutral-200); line-height:1.4;"><%= r.text %></div><div style="font-size:10.5px; color:var(--color-neutral-600); margin-top:2px;"><%= r.meta %></div></div>
+                    <span class="hv-7" style="flex:none; font-size:10.5px; border:1px solid var(--color-accent-700); border-radius:6px; padding:3px 10px; color:var(--color-accent-300); cursor:pointer;"><%= r.btn %></span>
+                  </div>
+                <% }); %>
+              </div>
+            </div>
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+              <div style="display:flex; align-items:center; margin-bottom:10px;"><div style="font-size:13px; font-weight:500;">Business health</div><div style="flex:1;"></div><span data-action="aiGoHealth" style="font-size:11px; color:var(--color-accent-300); cursor:pointer;">Full breakdown →</span></div>
+              <div style="display:flex; align-items:center; gap:20px;">
+                <svg viewBox="0 0 84 84" style="width:74px; height:74px; flex:none;">
+                  <circle cx="42" cy="42" r="34" fill="none" stroke="var(--color-neutral-900)" stroke-width="8"></circle>
+                  <circle cx="42" cy="42" r="34" fill="none" stroke="var(--color-accent-400)" stroke-width="8" stroke-dasharray="179.4 213.6" stroke-linecap="round" transform="rotate(-90 42 42)"></circle>
+                  <text x="42" y="40" text-anchor="middle" fill="var(--color-neutral-200)" font-size="18" font-weight="500" font-family="Inter">84</text>
+                  <text x="42" y="54" text-anchor="middle" fill="var(--color-neutral-600)" font-size="8" font-family="Inter">of 100</text>
+                </svg>
+                <div style="flex:1; display:grid; grid-template-columns:repeat(4,1fr); gap:10px 18px;">
+                  <% (healthMinis || []).forEach(function (h) { %>
+                    <div data-action="aiGoHealth" style="cursor:pointer;">
+                      <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px;"><span style="color:var(--color-neutral-400);"><%= h.name %></span><span style="font-weight:500; color:<%= h.color %>; font-variant-numeric:tabular-nums;"><%= h.score %></span></div>
+                      <div style="height:5px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= h.w %>; border-radius:99px; background:<%= h.color %>;"></div></div>
+                    </div>
+                  <% }); %>
+                </div>
+              </div>
+            </div>
+          <% } %>
+
+          <!-- CHAT -->
+          <% if (aiChat) { %>
+            <div style="display:grid; grid-template-columns:1fr 280px; gap:12px; align-items:start;">
+              <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; min-height:480px;">
+                <div style="flex:1; padding:18px; display:flex; flex-direction:column; gap:14px;">
+                  <div style="align-self:flex-end; max-width:70%; background:var(--color-accent-900); border:1px solid var(--color-accent-800); border-radius:12px 12px 3px 12px; padding:10px 13px; font-size:12.5px;">Which Meta campaign generated the highest profit this month?</div>
+                  <div style="max-width:85%; background:#1e202c; border-radius:12px 12px 12px 3px; box-shadow:var(--shadow-sm); padding:12px 14px; font-size:12.5px; line-height:1.6; color:var(--color-neutral-300);">
+                    <b style="color:var(--color-neutral-100); font-weight:500;">Munnar Honeymoon — Video UGC</b> generated the highest profit: <b style="color:var(--color-accent-300); font-weight:500;">₹6.1L profit</b> on ₹2.1L spend (94 confirmed bookings, mostly Deluxe Lake View + Honeymoon Escape).
+                    <div style="display:flex; gap:8px; margin-top:10px;">
+                      <div style="flex:1; border:1px solid var(--color-neutral-800); border-radius:8px; padding:8px 10px;"><div style="font-size:9px; color:var(--color-neutral-600);">PROFIT</div><div style="font-size:13px; font-weight:500;">₹6.1L</div></div>
+                      <div style="flex:1; border:1px solid var(--color-neutral-800); border-radius:8px; padding:8px 10px;"><div style="font-size:9px; color:var(--color-neutral-600);">NET ROAS</div><div style="font-size:13px; font-weight:500;">6.4x</div></div>
+                      <div style="flex:1; border:1px solid var(--color-neutral-800); border-radius:8px; padding:8px 10px;"><div style="font-size:9px; color:var(--color-neutral-600);">MARGIN</div><div style="font-size:13px; font-weight:500;">41%</div></div>
+                    </div>
+                    <div style="margin-top:9px; font-size:11px; color:var(--color-neutral-500);">Runner-up: Brand Search — Kerala (₹4.8L profit, 5.9x). Sources: Meta Ads sync + CRM revenue, verified 4 min ago.</div>
+                    <div style="display:flex; gap:6px; margin-top:9px;">
+                      <span class="hv-9" style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:2px 8px; color:var(--color-neutral-500); cursor:pointer;">Open campaign</span>
+                      <span class="hv-9" style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:2px 8px; color:var(--color-neutral-500); cursor:pointer;">Simulate +20% budget</span>
+                      <span class="hv-9" style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:2px 8px; color:var(--color-neutral-500); cursor:pointer;">Add to weekly report</span>
+                    </div>
+                  </div>
+                  <div style="align-self:flex-end; max-width:70%; background:var(--color-accent-900); border:1px solid var(--color-accent-800); border-radius:12px 12px 3px 12px; padding:10px 13px; font-size:12.5px;">Predict next month's occupancy.</div>
+                  <div style="max-width:85%; background:#1e202c; border-radius:12px 12px 12px 3px; box-shadow:var(--shadow-sm); padding:12px 14px; font-size:12.5px; line-height:1.6; color:var(--color-neutral-300);">
+                    August forecast: <b style="color:var(--color-accent-300); font-weight:500;">83% occupancy</b> (range 79–87%, 87% confidence) — +5pt vs July. Drivers: booking pace +18% WoW, monsoon-season search demand +22%, and 42 confirmed bookings already on the August calendar. Standard Rooms lag at 72% — the midweek corporate push targets exactly that gap.
+                  </div>
+                </div>
+                <div style="flex:none; padding:12px 16px; border-top:1px solid var(--color-neutral-900);">
+                  <div style="display:flex; align-items:center; gap:8px; border:1px solid var(--color-neutral-800); border-radius:9px; padding:9px 12px;">
+                    <input placeholder="Ask anything about your business…" style="flex:1; background:transparent; border:none; outline:none; color:var(--color-text); font-size:12.5px; font-family:var(--font-body);">
+                    <i class="ph ph-paperclip" style="color:var(--color-neutral-600); font-size:14px; cursor:pointer;"></i>
+                    <i class="ph-fill ph-paper-plane-right" style="color:var(--color-accent-400); font-size:15px; cursor:pointer;"></i>
+                  </div>
+                </div>
+              </div>
+              <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+                <div style="font-size:12px; font-weight:500; margin-bottom:8px;">Try asking</div>
+                <% (aiCaps || []).forEach(function (q) { %>
+                  <div class="hv-10" style="border:1px solid var(--color-neutral-800); border-radius:8px; padding:7px 10px; font-size:11.5px; color:var(--color-neutral-400); cursor:pointer; margin-bottom:6px; line-height:1.4;"><%= q %></div>
+                <% }); %>
+              </div>
+            </div>
+          <% } %>
+
+          <!-- HEALTH -->
+          <% if (aiHealth) { %>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
+              <% (healthCards || []).forEach(function (h) { %>
+                <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <svg viewBox="0 0 48 48" style="width:42px; height:42px; flex:none;">
+                      <circle cx="24" cy="24" r="19" fill="none" stroke="var(--color-neutral-900)" stroke-width="5"></circle>
+                      <circle cx="24" cy="24" r="19" fill="none" stroke="<%= h.color %>" stroke-width="5" stroke-dasharray="<%= h.dash %>" stroke-linecap="round" transform="rotate(-90 24 24)"></circle>
+                      <text x="24" y="28" text-anchor="middle" fill="var(--color-neutral-200)" font-size="12" font-weight="500" font-family="Inter"><%= h.score %></text>
+                    </svg>
+                    <div style="flex:1;">
+                      <div style="display:flex; align-items:center; gap:6px;"><i class="<%= h.icon %>" style="font-size:13px; color:var(--color-neutral-500);"></i><span style="font-size:12.5px; font-weight:500;"><%= h.name %></span></div>
+                      <div style="display:flex; gap:6px; margin-top:4px;">
+                        <span style="font-size:9.5px; border:1px solid var(--color-neutral-800); border-radius:4px; padding:1px 6px; color:<%= h.riskColor %>;"><%= h.risk %></span>
+                        <span style="font-size:9.5px; color:<%= h.trendColor %>;"><%= h.trend %></span>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="font-size:11px; color:var(--color-neutral-400); line-height:1.5; margin-top:10px; padding-top:9px; border-top:1px solid var(--color-neutral-900);"><%= h.reason %></div>
+                  <div style="display:flex; flex-wrap:wrap; gap:5px; margin-top:8px;">
+                    <% (h.chips || []).forEach(function (c) { %><span style="font-size:9.5px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:1.5px 7px; color:var(--color-neutral-500); font-variant-numeric:tabular-nums;"><%= c %></span><% }); %>
+                  </div>
+                  <div style="font-size:10.5px; color:var(--color-accent-300); margin-top:9px; line-height:1.45;"><i class="ph-fill ph-sparkle" style="font-size:10px;"></i> <%= h.rec %></div>
+                  <div style="font-size:9px; color:var(--color-neutral-700); margin-top:6px;">Benchmark: <%= h.bench %></div>
+                </div>
+              <% }); %>
+            </div>
+          <% } %>
+
+          <!-- FORECAST -->
+          <% if (aiForecast) { %>
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+              <span style="font-size:12px; color:var(--color-neutral-500);">Horizon</span>
+              <div style="display:flex; border:1px solid var(--color-neutral-800); border-radius:8px; overflow:hidden;">
+                <% (fcRanges || []).forEach(function (r) { %>
+                  <div class="hv-5" data-action="<%= r.go %>" style="padding:6px 14px; font-size:11.5px; cursor:pointer; color:<%= r.color %>; background:<%= r.bg %>; border-right:1px solid var(--color-neutral-900);"><%= r.label %></div>
+                <% }); %>
+              </div>
+              <span style="font-size:11px; color:var(--color-neutral-600);">confidence <%= fcConf %> · model retrained nightly on CRM + PMS actuals</span>
+            </div>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px;">
+              <% (fcKpis || []).forEach(function (k) { %>
+                <div style="background:var(--color-surface); border-radius:10px; box-shadow:var(--shadow-sm); padding:10px 13px;">
+                  <div style="display:flex; align-items:center; gap:5px;"><span style="font-size:9.5px; letter-spacing:.06em; color:var(--color-neutral-500); text-transform:uppercase;"><%= k.label %></span><span style="flex:1;"></span><span style="font-size:8px; border:1px solid var(--color-accent-2-800); border-radius:4px; padding:0.5px 4px; color:var(--color-accent-2-300);">AI</span></div>
+                  <div style="display:flex; align-items:baseline; gap:7px; margin-top:4px;"><span style="font-size:17px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:10px; color:<%= k.deltaColor %>;"><%= k.delta %></span></div>
+                  <div style="font-size:9.5px; color:var(--color-neutral-600); margin-top:2px;">range <%= k.range %></div>
+                </div>
+              <% }); %>
+            </div>
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
+              <div style="display:flex; align-items:center; margin-bottom:6px;"><div style="font-size:13px; font-weight:500;">Revenue forecast — <%= fcLabel %></div><div style="flex:1;"></div><span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);"><span style="width:12px; height:2px; background:var(--color-accent-300);"></span>Actual</span><span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400); margin-left:10px;"><span style="width:12px; height:2px; background:var(--color-accent-300); opacity:.4;"></span>Forecast + band</span></div>
+              <svg viewBox="0 0 640 190" style="width:100%; height:190px;" preserveAspectRatio="none">
+                <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="47" x2="640" y2="47"></line><line x1="0" y1="94" x2="640" y2="94"></line><line x1="0" y1="141" x2="640" y2="141"></line></g>
+                <path d="M320,86 L400,68 L480,58 L560,44 L640,30 L640,74 L560,84 L480,92 L400,98 L320,96 Z" fill="var(--color-accent-500)" opacity="0.14"></path>
+                <path d="M0,150 L60,138 L120,142 L180,120 L240,108 L320,86" fill="none" stroke="var(--color-accent-300)" stroke-width="2" stroke-linejoin="round"></path>
+                <path d="M320,86 L400,80 L480,72 L560,62 L640,50" fill="none" stroke="var(--color-accent-300)" stroke-width="2" stroke-dasharray="5 5"></path>
+                <circle cx="320" cy="86" r="3.5" fill="var(--color-accent-200)"></circle>
+                <line x1="320" y1="12" x2="320" y2="178" stroke="var(--color-neutral-800)" stroke-dasharray="3 4"></line>
+                <text x="326" y="20" fill="var(--color-neutral-600)" font-size="9" font-family="Inter">today</text>
+              </svg>
+              <div style="font-size:11px; color:var(--color-neutral-500); margin-top:8px; line-height:1.5;"><i class="ph-fill ph-sparkle" style="color:var(--color-accent-400); font-size:11px;"></i> <%= fcNote %></div>
+            </div>
+          <% } %>
+
+          <!-- ANOMALIES & ROOT CAUSE -->
+          <% if (aiAnom) { %>
+            <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:12px; align-items:start;">
+              <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:6px 16px 12px;">
+                <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                  <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:9px 8px 9px 0; font-weight:500;">ANOMALY</th><th style="padding:9px 8px; text-align:right; font-weight:500;">DEVIATION</th><th style="padding:9px 8px; font-weight:500;">DETECTED</th><th style="padding:9px 0 9px 8px; font-weight:500;">STATUS</th></tr></thead>
+                  <tbody>
+                    <% (anomalies || []).forEach(function (a) { %>
+                      <tr class="hv-1" style="border-top:1px solid var(--color-neutral-900); cursor:pointer;">
+                        <td style="padding:9px 8px 9px 0;"><span style="display:flex; align-items:flex-start; gap:8px;"><span style="width:7px; height:7px; border-radius:99px; background:<%= a.dot %>; margin-top:5px; flex:none;"></span><span><span style="color:var(--color-neutral-200); display:block;"><%= a.title %></span><span style="font-size:10.5px; color:var(--color-neutral-600);"><%= a.scope %></span></span></span></td>
+                        <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:<%= a.devColor %>; font-weight:500;"><%= a.dev %></td>
+                        <td style="padding:9px 8px; color:var(--color-neutral-500); white-space:nowrap;"><%= a.when %></td>
+                        <td style="padding:9px 0 9px 8px;"><span style="font-size:10px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:2px 8px; color:<%= a.statusColor %>; white-space:nowrap;"><%= a.status %></span></td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+              <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
+                <div style="display:flex; align-items:center; gap:7px; margin-bottom:4px;"><i class="ph ph-tree-structure" style="color:var(--color-accent-400); font-size:14px;"></i><div style="font-size:13px; font-weight:500;">Root cause — cancellation spike</div></div>
+                <div style="font-size:10.5px; color:var(--color-neutral-600); margin-bottom:12px;">Cancellations +2pt this month · AI traced the causal chain</div>
+                <% (rootChain || []).forEach(function (rc) { %>
+                  <div style="display:flex; gap:11px; align-items:flex-start;">
+                    <div style="display:flex; flex-direction:column; align-items:center; align-self:stretch;">
+                      <div style="width:22px; height:22px; flex:none; border-radius:99px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); display:grid; place-items:center; font-size:10px; color:var(--color-accent-300); font-weight:500;"><%= rc.n %></div>
+                      <% if (rc.line) { %><div style="width:1px; flex:1; min-height:14px; background:var(--color-neutral-800);"></div><% } %>
+                    </div>
+                    <div style="padding-bottom:14px;">
+                      <div style="font-size:12px; color:var(--color-neutral-200); line-height:1.45;"><%= rc.text %></div>
+                      <div style="font-size:10.5px; color:var(--color-neutral-600); margin-top:2px;"><%= rc.evidence %></div>
+                    </div>
+                  </div>
+                <% }); %>
+                <div style="margin-top:4px; padding:10px 12px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); border-radius:9px; font-size:11.5px; color:var(--color-accent-100); line-height:1.5;"><b style="font-weight:500;">Fix:</b> shorten the payment window to 48h with an auto-reminder at 24h — recovers an estimated 5 of 8 monthly cancellations (₹1.1L).</div>
+              </div>
+            </div>
+          <% } %>
+
+          <!-- SIMULATOR -->
+          <% if (aiSim) { %>
+            <div style="display:grid; grid-template-columns:340px 1fr; gap:12px; align-items:start;">
+              <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
+                <div style="font-size:13px; font-weight:500; margin-bottom:2px;">Scenario levers</div>
+                <div style="font-size:10.5px; color:var(--color-neutral-600); margin-bottom:14px;">model fitted on 12 months of CRM + ads history</div>
+                <div style="margin-bottom:14px;">
+                  <div style="font-size:11px; color:var(--color-neutral-400); margin-bottom:6px;">Meta Ads budget</div>
+                  <div style="display:flex; border:1px solid var(--color-neutral-800); border-radius:7px; overflow:hidden;">
+                    <% (simMetaOpts || []).forEach(function (o) { %>
+                      <div class="hv-5" data-action="<%= o.go %>" style="flex:1; text-align:center; padding:6px 0; font-size:11.5px; cursor:pointer; color:<%= o.color %>; background:<%= o.bg %>; border-right:1px solid var(--color-neutral-900);"><%= o.label %></div>
+                    <% }); %>
+                  </div>
+                </div>
+                <div style="margin-bottom:14px;">
+                  <div style="font-size:11px; color:var(--color-neutral-400); margin-bottom:6px;">ADR (room rates)</div>
+                  <div style="display:flex; border:1px solid var(--color-neutral-800); border-radius:7px; overflow:hidden;">
+                    <% (simAdrOpts || []).forEach(function (o) { %>
+                      <div class="hv-5" data-action="<%= o.go %>" style="flex:1; text-align:center; padding:6px 0; font-size:11.5px; cursor:pointer; color:<%= o.color %>; background:<%= o.bg %>; border-right:1px solid var(--color-neutral-900);"><%= o.label %></div>
+                    <% }); %>
+                  </div>
+                </div>
+                <div style="margin-bottom:14px;">
+                  <div style="font-size:11px; color:var(--color-neutral-400); margin-bottom:6px;">Cancellation rate</div>
+                  <div style="display:flex; border:1px solid var(--color-neutral-800); border-radius:7px; overflow:hidden;">
+                    <% (simCancelOpts || []).forEach(function (o) { %>
+                      <div class="hv-5" data-action="<%= o.go %>" style="flex:1; text-align:center; padding:6px 0; font-size:11.5px; cursor:pointer; color:<%= o.color %>; background:<%= o.bg %>; border-right:1px solid var(--color-neutral-900);"><%= o.label %></div>
+                    <% }); %>
+                  </div>
+                </div>
+                <div style="font-size:10.5px; color:var(--color-neutral-600); line-height:1.5; border-top:1px solid var(--color-neutral-900); padding-top:10px;">Assumes marginal Meta ROAS 5.1x with saturation decay, −0.25pt occupancy per +1% ADR, and 82% recovery on avoided cancellations.</div>
+              </div>
+              <div style="background:linear-gradient(160deg, var(--color-section) 0%, #1c1f3d 75%); border-radius:12px; box-shadow:var(--shadow-sm); padding:18px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;"><i class="ph-fill ph-flask" style="color:var(--color-accent-300); font-size:15px;"></i><div style="font-size:13px; font-weight:500;">Predicted next 30 days — <%= simScenario %></div></div>
+                <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:10px;">
+                  <% (simOut || []).forEach(function (o) { %>
+                    <div style="border:1px solid var(--color-section-ghost); border-radius:10px; padding:11px 13px;">
+                      <div style="font-size:9px; letter-spacing:.06em; color:var(--color-accent-2-300); opacity:.8;"><%= o.label %></div>
+                      <div style="font-size:19px; font-weight:500; margin-top:4px; font-variant-numeric:tabular-nums;"><%= o.value %></div>
+                      <div style="font-size:10.5px; margin-top:2px; color:<%= o.deltaColor %>; font-variant-numeric:tabular-nums;"><%= o.delta %></div>
+                    </div>
+                  <% }); %>
+                </div>
+                <div style="margin-top:14px; font-size:12px; color:var(--color-accent-100); line-height:1.6;"><%= simNote %></div>
+                <div style="display:flex; gap:8px; margin-top:14px;">
+                  <span class="hv-7" style="font-size:11px; border:1px solid var(--color-accent-500); border-radius:7px; padding:6px 14px; color:var(--color-accent-200); cursor:pointer;">Save scenario</span>
+                  <span style="font-size:11px; border:1px solid var(--color-section-ghost); border-radius:7px; padding:6px 14px; color:var(--color-accent-2-300); cursor:pointer;">Create budget plan from this</span>
+                </div>
+              </div>
+            </div>
+          <% } %>
+
+          <!-- GOALS & BENCHMARKS -->
+          <% if (aiGoals) { %>
+            <div style="display:grid; grid-template-columns:1fr 1.2fr; gap:12px; align-items:start;">
+              <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
+                <div style="display:flex; align-items:center; margin-bottom:12px;"><div style="font-size:13px; font-weight:500;">July goals</div><div style="flex:1;"></div><span style="font-size:11px; color:var(--color-neutral-500);">2 days left</span></div>
+                <% (goals || []).forEach(function (g) { %>
+                  <div style="margin-bottom:13px;">
+                    <div style="display:flex; align-items:baseline; gap:8px; font-size:11.5px; margin-bottom:4px;">
+                      <span style="color:var(--color-neutral-300);"><%= g.name %></span>
+                      <span style="flex:1;"></span>
+                      <span style="font-variant-numeric:tabular-nums; color:var(--color-neutral-200); font-weight:500;"><%= g.cur %></span>
+                      <span style="font-size:10px; color:var(--color-neutral-600);">/ <%= g.target %></span>
+                      <span style="font-size:10px; color:<%= g.paceColor %>;"><%= g.pace %></span>
+                    </div>
+                    <div style="height:7px; border-radius:99px; background:var(--color-neutral-900); position:relative;">
+                      <div style="height:100%; width:<%= g.w %>; border-radius:99px; background:<%= g.barColor %>;"></div>
+                      <div style="position:absolute; top:-2px; bottom:-2px; left:93%; width:2px; background:var(--color-neutral-600); border-radius:2px;" title="time elapsed"></div>
+                    </div>
+                  </div>
+                <% }); %>
+              </div>
+              <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+                  <div style="font-size:13px; font-weight:500;">Benchmarks</div>
+                  <div style="flex:1;"></div>
+                  <div style="display:flex; border:1px solid var(--color-neutral-800); border-radius:7px; overflow:hidden;">
+                    <% (benchModes || []).forEach(function (m) { %>
+                      <div class="hv-5" data-action="<%= m.go %>" style="padding:5px 11px; font-size:10.5px; cursor:pointer; white-space:nowrap; color:<%= m.color %>; background:<%= m.bg %>; border-right:1px solid var(--color-neutral-900);"><%= m.label %></div>
+                    <% }); %>
+                  </div>
+                </div>
+                <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                  <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:7px 8px 7px 0; font-weight:500;"><%= benchCol1 %></th><th style="padding:7px 8px; text-align:right; font-weight:500;"><%= benchCol2 %></th><th style="padding:7px 8px; text-align:right; font-weight:500;"><%= benchCol3 %></th><th style="padding:7px 8px; text-align:right; font-weight:500;">Δ</th><th style="padding:7px 0 7px 8px; font-weight:500;"></th></tr></thead>
+                  <tbody>
+                    <% (benchRows || []).forEach(function (b) { %>
+                      <tr style="border-top:1px solid var(--color-neutral-900);">
+                        <td style="padding:8px 8px 8px 0; color:var(--color-neutral-300); white-space:nowrap;"><%= b.metric %></td>
+                        <td style="padding:8px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-200); font-weight:500;"><%= b.cur %></td>
+                        <td style="padding:8px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-500);"><%= b.prev %></td>
+                        <td style="padding:8px 8px; text-align:right; font-variant-numeric:tabular-nums; color:<%= b.deltaColor %>; font-weight:500;"><%= b.delta %></td>
+                        <td style="padding:8px 0 8px 8px; min-width:90px;"><div style="height:5px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= b.w %>; border-radius:99px; background:<%= b.barColor %>;"></div></div></td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          <% } %>
+
+          <!-- RECOMMENDATIONS -->
+          <% if (aiRecsTab) { %>
+          <div style="display:flex; gap:6px; margin-bottom:14px;">
+            <span style="font-size:11.5px; padding:4.5px 12px; border-radius:99px; background:var(--color-accent-900); border:1px solid var(--color-accent-800); color:var(--color-accent-300);">All (9)</span>
+            <span class="hv-3" style="font-size:11.5px; padding:4.5px 12px; border-radius:99px; border:1px solid var(--color-neutral-800); color:var(--color-neutral-500); cursor:pointer;">Marketing</span>
+            <span class="hv-3" style="font-size:11.5px; padding:4.5px 12px; border-radius:99px; border:1px solid var(--color-neutral-800); color:var(--color-neutral-500); cursor:pointer;">Sales</span>
+            <span class="hv-3" style="font-size:11.5px; padding:4.5px 12px; border-radius:99px; border:1px solid var(--color-neutral-800); color:var(--color-neutral-500); cursor:pointer;">Reservations</span>
+            <span class="hv-3" style="font-size:11.5px; padding:4.5px 12px; border-radius:99px; border:1px solid var(--color-neutral-800); color:var(--color-neutral-500); cursor:pointer;">Revenue</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <% (aiFeed || []).forEach(function (ins) { %>
+              <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px; display:flex; gap:12px;">
+                <div style="width:30px; height:30px; flex:none; border-radius:8px; border:1px solid var(--color-neutral-800); display:grid; place-items:center; color:<%= ins.color %>;"><i class="<%= ins.icon %>" style="font-size:15px;"></i></div>
+                <div style="flex:1;">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:13px; font-weight:500; color:var(--color-neutral-200);"><%= ins.title %></span>
+                    <span style="font-size:9.5px; letter-spacing:.05em; border:1px solid var(--color-neutral-800); border-radius:4px; padding:1px 6px; color:<%= ins.color %>;"><%= ins.cat %></span>
+                  </div>
+                  <div style="font-size:12px; color:var(--color-neutral-400); line-height:1.55; margin-top:4px;"><%= ins.body %></div>
+                  <div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">
+                    <% (ins.chips || []).forEach(function (c) { %><span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:2px 8px; color:var(--color-neutral-400); font-variant-numeric:tabular-nums;"><%= c %></span><% }); %>
+                    <div style="flex:1;"></div>
+                    <span style="font-size:11px; color:var(--color-accent-300); cursor:pointer;"><%= ins.action %> →</span>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+          <div style="margin-top:12px; background:linear-gradient(160deg, var(--color-section) 0%, #1c1f3d 70%); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
+            <div style="display:flex; align-items:center; gap:7px; margin-bottom:10px;"><i class="ph-fill ph-list-checks" style="color:var(--color-accent-300); font-size:15px;"></i><div style="font-size:13px; font-weight:500;">This week's action plan</div></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; color:var(--color-accent-100); line-height:1.5;">
+              <div style="display:flex; gap:8px;"><i class="ph ph-square" style="margin-top:2px; color:var(--color-accent-300);"></i>Shift ₹40K/week to Munnar Honeymoon campaign</div>
+              <div style="display:flex; gap:8px;"><i class="ph ph-square" style="margin-top:2px; color:var(--color-accent-300);"></i>Rotate 2 backup hooks on fatigued waterfall video</div>
+              <div style="display:flex; gap:8px;"><i class="ph ph-square" style="margin-top:2px; color:var(--color-accent-300);"></i>Broaden honeymoon lookalike from 2% → 4%</div>
+              <div style="display:flex; gap:8px;"><i class="ph ph-square" style="margin-top:2px; color:var(--color-accent-300);"></i>Fix Kumarakom LP form (58% mobile drop-off)</div>
+            </div>
+          </div>
+          <% } %>
+        </div>

@@ -1,0 +1,294 @@
+{
+  "resource": "ai",
+  "generatedFrom": "data/generated/ai.js",
+  "fields": {
+    "aiAnom": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "aiChat": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "aiCommand": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "aiForecast": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "aiGoals": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "aiHealth": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "aiRecsTab": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "aiSim": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "benchCol1": {
+      "kind": "value",
+      "type": "string"
+    },
+    "benchCol2": {
+      "kind": "value",
+      "type": "string"
+    },
+    "benchCol3": {
+      "kind": "value",
+      "type": "string"
+    },
+    "down": {
+      "kind": "value",
+      "type": "string"
+    },
+    "fcConf": {
+      "kind": "value",
+      "type": "string"
+    },
+    "fcLabel": {
+      "kind": "value",
+      "type": "string"
+    },
+    "fcNote": {
+      "kind": "value",
+      "type": "string"
+    },
+    "simNote": {
+      "kind": "value",
+      "type": "string"
+    },
+    "simScenario": {
+      "kind": "value",
+      "type": "string"
+    },
+    "sumNarrative": {
+      "kind": "value",
+      "type": "string"
+    },
+    "sumTitle": {
+      "kind": "value",
+      "type": "string"
+    },
+    "up": {
+      "kind": "value",
+      "type": "string"
+    },
+    "warn": {
+      "kind": "value",
+      "type": "string"
+    },
+    "aiTabs": {
+      "kind": "list",
+      "item": [
+        "border",
+        "color",
+        "label"
+      ]
+    },
+    "sumRanges": {
+      "kind": "list",
+      "item": [
+        "bg",
+        "color",
+        "label"
+      ]
+    },
+    "sumKpis": {
+      "kind": "list",
+      "item": [
+        "delta",
+        "deltaColor",
+        "label",
+        "value"
+      ]
+    },
+    "aiRisks": {
+      "kind": "list",
+      "item": [
+        "dot",
+        "meta",
+        "text"
+      ]
+    },
+    "aiOpps": {
+      "kind": "list",
+      "item": [
+        "meta",
+        "text"
+      ]
+    },
+    "aiActions": {
+      "kind": "list",
+      "item": [
+        "btn",
+        "meta",
+        "text"
+      ]
+    },
+    "healthMinis": {
+      "kind": "list",
+      "item": [
+        "color",
+        "name",
+        "score",
+        "w"
+      ],
+      "nested": {
+        "chips": {
+          "scalar": true
+        }
+      }
+    },
+    "aiCaps": {
+      "kind": "list",
+      "scalar": true
+    },
+    "healthCards": {
+      "kind": "list",
+      "item": [
+        "bench",
+        "color",
+        "dash",
+        "icon",
+        "name",
+        "reason",
+        "rec",
+        "risk",
+        "riskColor",
+        "score",
+        "trend",
+        "trendColor"
+      ]
+    },
+    "fcRanges": {
+      "kind": "list",
+      "item": [
+        "bg",
+        "color",
+        "label"
+      ]
+    },
+    "fcKpis": {
+      "kind": "list",
+      "item": [
+        "delta",
+        "deltaColor",
+        "label",
+        "range",
+        "value"
+      ]
+    },
+    "anomalies": {
+      "kind": "list",
+      "item": [
+        "dev",
+        "devColor",
+        "dot",
+        "scope",
+        "status",
+        "statusColor",
+        "title",
+        "when"
+      ]
+    },
+    "rootChain": {
+      "kind": "list",
+      "item": [
+        "evidence",
+        "line",
+        "n",
+        "text"
+      ]
+    },
+    "simMetaOpts": {
+      "kind": "list",
+      "item": [
+        "bg",
+        "color",
+        "label"
+      ]
+    },
+    "simAdrOpts": {
+      "kind": "list",
+      "item": [
+        "bg",
+        "color",
+        "label"
+      ]
+    },
+    "simCancelOpts": {
+      "kind": "list",
+      "item": [
+        "bg",
+        "color",
+        "label"
+      ]
+    },
+    "simOut": {
+      "kind": "list",
+      "item": [
+        "delta",
+        "deltaColor",
+        "label",
+        "value"
+      ]
+    },
+    "goals": {
+      "kind": "list",
+      "item": [
+        "barColor",
+        "cur",
+        "name",
+        "pace",
+        "paceColor",
+        "target",
+        "w"
+      ]
+    },
+    "benchModes": {
+      "kind": "list",
+      "item": [
+        "bg",
+        "color",
+        "label"
+      ]
+    },
+    "benchRows": {
+      "kind": "list",
+      "item": [
+        "barColor",
+        "cur",
+        "delta",
+        "deltaColor",
+        "metric",
+        "prev",
+        "w"
+      ]
+    },
+    "aiFeed": {
+      "kind": "list",
+      "item": [
+        "action",
+        "body",
+        "cat",
+        "color",
+        "icon",
+        "title"
+      ],
+      "nested": {
+        "chips": {
+          "scalar": true
+        }
+      }
+    }
+  }
+}

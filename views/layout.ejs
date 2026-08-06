@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LeadIntel AI — <%= screen.name %></title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="/assets/nocturne.css">
+<link rel="stylesheet" href="/assets/app.css">
+<link rel="stylesheet" href="/assets/hover.css">
+<link rel="stylesheet" href="/assets/app-ui.css">
+</head>
+<body>
+
+<%
+/* A skip link, because the sidebar is thirteen focusable items before the
+   content starts and a keyboard user should not have to walk past them on
+   every screen. Visible only when focused. */
+%>
+<a class="li-skip" href="#main">Skip to content</a>
+
+<div class="app">
+
+  <%- include('partials/sidebar', shell) %>
+
+  <div class="main-col">
+    <%- include('partials/topbar', shell) %>
+    <%- include('partials/filterbar', shell) %>
+
+    <main id="main" tabindex="-1" aria-label="<%= screen.name %>">
+      <%- include('app/attribution-preview', { attrPreview: attrPreview }) %>
+      <%- include('app/filter-note', { filterNote: filterNote }) %>
+      <% if (hasView) { %>
+        <%- include('screens/' + screen.view, data || {}) %>
+      <% } else { %>
+        <div style="max-width:620px; margin:64px auto; text-align:center;">
+          <i class="<%= screen.icon %>" style="font-size:30px; color:var(--color-neutral-700);"></i>
+          <h2 style="margin:14px 0 6px; font-size:19px; font-weight:500;"><%= screen.name %></h2>
+          <p style="font-size:12.5px; color:var(--color-neutral-500); line-height:1.6;">
+            No view generated for this screen yet.
+          </p>
+        </div>
+      <% } %>
+    </main>
+  </div>
+
+  <% if (drawer) { %>
+    <%- include('screens/overlay-creative-detail', drawer.data) %>
+  <% } %>
+
+</div>
+
+<%- include('app/palette', { palette: palette }) %>
+<%- include('app/notifications', { notifications: notifications }) %>
+
+<script type="application/json" id="li-filter-data"><%- JSON.stringify(filterData) %></script>
+<script type="application/json" id="li-notif-count"><%- JSON.stringify({ count: notifications.count }) %></script>
+
+<script src="/assets/actions.js"></script>
+<script src="/assets/app-ui.js"></script>
+</body>
+</html>

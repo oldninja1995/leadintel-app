@@ -1,0 +1,12 @@
+{
+  "_note": "SYNTHETIC. Not Razorpay's data. Amounts are in paise, as the gateway actually reports them — the unit the normalised money value uses throughout, so nothing has to round on the way in. See PHASES.md, Phase 4.",
+
+  "payment": [
+    { "payment_id": "pay_QK81mnA", "booking_ref": "B-1001", "currency": "INR", "amount": 4280000, "status": "captured", "method": "upi", "contact": "+918547663311", "created_at": "2026-07-16T18:42:00+05:30" },
+    { "payment_id": "pay_QK7ZzLp", "booking_ref": "B-1002", "currency": "INR", "amount": 1500000, "status": "captured", "method": "card", "contact": "+919847012345", "created_at": "2026-07-11T12:05:00+05:30" }
+  ],
+
+  "refund": [
+    { "refund_id": "rfnd_QK9aX2", "payment_id": "pay_QK7ZzLp", "booking_ref": "B-1002", "currency": "INR", "amount": 1500000, "status": "processed", "reason": "guest cancellation", "created_at": "2026-07-18T09:30:00+05:30" }
+  ]
+}

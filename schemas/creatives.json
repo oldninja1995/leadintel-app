@@ -1,0 +1,29 @@
+{
+  "resource": "creatives",
+  "generatedFrom": "data/generated/creatives.js",
+  "fields": {
+    "creatives": {
+      "kind": "list",
+      "item": [
+        "bookings",
+        "ctr",
+        "dur",
+        "fatigue",
+        "fatigueBg",
+        "fatigueColor",
+        "grad",
+        "hook",
+        "hookRate",
+        "icon",
+        "platform",
+        "rev",
+        "roas",
+        "roasColor",
+        "spend",
+        "title",
+        "type",
+        "winning"
+      ]
+    }
+  }
+}

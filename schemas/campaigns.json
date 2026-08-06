@@ -1,0 +1,262 @@
+{
+  "resource": "campaigns",
+  "generatedFrom": "data/generated/campaigns.js",
+  "fields": {
+    "campCrumb": {
+      "kind": "value",
+      "type": "string"
+    },
+    "campDetail": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "campList": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "campTabAds": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "campTabAdsets": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "campTabCampaigns": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "campTabKeywords": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "dInsights": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "dName": {
+      "kind": "value",
+      "type": "string"
+    },
+    "dOverview": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "dRes": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "dRevenue": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "revGran": {
+      "kind": "value",
+      "type": "string"
+    },
+    "showCrumb": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "up": {
+      "kind": "value",
+      "type": "string"
+    },
+    "campTabs": {
+      "kind": "list",
+      "item": [
+        "border",
+        "color",
+        "label"
+      ]
+    },
+    "campRows": {
+      "kind": "list",
+      "item": [
+        "bookings",
+        "cpl",
+        "ctr",
+        "health",
+        "healthColor",
+        "impr",
+        "leads",
+        "name",
+        "objective",
+        "pace",
+        "paceColor",
+        "paceLabel",
+        "platform",
+        "rev",
+        "roas",
+        "roasColor",
+        "spark",
+        "spend",
+        "status"
+      ]
+    },
+    "adsetRows": {
+      "kind": "list",
+      "item": [
+        "audience",
+        "bookings",
+        "ctr",
+        "freq",
+        "freqColor",
+        "leads",
+        "name",
+        "opt",
+        "placement",
+        "rev",
+        "roas",
+        "roasColor",
+        "sat",
+        "satColor",
+        "spend"
+      ]
+    },
+    "adRows": {
+      "kind": "list",
+      "item": [
+        "adset",
+        "body",
+        "bookings",
+        "comments",
+        "cta",
+        "ctr",
+        "freq",
+        "grad",
+        "name",
+        "neg",
+        "negColor",
+        "platform",
+        "rev",
+        "roas",
+        "roasColor",
+        "saves",
+        "shares",
+        "spark",
+        "spend",
+        "thumbIcon",
+        "type"
+      ]
+    },
+    "kwRows": {
+      "kind": "list",
+      "item": [
+        "bookings",
+        "clicks",
+        "cpc",
+        "ctr",
+        "kw",
+        "match",
+        "qs",
+        "qsColor",
+        "rev",
+        "roas",
+        "roasColor"
+      ]
+    },
+    "searchTerms": {
+      "kind": "list",
+      "item": [
+        "n",
+        "term"
+      ]
+    },
+    "dTabs": {
+      "kind": "list",
+      "item": [
+        "border",
+        "color",
+        "label"
+      ]
+    },
+    "dMkt": {
+      "kind": "list",
+      "item": [
+        "delta",
+        "deltaColor",
+        "label",
+        "value"
+      ]
+    },
+    "dBiz": {
+      "kind": "list",
+      "item": [
+        "delta",
+        "deltaColor",
+        "label",
+        "value"
+      ]
+    },
+    "dFunnel": {
+      "kind": "list",
+      "item": [
+        "label",
+        "n",
+        "pct",
+        "w"
+      ]
+    },
+    "dRooms": {
+      "kind": "list",
+      "item": [
+        "name",
+        "rev",
+        "w"
+      ]
+    },
+    "dPkgs": {
+      "kind": "list",
+      "item": [
+        "name",
+        "rev",
+        "w"
+      ]
+    },
+    "dGrans": {
+      "kind": "list",
+      "item": [
+        "bg",
+        "color",
+        "label"
+      ]
+    },
+    "dRevStats": {
+      "kind": "list",
+      "item": [
+        "label",
+        "value"
+      ]
+    },
+    "resRows": {
+      "kind": "list",
+      "item": [
+        "checkin",
+        "guest",
+        "init",
+        "nights",
+        "pkg",
+        "rev",
+        "room",
+        "src",
+        "status",
+        "statusColor"
+      ]
+    },
+    "dAi": {
+      "kind": "list",
+      "item": [
+        "action",
+        "body",
+        "icon",
+        "title"
+      ],
+      "nested": {
+        "chips": {
+          "scalar": true
+        }
+      }
+    }
+  }
+}

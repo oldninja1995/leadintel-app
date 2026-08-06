@@ -1,0 +1,38 @@
+{
+  "resource": "attribution",
+  "generatedFrom": "data/generated/attribution.js",
+  "fields": {
+    "attrModelName": {
+      "kind": "value",
+      "type": "string"
+    },
+    "attrModels": {
+      "kind": "list",
+      "item": [
+        "bg",
+        "color",
+        "label"
+      ]
+    },
+    "journey": {
+      "kind": "list",
+      "item": [
+        "icon",
+        "label",
+        "when"
+      ]
+    },
+    "attrChannels": {
+      "kind": "list",
+      "item": [
+        "bookings",
+        "channel",
+        "conv",
+        "rev",
+        "share",
+        "time",
+        "tp"
+      ]
+    }
+  }
+}

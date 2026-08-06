@@ -1,0 +1,124 @@
+{
+  "resource": "dashboard",
+  "generatedFrom": "data/generated/dashboard.js",
+  "fields": {
+    "editBorder": {
+      "kind": "value",
+      "type": "string"
+    },
+    "editColor": {
+      "kind": "value",
+      "type": "string"
+    },
+    "editLabel": {
+      "kind": "value",
+      "type": "string"
+    },
+    "editing": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "up": {
+      "kind": "value",
+      "type": "string"
+    },
+    "warn": {
+      "kind": "value",
+      "type": "string"
+    },
+    "heroKpis": {
+      "kind": "list",
+      "item": [
+        "delta",
+        "deltaColor",
+        "icon",
+        "label",
+        "spark",
+        "src",
+        "srcBorder",
+        "srcColor",
+        "sub",
+        "tip",
+        "value"
+      ]
+    },
+    "miniKpis": {
+      "kind": "list",
+      "item": [
+        "delta",
+        "deltaColor",
+        "label",
+        "src",
+        "srcBorder",
+        "srcColor",
+        "tip",
+        "value"
+      ]
+    },
+    "funnel": {
+      "kind": "list",
+      "item": [
+        "label",
+        "n",
+        "pct",
+        "w"
+      ]
+    },
+    "campaigns": {
+      "kind": "list",
+      "item": [
+        "bookings",
+        "cpl",
+        "leads",
+        "name",
+        "platform",
+        "roas",
+        "roasColor",
+        "spend"
+      ]
+    },
+    "properties": {
+      "kind": "list",
+      "item": [
+        "meta",
+        "name",
+        "rank",
+        "rev"
+      ]
+    },
+    "reps": {
+      "kind": "list",
+      "item": [
+        "init",
+        "meta",
+        "name",
+        "rev"
+      ]
+    },
+    "recs": {
+      "kind": "list",
+      "item": [
+        "action",
+        "icon",
+        "impact",
+        "text"
+      ]
+    },
+    "alerts": {
+      "kind": "list",
+      "item": [
+        "dot",
+        "text",
+        "when"
+      ]
+    },
+    "activity": {
+      "kind": "list",
+      "item": [
+        "icon",
+        "text",
+        "when"
+      ]
+    }
+  }
+}

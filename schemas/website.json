@@ -1,0 +1,82 @@
+{
+  "resource": "website",
+  "generatedFrom": "data/generated/website.js",
+  "fields": {
+    "webTabFunnels": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "webTabLanding": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "webTabOverview": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "webTabs": {
+      "kind": "list",
+      "item": [
+        "border",
+        "color",
+        "label"
+      ]
+    },
+    "webKpis": {
+      "kind": "list",
+      "item": [
+        "delta",
+        "deltaColor",
+        "label",
+        "value"
+      ]
+    },
+    "webSources": {
+      "kind": "list",
+      "item": [
+        "rev",
+        "sessions",
+        "src",
+        "w"
+      ]
+    },
+    "topPages": {
+      "kind": "list",
+      "item": [
+        "avg",
+        "clicks",
+        "exit",
+        "page",
+        "views"
+      ]
+    },
+    "lpRows": {
+      "kind": "list",
+      "item": [
+        "audit",
+        "auditBorder",
+        "auditColor",
+        "bounce",
+        "bounceColor",
+        "clicks",
+        "conv",
+        "formDone",
+        "formStart",
+        "lp",
+        "rev",
+        "scroll",
+        "sessions"
+      ]
+    },
+    "webFunnel": {
+      "kind": "list",
+      "item": [
+        "drop",
+        "label",
+        "n",
+        "pct",
+        "w"
+      ]
+    }
+  }
+}

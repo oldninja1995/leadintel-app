@@ -1,0 +1,29 @@
+<%
+/* What the filter chips actually did — and did not do.
+   Rendered only when a filter is active. The limit is stated as plainly as the
+   effect, because narrowing a table while leaving the totals above it at their
+   unfiltered values is the misreading this note exists to prevent. */
+%>
+<% if (filterNote) { %>
+  <div class="li-filter-note<%= filterNote.empty ? ' li-filter-note--empty' : '' %>">
+    <i class="ph ph-funnel"></i>
+
+    <span class="li-filter-note-chips">
+      <% filterNote.chips.forEach(function (c) { %>
+        <span class="li-filter-chip"><%= c.chip %><strong><%= c.value %></strong></span>
+      <% }); %>
+    </span>
+
+    <span class="li-filter-note-text">
+      <% if (filterNote.empty) { %>
+        No rows match on this screen.
+      <% } else { %>
+        <%= filterNote.tables %> table<%= filterNote.tables === 1 ? '' : 's' %> narrowed,
+        <%= filterNote.dropped %> row<%= filterNote.dropped === 1 ? '' : 's' %> hidden.
+      <% } %>
+      Totals and charts are <strong>not</strong> filtered — that needs a second data snapshot per screen, which does not exist yet.
+    </span>
+
+    <a class="li-filter-clear" href="<%= filterNote.clearUrl %>">Clear</a>
+  </div>
+<% } %>

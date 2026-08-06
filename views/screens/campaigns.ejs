@@ -1,0 +1,330 @@
+<div style="animation:li-fade .25s ease;">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:19px;">Campaign Analytics</h1>
+            <% if (showCrumb) { %>
+              <span style="font-size:12px; color:var(--color-neutral-500); display:flex; align-items:center; gap:6px;"><i class="ph ph-caret-right" style="font-size:10px;"></i><span data-action="backToCampaigns" style="color:var(--color-accent-300); cursor:pointer;"><%= campCrumb %></span></span>
+            <% } %>
+            <div style="flex:1;"></div>
+            <div class="hv-3" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-neutral-500); border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; cursor:pointer;"><i class="ph ph-columns" style="font-size:13px;"></i>Columns</div>
+            <div class="hv-3" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-neutral-500); border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; cursor:pointer;"><i class="ph ph-export" style="font-size:13px;"></i>Export</div>
+          </div>
+          <% if (campList) { %>
+          <div style="display:flex; gap:4px; margin-bottom:12px; border-bottom:1px solid var(--color-neutral-900);">
+            <% (campTabs || []).forEach(function (t) { %>
+              <div class="hv-5" data-action="<%= t.go %>" style="padding:8px 14px; font-size:12.5px; cursor:pointer; color:<%= t.color %>; border-bottom:2px solid <%= t.border %>; margin-bottom:-1px;"><%= t.label %></div>
+            <% }); %>
+          </div>
+
+          <% if (campTabCampaigns) { %>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+              <div class="hv-6" style="display:flex; align-items:center; gap:7px; border:1px solid var(--color-neutral-800); border-radius:7px; padding:6px 10px; width:230px; color:var(--color-neutral-600); cursor:text;"><i class="ph ph-magnifying-glass" style="font-size:12px;"></i><span style="font-size:11.5px;">Search campaigns…</span></div>
+              <span class="hv-3" style="display:flex; align-items:center; gap:5px; font-size:11px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:4px 11px; color:var(--color-neutral-500); cursor:pointer;"><i class="ph ph-arrows-left-right" style="font-size:12px;"></i>Compare mode</span>
+              <span class="hv-3" style="display:flex; align-items:center; gap:5px; font-size:11px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:4px 11px; color:var(--color-neutral-500); cursor:pointer;"><i class="ph ph-push-pin" style="font-size:12px;"></i>Pin columns</span>
+              <span class="hv-3" style="display:flex; align-items:center; gap:5px; font-size:11px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:4px 11px; color:var(--color-neutral-500); cursor:pointer;"><i class="ph ph-note-pencil" style="font-size:12px;"></i>Annotations</span>
+              <div style="flex:1;"></div>
+              <span style="font-size:11px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); color:var(--color-accent-300); border-radius:99px; padding:4px 11px; cursor:pointer;">View: Revenue focus</span>
+            </div>
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:6px 16px 10px; overflow-x:auto;">
+              <table style="width:100%; min-width:1080px; border-collapse:collapse; font-size:12px;">
+                <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:9px 8px 9px 0; font-weight:500;">CAMPAIGN</th><th style="padding:9px 8px; font-weight:500;">OBJECTIVE</th><th style="padding:9px 8px; font-weight:500;">BUDGET PACING</th><th style="padding:9px 8px; text-align:right; font-weight:500;">SPEND</th><th style="padding:9px 8px; text-align:right; font-weight:500;">IMPR.</th><th style="padding:9px 8px; text-align:right; font-weight:500;">CTR</th><th style="padding:9px 8px; text-align:right; font-weight:500;">CPL</th><th style="padding:9px 8px; text-align:right; font-weight:500;">LEADS</th><th style="padding:9px 8px; text-align:right; font-weight:500;">BOOKINGS</th><th style="padding:9px 8px; text-align:right; font-weight:500;">REVENUE</th><th style="padding:9px 8px; text-align:right; font-weight:500;">NET ROAS</th><th style="padding:9px 8px; text-align:center; font-weight:500;">HEALTH</th><th style="padding:9px 0 9px 8px; font-weight:500;">TREND</th></tr></thead>
+                <tbody>
+                  <% (campRows || []).forEach(function (c) { %>
+                    <tr class="hv-1" data-action="<%= c.go %>" style="border-top:1px solid var(--color-neutral-900); cursor:pointer;">
+                      <td style="padding:9px 8px 9px 0;"><div style="color:var(--color-neutral-200); font-weight:500; white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis;"><%= c.name %></div><div style="font-size:10.5px; color:var(--color-neutral-600); margin-top:1px;"><%= c.platform %> · <%= c.status %></div></td>
+                      <td style="padding:9px 8px;"><span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:2px 7px; color:var(--color-neutral-400); white-space:nowrap;"><%= c.objective %></span></td>
+                      <td style="padding:9px 8px; min-width:110px;"><div style="display:flex; align-items:center; gap:7px;"><div style="flex:1; height:5px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= c.pace %>; border-radius:99px; background:<%= c.paceColor %>;"></div></div><span style="font-size:10.5px; color:var(--color-neutral-500); white-space:nowrap;"><%= c.paceLabel %></span></div></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= c.spend %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= c.impr %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= c.ctr %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= c.cpl %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= c.leads %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-200);"><%= c.bookings %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-200); font-weight:500;"><%= c.rev %></td>
+                      <td style="padding:9px 8px; text-align:right;"><span style="font-weight:500; font-variant-numeric:tabular-nums; color:<%= c.roasColor %>;"><%= c.roas %></span></td>
+                      <td style="padding:9px 8px; text-align:center;"><span title="Composite of ROAS trend, pacing, fatigue & lead response" style="font-size:10.5px; font-weight:500; border:1px solid var(--color-neutral-800); border-radius:99px; padding:2px 9px; color:<%= c.healthColor %>; font-variant-numeric:tabular-nums;"><%= c.health %></span></td>
+                      <td style="padding:9px 0 9px 8px;"><svg viewBox="0 0 60 18" style="width:60px; height:18px;"><polyline points="<%= c.spark %>" fill="none" stroke="var(--color-accent-500)" stroke-width="1.4"></polyline></svg></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+              <div style="font-size:10.5px; color:var(--color-neutral-600); padding-top:9px; border-top:1px solid var(--color-neutral-900); display:flex; align-items:center; gap:6px;"><i class="ph ph-cursor-click" style="font-size:12px;"></i>Click a campaign to open its detail page · Ad sets / Ads / Keywords via the tabs above</div>
+            </div>
+          <% } %>
+
+          <% if (campTabAdsets) { %>
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:6px 16px 10px; overflow-x:auto;">
+              <table style="width:100%; min-width:1000px; border-collapse:collapse; font-size:12px;">
+                <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:9px 8px 9px 0; font-weight:500;">AD SET</th><th style="padding:9px 8px; font-weight:500;">AUDIENCE</th><th style="padding:9px 8px; font-weight:500;">PLACEMENT</th><th style="padding:9px 8px; font-weight:500;">SATURATION</th><th style="padding:9px 8px; text-align:right; font-weight:500;">SPEND</th><th style="padding:9px 8px; text-align:right; font-weight:500;">CTR</th><th style="padding:9px 8px; text-align:right; font-weight:500;">FREQ</th><th style="padding:9px 8px; text-align:right; font-weight:500;">LEADS</th><th style="padding:9px 8px; text-align:right; font-weight:500;">BOOKINGS</th><th style="padding:9px 8px; text-align:right; font-weight:500;">REVENUE</th><th style="padding:9px 0 9px 8px; text-align:right; font-weight:500;">NET ROAS</th></tr></thead>
+                <tbody>
+                  <% (adsetRows || []).forEach(function (a) { %>
+                    <tr class="hv-1" data-action="<%= a.go %>" style="border-top:1px solid var(--color-neutral-900); cursor:pointer;">
+                      <td style="padding:9px 8px 9px 0;"><div style="color:var(--color-neutral-200); font-weight:500; white-space:nowrap;"><%= a.name %></div><div style="font-size:10.5px; color:var(--color-neutral-600);"><%= a.opt %></div></td>
+                      <td style="padding:9px 8px; color:var(--color-neutral-400); white-space:nowrap;"><%= a.audience %></td>
+                      <td style="padding:9px 8px; color:var(--color-neutral-400); white-space:nowrap;"><%= a.placement %></td>
+                      <td style="padding:9px 8px; min-width:100px;"><div style="display:flex; align-items:center; gap:7px;"><div style="flex:1; height:5px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= a.sat %>; border-radius:99px; background:<%= a.satColor %>;"></div></div><span style="font-size:10.5px; color:var(--color-neutral-500);"><%= a.sat %></span></div></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= a.spend %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= a.ctr %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:<%= a.freqColor %>;"><%= a.freq %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= a.leads %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-200);"><%= a.bookings %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-200); font-weight:500;"><%= a.rev %></td>
+                      <td style="padding:9px 0 9px 8px; text-align:right;"><span style="font-weight:500; font-variant-numeric:tabular-nums; color:<%= a.roasColor %>;"><%= a.roas %></span></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+              <div style="margin-top:10px; padding:10px 12px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); border-radius:9px; display:flex; gap:9px; align-items:flex-start;">
+                <i class="ph-fill ph-sparkle" style="color:var(--color-accent-300); font-size:14px; margin-top:1px;"></i>
+                <span style="font-size:12px; color:var(--color-accent-200); line-height:1.5;">"Honeymoon lookalike 2%" is saturating (freq 4.2, CTR −31% in 10 days). Broaden to 4% lookalike or refresh creatives — projected CPL recovery ₹110.</span>
+              </div>
+            </div>
+          <% } %>
+
+          <% if (campTabAds) { %>
+            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
+              <% (adRows || []).forEach(function (ad) { %>
+                <div class="hv-4" style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); overflow:hidden; cursor:pointer;">
+                  <div style="height:120px; background:<%= ad.grad %>; display:grid; place-items:center; position:relative;">
+                    <i class="<%= ad.thumbIcon %>" style="font-size:34px; color:var(--color-accent-300); opacity:.8;"></i>
+                    <span style="position:absolute; top:8px; left:8px; font-size:10px; border-radius:5px; padding:2px 7px; background:rgba(20,22,31,.75); color:var(--color-neutral-300);"><%= ad.type %></span>
+                    <span style="position:absolute; bottom:8px; right:8px; font-size:10px; border-radius:5px; padding:2px 7px; background:rgba(20,22,31,.75); color:var(--color-neutral-300);"><%= ad.platform %></span>
+                  </div>
+                  <div style="padding:12px 14px;">
+                    <div style="font-size:12.5px; font-weight:500; color:var(--color-neutral-200);"><%= ad.name %></div>
+                    <div style="font-size:11px; color:var(--color-neutral-500); margin-top:3px; line-height:1.45; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;"><%= ad.body %></div>
+                    <div style="display:flex; align-items:center; gap:6px; margin-top:8px;"><span style="font-size:10px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); color:var(--color-accent-300); border-radius:5px; padding:2px 8px;"><%= ad.cta %></span><span style="font-size:10.5px; color:var(--color-neutral-600);"><%= ad.adset %></span></div>
+                    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:11px; padding-top:10px; border-top:1px solid var(--color-neutral-900);">
+                      <div><div style="font-size:9.5px; color:var(--color-neutral-600);">SPEND</div><div style="font-size:12.5px; font-weight:500; font-variant-numeric:tabular-nums;"><%= ad.spend %></div></div>
+                      <div><div style="font-size:9.5px; color:var(--color-neutral-600);">CTR</div><div style="font-size:12.5px; font-weight:500; font-variant-numeric:tabular-nums;"><%= ad.ctr %></div></div>
+                      <div><div style="font-size:9.5px; color:var(--color-neutral-600);">FREQ</div><div style="font-size:12.5px; font-weight:500; font-variant-numeric:tabular-nums;"><%= ad.freq %></div></div>
+                      <div><div style="font-size:9.5px; color:var(--color-neutral-600);">BOOKINGS</div><div style="font-size:12.5px; font-weight:500; font-variant-numeric:tabular-nums;"><%= ad.bookings %></div></div>
+                      <div><div style="font-size:9.5px; color:var(--color-neutral-600);">REVENUE</div><div style="font-size:12.5px; font-weight:500; font-variant-numeric:tabular-nums;"><%= ad.rev %></div></div>
+                      <div><div style="font-size:9.5px; color:var(--color-neutral-600);">NET ROAS</div><div style="font-size:12.5px; font-weight:500; font-variant-numeric:tabular-nums; color:<%= ad.roasColor %>;"><%= ad.roas %></div></div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:10px; margin-top:10px; font-size:10.5px; color:var(--color-neutral-500);">
+                      <span><i class="ph ph-chat-circle" style="font-size:11px;"></i> <%= ad.comments %></span><span><i class="ph ph-share-network" style="font-size:11px;"></i> <%= ad.shares %></span><span><i class="ph ph-bookmark-simple" style="font-size:11px;"></i> <%= ad.saves %></span><span style="color:<%= ad.negColor %>;"><i class="ph ph-thumbs-down" style="font-size:11px;"></i> <%= ad.neg %></span>
+                      <div style="flex:1;"></div>
+                      <svg viewBox="0 0 60 16" style="width:60px; height:16px;"><polyline points="<%= ad.spark %>" fill="none" stroke="var(--color-accent-500)" stroke-width="1.4"></polyline></svg>
+                    </div>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          <% } %>
+
+          <% if (campTabKeywords) { %>
+            <div style="display:grid; grid-template-columns:1.9fr 1fr; gap:12px;">
+              <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:6px 16px 12px;">
+                <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                  <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:9px 8px 9px 0; font-weight:500;">KEYWORD</th><th style="padding:9px 8px; font-weight:500;">MATCH</th><th style="padding:9px 8px; text-align:right; font-weight:500;">CLICKS</th><th style="padding:9px 8px; text-align:right; font-weight:500;">CTR</th><th style="padding:9px 8px; text-align:right; font-weight:500;">CPC</th><th style="padding:9px 8px; text-align:center; font-weight:500;">QS</th><th style="padding:9px 8px; text-align:right; font-weight:500;">BOOKINGS</th><th style="padding:9px 8px; text-align:right; font-weight:500;">REVENUE</th><th style="padding:9px 0 9px 8px; text-align:right; font-weight:500;">ROAS</th></tr></thead>
+                  <tbody>
+                    <% (kwRows || []).forEach(function (k) { %>
+                      <tr class="hv-1" style="border-top:1px solid var(--color-neutral-900); cursor:pointer;">
+                        <td style="padding:9px 8px 9px 0; color:var(--color-neutral-200); font-weight:500; white-space:nowrap;"><%= k.kw %></td>
+                        <td style="padding:9px 8px;"><span style="font-size:10px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:1.5px 7px; color:var(--color-neutral-400);"><%= k.match %></span></td>
+                        <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= k.clicks %></td>
+                        <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= k.ctr %></td>
+                        <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= k.cpc %></td>
+                        <td style="padding:9px 8px; text-align:center;"><span style="display:inline-grid; place-items:center; width:22px; height:22px; border-radius:6px; font-size:11px; font-weight:500; border:1px solid var(--color-neutral-800); color:<%= k.qsColor %>;"><%= k.qs %></span></td>
+                        <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-200);"><%= k.bookings %></td>
+                        <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-200); font-weight:500;"><%= k.rev %></td>
+                        <td style="padding:9px 0 9px 8px; text-align:right;"><span style="font-weight:500; font-variant-numeric:tabular-nums; color:<%= k.roasColor %>;"><%= k.roas %></span></td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:12px;">
+                <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+                  <div style="font-size:13px; font-weight:500; margin-bottom:8px;">New search terms</div>
+                  <% (searchTerms || []).forEach(function (t) { %>
+                    <div style="display:flex; align-items:center; gap:8px; padding:7px 0; border-top:1px solid var(--color-neutral-900); font-size:11.5px;">
+                      <span style="flex:1; color:var(--color-neutral-300);"><%= t.term %></span>
+                      <span style="color:var(--color-neutral-600); font-variant-numeric:tabular-nums;"><%= t.n %></span>
+                      <span style="font-size:10px; border:1px solid var(--color-accent-800); color:var(--color-accent-300); border-radius:5px; padding:1px 7px; cursor:pointer;">+ Add</span>
+                    </div>
+                  <% }); %>
+                </div>
+                <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+                  <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Negative keywords <span style="font-size:10.5px; color:var(--color-neutral-600);">· 48 active</span></div>
+                  <div style="display:flex; flex-wrap:wrap; gap:6px;">
+                    <span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:2.5px 9px; color:var(--color-neutral-500);">free stay</span>
+                    <span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:2.5px 9px; color:var(--color-neutral-500);">jobs</span>
+                    <span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:2.5px 9px; color:var(--color-neutral-500);">under 2000</span>
+                    <span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:2.5px 9px; color:var(--color-neutral-500);">hostel</span>
+                    <span style="font-size:10.5px; color:var(--color-accent-300); padding:2.5px 4px; cursor:pointer;">View all →</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% } %>
+          <% } %>
+
+          <!-- Campaign detail drill-down -->
+          <% if (campDetail) { %>
+            <div data-screen-label="Campaign detail">
+              <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px; display:flex; align-items:center; gap:18px; margin-bottom:12px;">
+                <svg viewBox="0 0 64 64" style="width:58px; height:58px; flex:none;">
+                  <circle cx="32" cy="32" r="26" fill="none" stroke="var(--color-neutral-900)" stroke-width="6"></circle>
+                  <circle cx="32" cy="32" r="26" fill="none" stroke="var(--color-accent-400)" stroke-width="6" stroke-dasharray="150.3 163.4" stroke-linecap="round" transform="rotate(-90 32 32)"></circle>
+                  <text x="32" y="30" text-anchor="middle" fill="var(--color-neutral-200)" font-size="14" font-weight="500" font-family="Inter">92</text>
+                  <text x="32" y="42" text-anchor="middle" fill="var(--color-neutral-600)" font-size="7" font-family="Inter">HEALTH</text>
+                </svg>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:15.5px; font-weight:500; font-family:var(--font-heading); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= dName %></div>
+                  <div style="display:flex; align-items:center; gap:6px; margin-top:6px; flex-wrap:wrap;">
+                    <span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:2px 8px; color:var(--color-neutral-400);">Meta</span>
+                    <span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:2px 8px; color:<%= up %>;">● Active</span>
+                    <span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:2px 8px; color:var(--color-neutral-400);">Objective: Leads</span>
+                    <span style="font-size:10.5px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); border-radius:5px; padding:2px 8px; color:var(--color-accent-300);">AI score A+</span>
+                    <div style="display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--color-neutral-500);"><span>Budget ₹3,000/day</span><div style="width:70px; height:5px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:78%; border-radius:99px; background:var(--color-accent-500);"></div></div><span>78% paced</span></div>
+                  </div>
+                </div>
+                <div style="flex:none; display:flex; flex-direction:column; gap:5px; font-size:10.5px; color:var(--color-neutral-500); border-left:1px solid var(--color-neutral-900); padding-left:16px;">
+                  <span style="display:flex; align-items:center; gap:6px;"><span style="width:6px;height:6px;border-radius:99px;background:<%= up %>;"></span>CRM synced 4 min ago</span>
+                  <span style="display:flex; align-items:center; gap:6px;"><span style="width:6px;height:6px;border-radius:99px;background:<%= up %>;"></span>Meta Ads synced 12 min ago</span>
+                  <span style="display:flex; align-items:center; gap:6px;"><i class="ph ph-database" style="font-size:11px;"></i>Business metrics from CRM/PMS</span>
+                </div>
+              </div>
+              <div style="display:flex; gap:4px; margin-bottom:12px; border-bottom:1px solid var(--color-neutral-900);">
+                <% (dTabs || []).forEach(function (t) { %>
+                  <div class="hv-5" data-action="<%= t.go %>" style="padding:8px 14px; font-size:12.5px; cursor:pointer; color:<%= t.color %>; border-bottom:2px solid <%= t.border %>; margin-bottom:-1px;"><%= t.label %></div>
+                <% }); %>
+              </div>
+
+              <% if (dOverview) { %>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+                  <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;"><div style="font-size:12.5px; font-weight:500;">Marketing metrics</div><span style="font-size:8.5px; border:1px solid var(--color-neutral-800); border-radius:4px; padding:1px 6px; color:var(--color-neutral-500); letter-spacing:.05em;">SYNCED FROM META ADS</span></div>
+                    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
+                      <% (dMkt || []).forEach(function (k) { %>
+                        <div><div style="font-size:9px; color:var(--color-neutral-600); letter-spacing:.05em;"><%= k.label %></div><div style="display:flex; align-items:baseline; gap:5px; margin-top:2px;"><span style="font-size:13.5px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:9.5px; color:<%= k.deltaColor %>;"><%= k.delta %></span></div></div>
+                      <% }); %>
+                    </div>
+                  </div>
+                  <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px; border-left:2px solid var(--color-accent-700);">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;"><div style="font-size:12.5px; font-weight:500;">Business outcomes</div><span style="font-size:8.5px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); border-radius:4px; padding:1px 6px; color:var(--color-accent-300); letter-spacing:.05em;">FROM CRM / PMS — SOURCE OF TRUTH</span></div>
+                    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
+                      <% (dBiz || []).forEach(function (k) { %>
+                        <div><div style="font-size:9px; color:var(--color-neutral-600); letter-spacing:.05em;"><%= k.label %></div><div style="display:flex; align-items:baseline; gap:5px; margin-top:2px;"><span style="font-size:13.5px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:9.5px; color:<%= k.deltaColor %>;"><%= k.delta %></span></div></div>
+                      <% }); %>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1.7fr 1fr; gap:12px; margin-bottom:12px;">
+                  <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;"><div style="font-size:13px; font-weight:500;">Revenue & reservations timeline</div><div style="flex:1;"></div><span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-400);"></span>Revenue</span><span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-2-600);"></span>Reservations</span></div>
+                    <svg viewBox="0 0 640 180" style="width:100%; height:180px;" preserveAspectRatio="none">
+                      <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="45" x2="640" y2="45"></line><line x1="0" y1="90" x2="640" y2="90"></line><line x1="0" y1="135" x2="640" y2="135"></line></g>
+                      <path d="M0,130 L46,118 L92,124 L138,100 L184,108 L230,84 L276,94 L322,70 L368,80 L414,56 L460,68 L506,44 L552,54 L598,30 L640,38 L640,180 L0,180 Z" fill="var(--color-accent-500)" opacity="0.12"></path>
+                      <path d="M0,130 L46,118 L92,124 L138,100 L184,108 L230,84 L276,94 L322,70 L368,80 L414,56 L460,68 L506,44 L552,54 L598,30 L640,38" fill="none" stroke="var(--color-accent-400)" stroke-width="2" stroke-linejoin="round"></path>
+                      <path d="M0,152 L46,146 L92,148 L138,138 L184,142 L230,130 L276,134 L322,122 L368,126 L414,114 L460,120 L506,108 L552,112 L598,102 L640,106" fill="none" stroke="var(--color-accent-2-500)" stroke-width="1.6" stroke-linejoin="round"></path>
+                    </svg>
+                    <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--color-neutral-700); padding:2px 2px 0;"><span>Jul 1</span><span>Jul 8</span><span>Jul 15</span><span>Jul 22</span><span>Jul 30</span></div>
+                  </div>
+                  <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px; display:flex; flex-direction:column;">
+                    <div style="font-size:13px; font-weight:500; margin-bottom:10px;">Booking funnel</div>
+                    <div style="flex:1; display:flex; flex-direction:column; gap:9px; justify-content:center;">
+                      <% (dFunnel || []).forEach(function (s) { %>
+                        <div>
+                          <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px;"><span style="color:var(--color-neutral-400);"><%= s.label %></span><span style="font-variant-numeric:tabular-nums;"><span style="color:var(--color-neutral-200); font-weight:500;"><%= s.n %></span> <span style="color:var(--color-neutral-600);">· <%= s.pct %></span></span></div>
+                          <div style="height:8px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= s.w %>; border-radius:99px; background:linear-gradient(90deg, var(--color-accent-700), var(--color-accent-400));"></div></div>
+                        </div>
+                      <% }); %>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                  <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+                    <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Revenue by room category <span style="font-size:9px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); border-radius:4px; padding:1px 6px; color:var(--color-accent-300); margin-left:6px;">PMS</span></div>
+                    <% (dRooms || []).forEach(function (r) { %>
+                      <div style="display:flex; align-items:center; gap:9px; padding:5.5px 0; font-size:11.5px;">
+                        <span style="width:130px; color:var(--color-neutral-400); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= r.name %></span>
+                        <div style="flex:1; height:6px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= r.w %>; border-radius:99px; background:var(--color-accent-600);"></div></div>
+                        <span style="width:48px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= r.rev %></span>
+                      </div>
+                    <% }); %>
+                  </div>
+                  <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+                    <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Revenue by package <span style="font-size:9px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); border-radius:4px; padding:1px 6px; color:var(--color-accent-300); margin-left:6px;">CRM</span></div>
+                    <% (dPkgs || []).forEach(function (r) { %>
+                      <div style="display:flex; align-items:center; gap:9px; padding:5.5px 0; font-size:11.5px;">
+                        <span style="width:130px; color:var(--color-neutral-400); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= r.name %></span>
+                        <div style="flex:1; height:6px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= r.w %>; border-radius:99px; background:var(--color-accent-2-600);"></div></div>
+                        <span style="width:48px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= r.rev %></span>
+                      </div>
+                    <% }); %>
+                  </div>
+                </div>
+              <% } %>
+
+              <% if (dRevenue) { %>
+                <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
+                  <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                    <div style="font-size:13px; font-weight:500;">Revenue — <%= revGran %></div>
+                    <div style="flex:1;"></div>
+                    <div style="display:flex; border:1px solid var(--color-neutral-800); border-radius:7px; overflow:hidden;">
+                      <% (dGrans || []).forEach(function (g) { %>
+                        <div class="hv-5" data-action="<%= g.go %>" style="padding:5px 12px; font-size:11px; cursor:pointer; color:<%= g.color %>; background:<%= g.bg %>; border-right:1px solid var(--color-neutral-900);"><%= g.label %></div>
+                      <% }); %>
+                    </div>
+                  </div>
+                  <svg viewBox="0 0 640 170" style="width:100%; height:170px;" preserveAspectRatio="none">
+                    <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="42" x2="640" y2="42"></line><line x1="0" y1="84" x2="640" y2="84"></line><line x1="0" y1="126" x2="640" y2="126"></line></g>
+                    <g fill="var(--color-accent-600)">
+                      <rect x="16" y="118" width="30" height="50" rx="4"></rect><rect x="70" y="104" width="30" height="64" rx="4"></rect><rect x="124" y="112" width="30" height="56" rx="4"></rect><rect x="178" y="88" width="30" height="80" rx="4"></rect><rect x="232" y="96" width="30" height="72" rx="4"></rect><rect x="286" y="72" width="30" height="96" rx="4"></rect><rect x="340" y="82" width="30" height="86" rx="4"></rect><rect x="394" y="58" width="30" height="110" rx="4"></rect><rect x="448" y="66" width="30" height="102" rx="4"></rect><rect x="502" y="44" width="30" height="124" rx="4"></rect>
+                    </g>
+                    <rect x="556" y="30" width="30" height="138" rx="4" fill="var(--color-accent-400)"></rect>
+                  </svg>
+                  <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:12px; padding-top:12px; border-top:1px solid var(--color-neutral-900);">
+                    <% (dRevStats || []).forEach(function (st) { %>
+                      <div><div style="font-size:10px; color:var(--color-neutral-600); letter-spacing:.06em;"><%= st.label %></div><div style="font-size:15px; font-weight:500; margin-top:3px; font-variant-numeric:tabular-nums;"><%= st.value %></div></div>
+                    <% }); %>
+                  </div>
+                </div>
+              <% } %>
+
+              <% if (dRes) { %>
+                <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:6px 16px 12px;">
+                  <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                    <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:9px 8px 9px 0; font-weight:500;">GUEST</th><th style="padding:9px 8px; font-weight:500;">ROOM</th><th style="padding:9px 8px; font-weight:500;">PACKAGE</th><th style="padding:9px 8px; font-weight:500;">CHECK-IN</th><th style="padding:9px 8px; text-align:right; font-weight:500;">NIGHTS</th><th style="padding:9px 8px; font-weight:500;">STATUS</th><th style="padding:9px 8px; font-weight:500;">SOURCE AD</th><th style="padding:9px 0 9px 8px; text-align:right; font-weight:500;">REVENUE</th></tr></thead>
+                    <tbody>
+                      <% (resRows || []).forEach(function (r) { %>
+                        <tr class="hv-1" style="border-top:1px solid var(--color-neutral-900); cursor:pointer;">
+                          <td style="padding:9px 8px 9px 0;"><span style="display:flex; align-items:center; gap:8px;"><span style="width:22px; height:22px; border-radius:99px; background:var(--color-neutral-800); display:grid; place-items:center; font-size:8.5px; font-weight:600; color:var(--color-neutral-300);"><%= r.init %></span><span style="color:var(--color-neutral-200);"><%= r.guest %></span></span></td>
+                          <td style="padding:9px 8px; color:var(--color-neutral-400); white-space:nowrap;"><%= r.room %></td>
+                          <td style="padding:9px 8px; color:var(--color-neutral-400); white-space:nowrap;"><%= r.pkg %></td>
+                          <td style="padding:9px 8px; color:var(--color-neutral-400); font-variant-numeric:tabular-nums;"><%= r.checkin %></td>
+                          <td style="padding:9px 8px; text-align:right; color:var(--color-neutral-400); font-variant-numeric:tabular-nums;"><%= r.nights %></td>
+                          <td style="padding:9px 8px;"><span style="font-size:10px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:2px 8px; color:<%= r.statusColor %>;"><%= r.status %></span></td>
+                          <td style="padding:9px 8px; color:var(--color-neutral-500); white-space:nowrap; max-width:180px; overflow:hidden; text-overflow:ellipsis;"><%= r.src %></td>
+                          <td style="padding:9px 0 9px 8px; text-align:right; color:var(--color-neutral-200); font-weight:500; font-variant-numeric:tabular-nums;"><%= r.rev %></td>
+                        </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                  <div style="font-size:10.5px; color:var(--color-neutral-600); padding-top:9px; border-top:1px solid var(--color-neutral-900);">Showing 5 of 94 confirmed · every reservation carries campaign, ad set, ad, UTM and sales-owner fields from the CRM</div>
+                </div>
+              <% } %>
+
+              <% if (dInsights) { %>
+                <div style="display:flex; flex-direction:column; gap:10px; max-width:860px;">
+                  <% (dAi || []).forEach(function (ins) { %>
+                    <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px; display:flex; gap:12px;">
+                      <div style="width:30px; height:30px; flex:none; border-radius:8px; border:1px solid var(--color-neutral-800); display:grid; place-items:center; color:var(--color-accent-400);"><i class="<%= ins.icon %>" style="font-size:15px;"></i></div>
+                      <div style="flex:1;">
+                        <div style="font-size:13px; font-weight:500; color:var(--color-neutral-200);"><%= ins.title %></div>
+                        <div style="font-size:12px; color:var(--color-neutral-400); line-height:1.55; margin-top:4px;"><%= ins.body %></div>
+                        <div style="display:flex; gap:6px; margin-top:8px; align-items:center;">
+                          <% (ins.chips || []).forEach(function (c) { %><span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:2px 8px; color:var(--color-neutral-400); font-variant-numeric:tabular-nums;"><%= c %></span><% }); %>
+                          <div style="flex:1;"></div>
+                          <span style="font-size:11px; color:var(--color-accent-300); cursor:pointer;"><%= ins.action %> →</span>
+                        </div>
+                      </div>
+                    </div>
+                  <% }); %>
+                </div>
+              <% } %>
+            </div>
+          <% } %>
+        </div>

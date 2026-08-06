@@ -1,0 +1,221 @@
+{
+  "campaigns": [
+    {
+      "tabList": null,
+      "views": [
+        {
+          "flag": "campList",
+          "label": "List",
+          "default": true
+        },
+        {
+          "flag": "campDetail",
+          "label": "Campaign detail drill-down",
+          "default": false
+        }
+      ]
+    },
+    {
+      "tabList": "campTabs",
+      "views": [
+        {
+          "flag": "campTabCampaigns",
+          "label": "Campaigns",
+          "default": true
+        },
+        {
+          "flag": "campTabAdsets",
+          "label": "Adsets",
+          "default": false
+        },
+        {
+          "flag": "campTabAds",
+          "label": "Ads",
+          "default": false
+        },
+        {
+          "flag": "campTabKeywords",
+          "label": "Keywords",
+          "default": false
+        }
+      ]
+    },
+    {
+      "tabList": "dTabs",
+      "views": [
+        {
+          "flag": "dOverview",
+          "label": "Overview",
+          "default": true
+        },
+        {
+          "flag": "dRevenue",
+          "label": "Revenue",
+          "default": false
+        },
+        {
+          "flag": "dRes",
+          "label": "Res",
+          "default": false
+        },
+        {
+          "flag": "dInsights",
+          "label": "Insights",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "website": [
+    {
+      "tabList": "webTabs",
+      "views": [
+        {
+          "flag": "webTabOverview",
+          "label": "Overview",
+          "default": true
+        },
+        {
+          "flag": "webTabLanding",
+          "label": "Landing",
+          "default": false
+        },
+        {
+          "flag": "webTabFunnels",
+          "label": "Funnels",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "ai": [
+    {
+      "tabList": "aiTabs",
+      "views": [
+        {
+          "flag": "aiCommand",
+          "label": "Command center",
+          "default": true
+        },
+        {
+          "flag": "aiChat",
+          "label": "Chat",
+          "default": false
+        },
+        {
+          "flag": "aiHealth",
+          "label": "Health",
+          "default": false
+        },
+        {
+          "flag": "aiForecast",
+          "label": "Forecast",
+          "default": false
+        },
+        {
+          "flag": "aiAnom",
+          "label": "Anomalies & root cause",
+          "default": false
+        },
+        {
+          "flag": "aiSim",
+          "label": "Simulator",
+          "default": false
+        },
+        {
+          "flag": "aiGoals",
+          "label": "Goals & benchmarks",
+          "default": false
+        },
+        {
+          "flag": "aiRecsTab",
+          "label": "Recommendations",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "reports": [
+    {
+      "tabList": "repTabs",
+      "views": [
+        {
+          "flag": "repBuilder",
+          "label": "Dashboard builder",
+          "default": false
+        },
+        {
+          "flag": "repScorecard",
+          "label": "Scorecard",
+          "default": false
+        },
+        {
+          "flag": "repPresent",
+          "label": "Presentation mode",
+          "default": false
+        },
+        {
+          "flag": "repSchedule",
+          "label": "Schedule & sharing",
+          "default": false
+        },
+        {
+          "flag": "repTemplates",
+          "label": "Templates",
+          "default": true
+        }
+      ]
+    }
+  ],
+  "leads": [
+    {
+      "tabList": null,
+      "views": [
+        {
+          "flag": "leadList",
+          "label": "Lead list",
+          "default": true
+        },
+        {
+          "flag": "leadProfile",
+          "label": "Lead profile",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "pipeline": [
+    {
+      "tabList": null,
+      "views": [
+        {
+          "flag": "pipeIsKanban",
+          "label": "Kanban",
+          "default": true
+        },
+        {
+          "flag": "pipeIsList",
+          "label": "List",
+          "default": false
+        }
+      ]
+    }
+  ],
+  "sales": [
+    {
+      "tabList": "salesTabs",
+      "views": [
+        {
+          "flag": "salesTeam",
+          "label": "Team",
+          "default": true
+        },
+        {
+          "flag": "salesCalls",
+          "label": "Calls",
+          "default": false
+        }
+      ]
+    }
+  ]
+}

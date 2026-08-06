@@ -1,0 +1,125 @@
+{
+  "resource": "leads",
+  "generatedFrom": "data/generated/leads.js",
+  "fields": {
+    "leadList": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "leadProfile": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "warn": {
+      "kind": "value",
+      "type": "string"
+    },
+    "selLead": {
+      "kind": "object",
+      "fields": {
+        "attribution": {
+          "kind": "list",
+          "item": [
+            "k",
+            "v"
+          ]
+        },
+        "device": {
+          "kind": "value",
+          "type": "string"
+        },
+        "email": {
+          "kind": "value",
+          "type": "string"
+        },
+        "init": {
+          "kind": "value",
+          "type": "string"
+        },
+        "intent": {
+          "kind": "list",
+          "item": [
+            "k",
+            "v"
+          ]
+        },
+        "location": {
+          "kind": "value",
+          "type": "string"
+        },
+        "name": {
+          "kind": "value",
+          "type": "string"
+        },
+        "owner": {
+          "kind": "value",
+          "type": "string"
+        },
+        "phone": {
+          "kind": "value",
+          "type": "string"
+        },
+        "prob": {
+          "kind": "value",
+          "type": "string"
+        },
+        "score": {
+          "kind": "value",
+          "type": "string"
+        },
+        "scoreColor": {
+          "kind": "value",
+          "type": "string"
+        },
+        "stage": {
+          "kind": "value",
+          "type": "string"
+        },
+        "stageColor": {
+          "kind": "value",
+          "type": "string"
+        },
+        "timeline": {
+          "kind": "list",
+          "item": [
+            "bg",
+            "color",
+            "icon",
+            "label",
+            "ring",
+            "tag",
+            "tagColor",
+            "when",
+            "who"
+          ]
+        },
+        "value": {
+          "kind": "value",
+          "type": "string"
+        }
+      }
+    },
+    "leadRows": {
+      "kind": "list",
+      "item": [
+        "campaign",
+        "check",
+        "checkColor",
+        "followup",
+        "fuColor",
+        "name",
+        "owner",
+        "phone",
+        "platform",
+        "prob",
+        "property",
+        "room",
+        "score",
+        "scoreColor",
+        "stage",
+        "stageColor",
+        "value"
+      ]
+    }
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "resource": "pipeline",
+  "generatedFrom": "data/generated/pipeline.js",
+  "fields": {
+    "pipeIsKanban": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "pipeIsList": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "pipeKanbanBg": {
+      "kind": "value",
+      "type": "string"
+    },
+    "pipeKanbanColor": {
+      "kind": "value",
+      "type": "string"
+    },
+    "pipeListBg": {
+      "kind": "value",
+      "type": "string"
+    },
+    "pipeListColor": {
+      "kind": "value",
+      "type": "string"
+    },
+    "pipeStages": {
+      "kind": "list",
+      "item": [
+        "conv",
+        "drop",
+        "dropColor",
+        "n",
+        "name",
+        "rev",
+        "time"
+      ],
+      "nested": {
+        "cards": {
+          "item": [
+            "age",
+            "ageColor",
+            "chan",
+            "name",
+            "own",
+            "val",
+            "what"
+          ]
+        }
+      }
+    }
+  }
+}

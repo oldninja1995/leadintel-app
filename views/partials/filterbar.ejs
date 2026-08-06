@@ -1,0 +1,17 @@
+<!-- Global filter bar -->
+    <div style="flex:none; display:flex; align-items:center; gap:8px; padding:9px 18px; border-bottom:1px solid var(--color-neutral-900); overflow-x:auto;">
+      <i class="ph ph-funnel-simple" style="font-size:14px; color:var(--color-neutral-600); flex:none;"></i>
+      <% (filters || []).forEach(function (f) { %>
+        <div class="hv-16" style="flex:none; display:flex; align-items:center; gap:6px; white-space:nowrap; border:1px solid var(--color-neutral-800); border-radius:99px; padding:4.5px 11px; font-size:11.5px; cursor:pointer; color:var(--color-neutral-400);">
+          <span style="color:var(--color-neutral-600);"><%= f.k %></span><span style="font-weight:500; color:var(--color-neutral-300);"><%= f.v %></span><i class="ph ph-caret-down" style="font-size:10px; color:var(--color-neutral-600);"></i>
+        </div>
+      <% }); %>
+      <div class="hv-2" style="flex:none; display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--color-neutral-500); cursor:pointer; padding:4.5px 8px; border-radius:99px;"><i class="ph ph-plus-circle" style="font-size:13px;"></i>Add filter</div>
+      <div style="flex:1;"></div>
+      <div style="flex:none; display:flex; align-items:center; gap:6px;">
+        <span title="CRM/PMS is the source of truth for business metrics; ad platforms sync delivery metrics" style="display:flex; align-items:center; gap:5px; font-size:10.5px; color:var(--color-neutral-600); margin-right:8px;"><span style="width:6px; height:6px; border-radius:99px; background:<%= up %>;"></span>CRM 4m · Ads 12m</span>
+        <span style="font-size:10.5px; letter-spacing:.07em; color:var(--color-neutral-700);">SAVED VIEWS</span>
+        <span style="font-size:11.5px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); color:var(--color-accent-300); border-radius:99px; padding:4px 11px; cursor:pointer;">Monsoon push</span>
+        <span class="hv-3" style="font-size:11.5px; border:1px solid var(--color-neutral-800); color:var(--color-neutral-500); border-radius:99px; padding:4px 11px; cursor:pointer;">GM weekly</span>
+      </div>
+    </div>

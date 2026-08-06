@@ -1,0 +1,55 @@
+<div data-action="closeCr" style="position:fixed; inset:0; z-index:90; background:rgba(10,11,18,.55); display:flex; justify-content:flex-end; animation:li-fade .14s ease;">
+          <div data-action="stop" style="width:440px; height:100%; background:#191b28; box-shadow:var(--shadow-lg); overflow-y:auto; animation:li-slide-in .2s ease;">
+            <div style="height:180px; background:<%= selCr.grad %>; display:grid; place-items:center; position:relative;">
+              <div style="width:46px; height:46px; border-radius:99px; background:rgba(20,22,31,.7); display:grid; place-items:center;"><i class="ph-fill ph-play" style="font-size:20px; color:var(--color-accent-200);"></i></div>
+              <i data-action="closeCr" class="ph ph-x" style="position:absolute; top:12px; right:12px; font-size:16px; color:var(--color-neutral-200); cursor:pointer; background:rgba(20,22,31,.7); border-radius:99px; padding:6px;"></i>
+              <span style="position:absolute; bottom:10px; left:12px; font-size:10.5px; border-radius:5px; padding:2px 8px; background:rgba(20,22,31,.8); color:var(--color-neutral-300);"><%= selCr.type %> · <%= selCr.dur %> · <%= selCr.platform %></span>
+            </div>
+            <div style="padding:16px 18px;">
+              <div style="font-size:15px; font-weight:500;"><%= selCr.title %></div>
+              <div style="font-size:11.5px; color:var(--color-neutral-500); margin-top:3px;"><%= selCr.campaign %> · Hook: <%= selCr.hook %></div>
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:9px; margin-top:14px;">
+                <div style="background:var(--color-surface); border-radius:9px; padding:8px 10px;"><div style="font-size:9px; color:var(--color-neutral-600);">SPEND</div><div style="font-size:13px; font-weight:500;"><%= selCr.spend %></div></div>
+                <div style="background:var(--color-surface); border-radius:9px; padding:8px 10px;"><div style="font-size:9px; color:var(--color-neutral-600);">LEADS</div><div style="font-size:13px; font-weight:500;"><%= selCr.leads %></div></div>
+                <div style="background:var(--color-surface); border-radius:9px; padding:8px 10px;"><div style="font-size:9px; color:var(--color-neutral-600);">BOOKINGS</div><div style="font-size:13px; font-weight:500;"><%= selCr.bookings %></div></div>
+                <div style="background:var(--color-surface); border-radius:9px; padding:8px 10px;"><div style="font-size:9px; color:var(--color-neutral-600);">NET ROAS</div><div style="font-size:13px; font-weight:500; color:<%= selCr.roasColor %>;"><%= selCr.roas %></div></div>
+              </div>
+              <div style="font-size:12px; font-weight:500; margin-top:16px; margin-bottom:8px;">Video retention</div>
+              <% (selCr.funnelV || []).forEach(function (f) { %>
+                <div style="display:flex; align-items:center; gap:9px; margin-bottom:6px;">
+                  <span style="width:74px; font-size:10.5px; color:var(--color-neutral-500);"><%= f.label %></span>
+                  <div style="flex:1; height:7px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= f.w %>; border-radius:99px; background:linear-gradient(90deg, var(--color-accent-700), var(--color-accent-400));"></div></div>
+                  <span style="width:38px; text-align:right; font-size:10.5px; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= f.pct %></span>
+                </div>
+              <% }); %>
+              <div style="display:flex; gap:14px; font-size:11px; color:var(--color-neutral-500); margin-top:8px;">
+                <span>Avg watch <b style="color:var(--color-neutral-300); font-weight:500;"><%= selCr.watch %></b></span>
+                <span>Thumb stop <b style="color:var(--color-neutral-300); font-weight:500;"><%= selCr.thumbStop %></b></span>
+                <span>Hold rate <b style="color:var(--color-neutral-300); font-weight:500;"><%= selCr.hold %></b></span>
+              </div>
+              <div style="display:flex; gap:9px; margin-top:14px;">
+                <div style="flex:1; background:var(--color-surface); border-radius:9px; padding:9px 11px;"><div style="font-size:9px; color:var(--color-neutral-600);">QUALITY</div><div style="font-size:14px; font-weight:500; color:var(--color-accent-300);"><%= selCr.quality %></div></div>
+                <div style="flex:1; background:var(--color-surface); border-radius:9px; padding:9px 11px;"><div style="font-size:9px; color:var(--color-neutral-600);">FATIGUE</div><div style="font-size:14px; font-weight:500; color:<%= selCr.fatigueColor %>;"><%= selCr.fatigue %></div></div>
+                <div style="flex:1; background:var(--color-surface); border-radius:9px; padding:9px 11px;"><div style="font-size:9px; color:var(--color-neutral-600);">WINNING</div><div style="font-size:14px; font-weight:500; color:var(--color-accent-300);"><%= selCr.winning %></div></div>
+              </div>
+              <div style="margin-top:16px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); border-radius:10px; padding:12px 13px;">
+                <div style="display:flex; align-items:center; gap:6px; font-size:11.5px; font-weight:500; color:var(--color-accent-200);"><i class="ph-fill ph-sparkle" style="font-size:13px;"></i>AI analysis</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:9px; font-size:11px;">
+                  <div><span style="color:var(--color-accent-2-400);">Best audience</span><div style="color:var(--color-accent-100); margin-top:1px;"><%= selCr.bestAud %></div></div>
+                  <div><span style="color:var(--color-accent-2-400);">Best placement</span><div style="color:var(--color-accent-100); margin-top:1px;"><%= selCr.bestPlace %></div></div>
+                  <div><span style="color:var(--color-accent-2-400);">Best package</span><div style="color:var(--color-accent-100); margin-top:1px;"><%= selCr.bestPkg %></div></div>
+                  <div><span style="color:var(--color-accent-2-400);">Best resort</span><div style="color:var(--color-accent-100); margin-top:1px;"><%= selCr.bestResort %></div></div>
+                </div>
+                <div style="font-size:11.5px; color:var(--color-accent-100); line-height:1.55; margin-top:10px; padding-top:9px; border-top:1px solid var(--color-accent-800);"><%= selCr.aiNote %></div>
+              </div>
+              <div style="font-size:12px; font-weight:500; margin-top:14px; margin-bottom:6px;">Version history</div>
+              <% (selCr.versions || []).forEach(function (v) { %>
+                <div style="display:flex; align-items:center; gap:9px; padding:7px 0; border-top:1px solid var(--color-neutral-900); font-size:11.5px;">
+                  <span style="font-size:10px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:1px 7px; color:var(--color-neutral-500);"><%= v.tag %></span>
+                  <span style="flex:1; color:var(--color-neutral-400);"><%= v.note %></span>
+                  <span style="color:var(--color-neutral-600);"><%= v.when %></span>
+                </div>
+              <% }); %>
+            </div>
+          </div>
+        </div>

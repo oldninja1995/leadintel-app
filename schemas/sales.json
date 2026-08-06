@@ -1,0 +1,51 @@
+{
+  "resource": "sales",
+  "generatedFrom": "data/generated/sales.js",
+  "fields": {
+    "salesCalls": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "salesTeam": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "salesTabs": {
+      "kind": "list",
+      "item": [
+        "border",
+        "color",
+        "label"
+      ]
+    },
+    "salesRows": {
+      "kind": "list",
+      "item": [
+        "abv",
+        "bookings",
+        "calls",
+        "close",
+        "closeColor",
+        "coach",
+        "comp",
+        "compColor",
+        "init",
+        "name",
+        "rating",
+        "resp",
+        "respColor",
+        "rev",
+        "wa"
+      ]
+    },
+    "callKpis": {
+      "kind": "list",
+      "item": [
+        "delta",
+        "deltaColor",
+        "label",
+        "value"
+      ]
+    }
+  }
+}

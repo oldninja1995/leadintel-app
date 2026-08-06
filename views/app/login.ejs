@@ -1,0 +1,73 @@
+<%
+/* The sign-in page — a standalone document, not wrapped in `layout.ejs`: the
+   app shell assumes a signed-in user and a workspace, and neither exists yet.
+ *
+ * Not from the design. `LeadIntel Auth & Onboarding.dc.html` exists in the
+ * design project but has never been converted, so this is built from the
+ * Nocturne tokens rather than transcribed. It is deliberately plain — inventing
+ * a marketing-grade sign-in for a screen the design already specifies would be
+ * work thrown away the day that file is imported.
+ *
+ * The seeded accounts and their shared password are printed on the page. They
+ * are fixtures, not secrets, and hiding them would make the app harder to look
+ * at without making anything safer. */
+%><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in — LeadIntel AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<link rel="stylesheet" href="/assets/nocturne.css">
+<link rel="stylesheet" href="/assets/app.css">
+<link rel="stylesheet" href="/assets/app-ui.css">
+</head>
+<body>
+<div class="li-login">
+  <div class="li-login-card">
+    <div class="li-login-brand">
+      <div class="li-login-mark"><i class="ph-fill ph-pulse"></i></div>
+      <div>
+        <strong>LeadIntel AI</strong>
+        <span>Hospitality revenue OS</span>
+      </div>
+    </div>
+
+    <% if (error) { %>
+      <p class="li-login-error"><i class="ph ph-warning-circle"></i><%= error %></p>
+    <% } %>
+
+    <form method="post" action="/login">
+      <input type="hidden" name="next" value="<%= next %>">
+
+      <label for="li-user">Sign in as</label>
+      <select id="li-user" name="user" required>
+        <% users.forEach(function (u) { %>
+          <option value="<%= u.id %>"><%= u.name %> — <%= u.roleName %> · <%= u.workspaceName %></option>
+        <% }); %>
+      </select>
+
+      <label for="li-password">Password</label>
+      <input id="li-password" name="password" type="password" autocomplete="current-password" required
+             placeholder="<%= seedPassword %>">
+
+      <button type="submit">Sign in</button>
+    </form>
+
+    <p class="li-login-note">
+      These are <strong>seeded accounts, not real people</strong> — no registration, no password
+      reset, no email. Every one uses the password <code><%= seedPassword %></code>, printed here
+      because a fixture credential that looked secret would be the worst of both worlds.
+    </p>
+    <p class="li-login-note">
+      <%= workspaces.length %> workspaces exist so isolation can be demonstrated:
+      <% workspaces.forEach(function (w, i) { %><%= w.name %><%= i < workspaces.length - 1 ? ' and ' : '' %><% }); %>.
+      Signing into one shows nothing of the other.
+    </p>
+  </div>
+</div>
+</body>
+</html>

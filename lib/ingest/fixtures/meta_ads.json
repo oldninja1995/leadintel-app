@@ -1,0 +1,23 @@
+{
+  "_note": "SYNTHETIC. Not Meta's data and not real — payloads shaped to exercise ingest and normalisation. Field formats are deliberately inconsistent (grouped currency strings beside numbers, untidy campaign names) because that is what stage 2 exists to fix. See PHASES.md, Phase 4.",
+
+  "campaign_day": [
+    { "campaign_id": "23851", "campaign_name": "  meta | Munnar Honeymoon — JUL  ", "date": "2026-07-14", "currency": "INR", "spend": "₹7,000", "impressions": 148200, "clicks": 3140, "leads": 21 },
+    { "campaign_id": "23851", "campaign_name": "meta | munnar honeymoon — jul", "date": "2026-07-15", "currency": "INR", "spend": 6820.5, "impressions": 141900, "clicks": 2980, "leads": 19 },
+    { "campaign_id": "23852", "campaign_name": "Meta|Alleppey Houseboat Weekend|Jul", "date": "2026-07-14", "currency": "INR", "spend": "₹6,100", "impressions": 121400, "clicks": 2410, "leads": 16 },
+    { "campaign_id": "23853", "campaign_name": "meta | Monsoon Package · Kerala", "date": "2026-07-14", "currency": "INR", "spend": "₹4,200", "impressions": 98700, "clicks": 1880, "leads": 13 }
+  ],
+
+  "adset_day": [
+    { "adset_id": "88101", "campaign_id": "23851", "adset_name": "HM · Lookalike 1%", "date": "2026-07-14", "currency": "INR", "spend": "₹3,100", "impressions": 68400, "clicks": 1520 },
+    { "adset_id": "88102", "campaign_id": "23851", "adset_name": "HM · Retargeting 30d", "date": "2026-07-14", "currency": "INR", "spend": "₹1,900", "impressions": 31200, "clicks": 980 }
+  ],
+
+  "ad_day": [
+    { "ad_id": "99201", "adset_id": "88101", "ad_name": "UGC video 03 — honeymoon walkthrough", "date": "2026-07-14", "currency": "INR", "spend": "₹2,240", "impressions": 51100, "clicks": 1180 }
+  ],
+
+  "creative": [
+    { "creative_id": "CR-9021", "ad_id": "99201", "title": "UGC video 03 — honeymoon walkthrough", "type": "video", "updated_at": "2026-07-14T09:12:00+00:00" }
+  ]
+}

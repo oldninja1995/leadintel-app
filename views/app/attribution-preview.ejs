@@ -1,0 +1,51 @@
+<%
+/* The impact of a model change, before it applies. Not from the design — the
+   page specifies the behaviour ("preview its impact before applying") but has
+   no markup for it, so this lives in views/app/ like the other Phase 2 chrome.
+
+   The bar states which model is still crediting revenue as plainly as it states
+   the candidate, because the screen behind it is already showing the
+   candidate's numbers and that is exactly how someone comes away believing a
+   change took effect when it did not. */
+%>
+<% if (attrPreview) { %>
+  <form class="li-preview" method="post" action="/workspace/attribution">
+    <input type="hidden" name="model" value="<%= attrPreview.to %>">
+
+    <div class="li-preview-head">
+      <i class="ph ph-tree-structure"></i>
+      <span class="li-preview-title">
+        Previewing <strong><%= attrPreview.toName %></strong>
+        <span class="li-preview-sub">— revenue is still credited by <%= attrPreview.fromName %></span>
+      </span>
+      <span class="li-preview-headline"><%= attrPreview.headline %></span>
+    </div>
+
+    <div class="li-preview-channels">
+      <% attrPreview.channels.forEach(function (c) { %>
+        <span class="li-delta li-delta--<%= c.direction %>">
+          <span class="li-delta-ch"><%= c.channel %></span>
+          <span class="li-delta-v"><%= c.from %> → <%= c.to %></span>
+          <span class="li-delta-d"><%= c.delta %></span>
+        </span>
+      <% }); %>
+      <span class="li-delta li-delta--flat">
+        <span class="li-delta-ch">Meta ROAS</span>
+        <span class="li-delta-v"><%= attrPreview.metaRoasFrom %> → <%= attrPreview.metaRoasTo %></span>
+      </span>
+    </div>
+
+    <div class="li-preview-foot">
+      <label for="li-justify">Why are you changing it?</label>
+      <input id="li-justify" name="justification" type="text" autocomplete="off"
+             placeholder="<%= attrPreview.requiresJustification ? 'Required for a custom weighting' : 'Recorded with the change' %>"
+             <%= attrPreview.requiresJustification ? 'required' : '' %>>
+      <a class="li-preview-cancel" href="/attribution">Cancel</a>
+      <button type="submit" class="li-preview-apply">Apply to workspace</button>
+    </div>
+
+    <% if (attrPreview.error) { %>
+      <p class="li-preview-error"><i class="ph ph-warning-circle"></i><%= attrPreview.error %></p>
+    <% } %>
+  </form>
+<% } %>

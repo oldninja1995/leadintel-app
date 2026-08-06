@@ -1,0 +1,46 @@
+<%
+/* Notification panel. Not from the design — see lib/alerts.js.
+   Every row here is computed from the sync runner's run log or the ingest
+   layer's collected normalisation problems. Nothing is sample content, which
+   is why an empty panel is a normal and correct state. */
+%>
+<div id="li-notifs" class="li-panel" hidden>
+  <div class="li-overlay-scrim" data-li-close></div>
+
+  <aside class="li-panel-box" role="dialog" aria-modal="true" aria-label="Notifications">
+    <header class="li-panel-head">
+      <div>
+        <h2>Notifications</h2>
+        <p><%= notifications.count %> open · pipeline health</p>
+      </div>
+      <button type="button" class="li-icon-btn" data-li-close aria-label="Close notifications">
+        <i class="ph ph-x"></i>
+      </button>
+    </header>
+
+    <div class="li-panel-body">
+      <% if (notifications.empty) { %>
+        <div class="li-panel-empty">
+          <i class="ph ph-check-circle"></i>
+          <p>Every connector is syncing on cadence and no value failed to normalise.</p>
+          <span>Business alerts — pace, ROAS decay, response-time breach — arrive in Phase&nbsp;8.</span>
+        </div>
+      <% } else { %>
+        <% notifications.alerts.forEach(function (a) { %>
+          <a class="li-alert li-alert--<%= a.severity %>" href="<%= a.go %>">
+            <i class="<%= a.icon %>"></i>
+            <div>
+              <strong><%= a.title %></strong>
+              <p><%= a.body %></p>
+              <span><%= a.meta %></span>
+            </div>
+          </a>
+        <% }); %>
+      <% } %>
+    </div>
+
+    <footer class="li-panel-foot">
+      Sources: sync runner run log, ingest normalisation problems.
+    </footer>
+  </aside>
+</div>

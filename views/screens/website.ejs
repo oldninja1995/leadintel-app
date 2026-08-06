@@ -1,0 +1,78 @@
+<div style="animation:li-fade .25s ease;">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:19px;">Website Analytics</h1>
+            <div style="flex:1;"></div>
+          </div>
+          <div style="display:flex; gap:4px; margin-bottom:12px; border-bottom:1px solid var(--color-neutral-900);">
+            <% (webTabs || []).forEach(function (t) { %>
+              <div class="hv-5" data-action="<%= t.go %>" style="padding:8px 14px; font-size:12.5px; cursor:pointer; color:<%= t.color %>; border-bottom:2px solid <%= t.border %>; margin-bottom:-1px;"><%= t.label %></div>
+            <% }); %>
+          </div>
+          <% if (webTabOverview) { %>
+            <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:12px;">
+              <% (webKpis || []).forEach(function (k) { %>
+                <div style="background:var(--color-surface); border-radius:10px; box-shadow:var(--shadow-sm); padding:9px 12px;"><div style="font-size:9.5px; letter-spacing:.06em; color:var(--color-neutral-500); text-transform:uppercase;"><%= k.label %></div><div style="display:flex; align-items:baseline; gap:6px; margin-top:3px;"><span style="font-size:15px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:10px; color:<%= k.deltaColor %>;"><%= k.delta %></span></div></div>
+              <% }); %>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1.4fr; gap:12px;">
+              <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
+                <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Traffic sources</div>
+                <% (webSources || []).forEach(function (src) { %>
+                  <div style="display:flex; align-items:center; gap:9px; padding:6px 0; font-size:11.5px;">
+                    <span style="width:70px; color:var(--color-neutral-400);"><%= src.src %></span>
+                    <div style="flex:1; height:6px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= src.w %>; border-radius:99px; background:var(--color-accent-600);"></div></div>
+                    <span style="width:52px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= src.sessions %></span>
+                    <span style="width:48px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-500);"><%= src.rev %></span>
+                  </div>
+                <% }); %>
+                <div style="display:flex; justify-content:flex-end; gap:22px; font-size:9.5px; color:var(--color-neutral-700); margin-top:2px;"><span>SESSIONS</span><span>REVENUE</span></div>
+              </div>
+              <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
+                <div style="display:flex; align-items:center; margin-bottom:8px;"><div style="font-size:13px; font-weight:500;">Top pages</div><div style="flex:1;"></div><span style="font-size:10.5px; color:var(--color-neutral-600);">new 64% · returning 36%</span></div>
+                <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                  <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:6px 8px 6px 0; font-weight:500;">PAGE</th><th style="padding:6px 8px; text-align:right; font-weight:500;">VIEWS</th><th style="padding:6px 8px; text-align:right; font-weight:500;">AVG TIME</th><th style="padding:6px 8px; text-align:right; font-weight:500;">EXIT</th><th style="padding:6px 0 6px 8px; text-align:right; font-weight:500;">BOOKING CLICKS</th></tr></thead>
+                  <tbody>
+                    <% (topPages || []).forEach(function (p) { %>
+                      <tr style="border-top:1px solid var(--color-neutral-900);"><td style="padding:7.5px 8px 7.5px 0; color:var(--color-neutral-200);"><%= p.page %></td><td style="padding:7.5px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= p.views %></td><td style="padding:7.5px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= p.avg %></td><td style="padding:7.5px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= p.exit %></td><td style="padding:7.5px 0 7.5px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-200);"><%= p.clicks %></td></tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          <% } %>
+          <% if (webTabLanding) { %>
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:6px 16px 12px; overflow-x:auto;">
+              <table style="width:100%; min-width:980px; border-collapse:collapse; font-size:12px;">
+                <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:9px 8px 9px 0; font-weight:500;">LANDING PAGE</th><th style="padding:9px 8px; text-align:right; font-weight:500;">SESSIONS</th><th style="padding:9px 8px; text-align:right; font-weight:500;">BOUNCE</th><th style="padding:9px 8px; font-weight:500;">SCROLL DEPTH</th><th style="padding:9px 8px; text-align:right; font-weight:500;">FORM START</th><th style="padding:9px 8px; text-align:right; font-weight:500;">FORM DONE</th><th style="padding:9px 8px; text-align:right; font-weight:500;">ENGINE CLICKS</th><th style="padding:9px 8px; text-align:right; font-weight:500;">CONV</th><th style="padding:9px 8px; text-align:right; font-weight:500;">REVENUE</th><th style="padding:9px 0 9px 8px; font-weight:500;">AI AUDIT</th></tr></thead>
+                <tbody>
+                  <% (lpRows || []).forEach(function (lp) { %>
+                    <tr class="hv-1" style="border-top:1px solid var(--color-neutral-900); cursor:pointer;">
+                      <td style="padding:9px 8px 9px 0; color:var(--color-neutral-200); font-weight:500; white-space:nowrap;"><%= lp.lp %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= lp.sessions %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:<%= lp.bounceColor %>;"><%= lp.bounce %></td>
+                      <td style="padding:9px 8px; min-width:90px;"><div style="height:5px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= lp.scroll %>; border-radius:99px; background:var(--color-accent-600);"></div></div></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= lp.formStart %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= lp.formDone %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= lp.clicks %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-200); font-weight:500;"><%= lp.conv %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-200); font-weight:500;"><%= lp.rev %></td>
+                      <td style="padding:9px 0 9px 8px;"><span style="font-size:10.5px; border:1px solid <%= lp.auditBorder %>; border-radius:5px; padding:2px 8px; color:<%= lp.auditColor %>;"><%= lp.audit %></span></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+              <div style="font-size:10.5px; color:var(--color-neutral-600); padding-top:9px; border-top:1px solid var(--color-neutral-900); display:flex; align-items:center; gap:12px;"><span style="display:flex; align-items:center; gap:5px;"><i class="ph ph-fire" style="font-size:12px;"></i>Heatmaps</span><span style="display:flex; align-items:center; gap:5px;"><i class="ph ph-video-camera" style="font-size:12px;"></i>Session recordings</span><span>— open a row for page-level detail</span></div>
+            </div>
+          <% } %>
+          <% if (webTabFunnels) { %>
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px; max-width:640px;">
+              <div style="font-size:13px; font-weight:500; margin-bottom:12px;">Site → booking funnel</div>
+              <% (webFunnel || []).forEach(function (s) { %>
+                <div style="margin-bottom:10px;">
+                  <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px;"><span style="color:var(--color-neutral-400);"><%= s.label %></span><span style="font-variant-numeric:tabular-nums;"><span style="color:var(--color-neutral-200); font-weight:500;"><%= s.n %></span> <span style="color:var(--color-neutral-600);">· <%= s.pct %> · drop <%= s.drop %></span></span></div>
+                  <div style="height:9px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= s.w %>; border-radius:99px; background:linear-gradient(90deg, var(--color-accent-700), var(--color-accent-400));"></div></div>
+                </div>
+              <% }); %>
+            </div>
+          <% } %>
+        </div>

@@ -1,0 +1,85 @@
+<div style="animation:li-fade .25s ease;" data-screen-label="CRM Dashboard">
+          <div style="display:flex; align-items:baseline; gap:12px; margin-bottom:14px;">
+            <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:19px;">CRM Dashboard</h1>
+            <span style="font-size:11.5px; color:var(--color-neutral-600);">source of truth · TeleCRM + HotSoft PMS · synced 4 min ago</span>
+            <div style="flex:1;"></div>
+            <div class="hv-3" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-neutral-500); border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; cursor:pointer;"><i class="ph ph-export" style="font-size:13px;"></i>Export</div>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:12px;">
+            <% (crmHero || []).forEach(function (k) { %>
+              <div class="hv-4" style="background:linear-gradient(180deg, var(--color-surface), #1e202c); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px 12px; cursor:pointer;">
+                <div title="<%= k.tip %>" style="display:flex; align-items:center; gap:6px; font-size:10.5px; letter-spacing:.08em; color:var(--color-neutral-500); text-transform:uppercase;"><i class="<%= k.icon %>" style="font-size:13px; color:var(--color-accent-400);"></i><%= k.label %><span style="flex:1;"></span><span style="font-size:8.5px; letter-spacing:.05em; border:1px solid <%= k.srcBorder %>; border-radius:4px; padding:1px 5px; color:<%= k.srcColor %>;"><%= k.src %></span></div>
+                <div style="display:flex; align-items:baseline; gap:9px; margin-top:7px;"><span style="font-size:26px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:11.5px; font-weight:500; color:<%= k.deltaColor %>;"><%= k.delta %></span></div>
+                <div style="font-size:10.5px; color:var(--color-neutral-600); margin-top:2px;"><%= k.sub %></div>
+                <svg viewBox="0 0 120 26" style="width:100%; height:26px; margin-top:8px;" preserveAspectRatio="none"><polyline points="<%= k.spark %>" fill="none" stroke="var(--color-accent-500)" stroke-width="1.6" stroke-linejoin="round" opacity="0.9"></polyline></svg>
+              </div>
+            <% }); %>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:12px;">
+            <% (crmKpis || []).forEach(function (k) { %>
+              <div class="hv-4" title="<%= k.tip %>" style="background:var(--color-surface); border-radius:10px; box-shadow:var(--shadow-sm); padding:9px 12px; cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:5px;"><span style="font-size:9.5px; letter-spacing:.06em; color:var(--color-neutral-500); text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= k.label %></span><span style="flex:1;"></span><span style="font-size:8px; border:1px solid <%= k.srcBorder %>; border-radius:4px; padding:0.5px 4px; color:<%= k.srcColor %>;"><%= k.src %></span></div>
+                <div style="display:flex; align-items:baseline; gap:6px; margin-top:3px;"><span style="font-size:15px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:10px; color:<%= k.deltaColor %>;"><%= k.delta %></span></div>
+              </div>
+            <% }); %>
+          </div>
+          <div style="display:grid; grid-template-columns:1.7fr 1fr; gap:12px; margin-bottom:12px;">
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
+                <div style="font-size:13px; font-weight:500;">Reservations & revenue trend</div>
+                <div style="flex:1;"></div>
+                <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-400);"></span>Confirmed</span>
+                <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-neutral-600);"></span>Cancelled</span>
+              </div>
+              <svg viewBox="0 0 640 190" style="width:100%; height:190px;" preserveAspectRatio="none">
+                <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="47" x2="640" y2="47"></line><line x1="0" y1="94" x2="640" y2="94"></line><line x1="0" y1="141" x2="640" y2="141"></line></g>
+                <g fill="var(--color-accent-600)"><rect x="20" y="120" width="24" height="60" rx="3"></rect><rect x="98" y="104" width="24" height="76" rx="3"></rect><rect x="176" y="112" width="24" height="68" rx="3"></rect><rect x="254" y="88" width="24" height="92" rx="3"></rect><rect x="332" y="96" width="24" height="84" rx="3"></rect><rect x="410" y="66" width="24" height="114" rx="3"></rect><rect x="488" y="76" width="24" height="104" rx="3"></rect><rect x="566" y="48" width="24" height="132" rx="3"></rect></g>
+                <g fill="var(--color-neutral-700)"><rect x="48" y="164" width="24" height="16" rx="3"></rect><rect x="126" y="168" width="24" height="12" rx="3"></rect><rect x="204" y="162" width="24" height="18" rx="3"></rect><rect x="282" y="168" width="24" height="12" rx="3"></rect><rect x="360" y="170" width="24" height="10" rx="3"></rect><rect x="438" y="166" width="24" height="14" rx="3"></rect><rect x="516" y="170" width="24" height="10" rx="3"></rect><rect x="594" y="172" width="24" height="8" rx="3"></rect></g>
+              </svg>
+              <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--color-neutral-700); padding:2px 8px 0;"><span>W1 Jun</span><span>W2</span><span>W3</span><span>W4</span><span>W1 Jul</span><span>W2</span><span>W3</span><span>W4</span></div>
+            </div>
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px; display:flex; flex-direction:column;">
+              <div style="display:flex; align-items:center; margin-bottom:10px;"><div style="font-size:13px; font-weight:500;">Pipeline by stage</div><div style="flex:1;"></div><span data-action="goPipe" style="font-size:11px; color:var(--color-accent-300); cursor:pointer;">Open pipeline →</span></div>
+              <div style="flex:1; display:flex; flex-direction:column; gap:8px; justify-content:center;">
+                <% (crmStages || []).forEach(function (st) { %>
+                  <div style="display:flex; align-items:center; gap:9px; font-size:11px;">
+                    <span style="width:118px; color:var(--color-neutral-400); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= st.label %></span>
+                    <div style="flex:1; height:7px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= st.w %>; border-radius:99px; background:linear-gradient(90deg, var(--color-accent-700), var(--color-accent-400));"></div></div>
+                    <span style="width:26px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= st.n %></span>
+                    <span style="width:44px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-500);"><%= st.rev %></span>
+                  </div>
+                <% }); %>
+              </div>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:12px;">
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+              <div style="display:flex; align-items:center; margin-bottom:8px;"><div style="font-size:13px; font-weight:500;">Sales performance</div><div style="flex:1;"></div><span data-action="goSales" style="font-size:11px; color:var(--color-accent-300); cursor:pointer;">Team →</span></div>
+              <% (reps || []).forEach(function (r) { %>
+                <div style="display:flex; align-items:center; gap:10px; padding:6.5px 0; border-top:1px solid var(--color-neutral-900);">
+                  <div style="width:24px; height:24px; border-radius:99px; background:var(--color-neutral-800); display:grid; place-items:center; font-size:9.5px; font-weight:600; color:var(--color-neutral-300); flex:none;"><%= r.init %></div>
+                  <div style="flex:1; min-width:0;"><div style="font-size:12px; color:var(--color-neutral-200);"><%= r.name %></div><div style="font-size:10.5px; color:var(--color-neutral-600);"><%= r.meta %></div></div>
+                  <span style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= r.rev %></span>
+                </div>
+              <% }); %>
+            </div>
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+              <div style="display:flex; align-items:center; gap:7px; margin-bottom:8px;"><i class="ph ph-clock-countdown" style="color:<%= warn %>; font-size:14px;"></i><div style="font-size:13px; font-weight:500;">Follow-ups due today</div></div>
+              <% (followups || []).forEach(function (f) { %>
+                <div style="display:flex; align-items:center; gap:9px; padding:7px 0; border-top:1px solid var(--color-neutral-900); font-size:11.5px;">
+                  <span style="width:7px; height:7px; border-radius:99px; background:<%= f.dot %>; flex:none;"></span>
+                  <div style="flex:1; min-width:0;"><div style="color:var(--color-neutral-300); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= f.name %> · <%= f.what %></div><div style="font-size:10px; color:var(--color-neutral-600);"><%= f.meta %></div></div>
+                  <span style="font-size:10.5px; color:var(--color-neutral-500); font-variant-numeric:tabular-nums;"><%= f.when %></span>
+                </div>
+              <% }); %>
+            </div>
+            <div style="background:linear-gradient(160deg, var(--color-section) 0%, #1c1f3d 70%); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+              <div style="display:flex; align-items:center; gap:7px; margin-bottom:8px;"><i class="ph-fill ph-sparkle" style="color:var(--color-accent-300); font-size:14px;"></i><div style="font-size:13px; font-weight:500;">AI · today's priorities</div></div>
+              <div style="display:flex; flex-direction:column; gap:9px; font-size:11.5px; color:var(--color-accent-100); line-height:1.5;">
+                <div style="display:flex; gap:8px;"><span style="color:var(--color-accent-300);">1</span>Call Priya K first — 84% booking probability, Pool Villa quote expires today (₹58.8K).</div>
+                <div style="display:flex; gap:8px;"><span style="color:var(--color-accent-300);">2</span>12 weekend Kumarakom leads untouched 40h — reassign from Joseph (2.8h avg response).</div>
+                <div style="display:flex; gap:8px;"><span style="color:var(--color-accent-300);">3</span>Cancellation rate up 2pt — 6 of 8 were payment-pending &gt;72h. Tighten the payment window.</div>
+              </div>
+            </div>
+          </div>
+        </div>

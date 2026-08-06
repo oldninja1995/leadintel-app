@@ -1,0 +1,45 @@
+<div style="animation:li-fade .25s ease;" data-screen-label="Sales Analytics">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:19px;">Sales Analytics</h1>
+            <div style="flex:1;"></div>
+          </div>
+          <div style="display:flex; gap:4px; margin-bottom:12px; border-bottom:1px solid var(--color-neutral-900);">
+            <% (salesTabs || []).forEach(function (t) { %>
+              <div class="hv-5" data-action="<%= t.go %>" style="padding:8px 14px; font-size:12.5px; cursor:pointer; white-space:nowrap; color:<%= t.color %>; border-bottom:2px solid <%= t.border %>; margin-bottom:-1px;"><%= t.label %></div>
+            <% }); %>
+          </div>
+          <% if (salesTeam) { %>
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:6px 16px 12px; overflow-x:auto;">
+              <table style="width:100%; min-width:1020px; border-collapse:collapse; font-size:12px;">
+                <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:9px 8px 9px 0; font-weight:500;">EXECUTIVE</th><th style="padding:9px 8px; text-align:right; font-weight:500;">REVENUE</th><th style="padding:9px 8px; text-align:right; font-weight:500;">BOOKINGS</th><th style="padding:9px 8px; text-align:right; font-weight:500;">CLOSE RATE</th><th style="padding:9px 8px; text-align:right; font-weight:500;">RESPONSE</th><th style="padding:9px 8px; font-weight:500;">FOLLOW-UP COMPLIANCE</th><th style="padding:9px 8px; text-align:right; font-weight:500;">CALLS</th><th style="padding:9px 8px; text-align:right; font-weight:500;">WHATSAPP</th><th style="padding:9px 8px; text-align:right; font-weight:500;">AVG BOOKING</th><th style="padding:9px 8px; text-align:right; font-weight:500;">RATING</th><th style="padding:9px 0 9px 8px; font-weight:500;">AI COACHING</th></tr></thead>
+                <tbody>
+                  <% (salesRows || []).forEach(function (r) { %>
+                    <tr class="hv-1" style="border-top:1px solid var(--color-neutral-900); cursor:pointer;">
+                      <td style="padding:9px 8px 9px 0;"><span style="display:flex; align-items:center; gap:8px;"><span style="width:24px; height:24px; border-radius:99px; background:var(--color-neutral-800); display:grid; place-items:center; font-size:9px; font-weight:600; color:var(--color-neutral-300);"><%= r.init %></span><span style="color:var(--color-neutral-200); font-weight:500; white-space:nowrap;"><%= r.name %></span></span></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-200); font-weight:500;"><%= r.rev %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= r.bookings %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:<%= r.closeColor %>;"><%= r.close %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:<%= r.respColor %>;"><%= r.resp %></td>
+                      <td style="padding:9px 8px; min-width:110px;"><div style="display:flex; align-items:center; gap:7px;"><div style="flex:1; height:5px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= r.comp %>; border-radius:99px; background:<%= r.compColor %>;"></div></div><span style="font-size:10.5px; color:var(--color-neutral-500);"><%= r.comp %></span></div></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= r.calls %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= r.wa %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= r.abv %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);">★ <%= r.rating %></td>
+                      <td style="padding:9px 0 9px 8px;"><span style="font-size:10.5px; color:var(--color-accent-300);"><%= r.coach %></span></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+          <% if (salesCalls) { %>
+            <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:12px;">
+              <% (callKpis || []).forEach(function (k) { %>
+                <div style="background:var(--color-surface); border-radius:10px; box-shadow:var(--shadow-sm); padding:9px 12px;"><div style="font-size:9.5px; letter-spacing:.06em; color:var(--color-neutral-500); text-transform:uppercase;"><%= k.label %></div><div style="display:flex; align-items:baseline; gap:6px; margin-top:3px;"><span style="font-size:15px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:10px; color:<%= k.deltaColor %>;"><%= k.delta %></span></div></div>
+              <% }); %>
+            </div>
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:6px 16px 12px;">
+              <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:9px 8px 9px 0; font-weight:5
+<% } %>
+<div style="margin:18px 0; padding:12px 14px; border:1px solid var(--color-neutral-800); border-radius:9px; font-size:11.5px; color:var(--color-neutral-500); line-height:1.6;"><i class="ph ph-scissors" style="font-size:13px;"></i> This screen is incomplete: the design file exceeded the 256 KiB read cap and was cut off here.</div>

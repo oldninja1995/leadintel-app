@@ -1,0 +1,123 @@
+{
+  "resource": "overlay-creative-detail",
+  "generatedFrom": "data/generated/overlay-creative-detail.js",
+  "fields": {
+    "selCr": {
+      "kind": "object",
+      "fields": {
+        "aiNote": {
+          "kind": "value",
+          "type": "string"
+        },
+        "bestAud": {
+          "kind": "value",
+          "type": "string"
+        },
+        "bestPkg": {
+          "kind": "value",
+          "type": "string"
+        },
+        "bestPlace": {
+          "kind": "value",
+          "type": "string"
+        },
+        "bestResort": {
+          "kind": "value",
+          "type": "string"
+        },
+        "bookings": {
+          "kind": "value",
+          "type": "string"
+        },
+        "campaign": {
+          "kind": "value",
+          "type": "string"
+        },
+        "dur": {
+          "kind": "value",
+          "type": "string"
+        },
+        "fatigue": {
+          "kind": "value",
+          "type": "string"
+        },
+        "fatigueColor": {
+          "kind": "value",
+          "type": "string"
+        },
+        "funnelV": {
+          "kind": "list",
+          "item": [
+            "label",
+            "pct",
+            "w"
+          ]
+        },
+        "grad": {
+          "kind": "value",
+          "type": "string"
+        },
+        "hold": {
+          "kind": "value",
+          "type": "string"
+        },
+        "hook": {
+          "kind": "value",
+          "type": "string"
+        },
+        "leads": {
+          "kind": "value",
+          "type": "string"
+        },
+        "platform": {
+          "kind": "value",
+          "type": "string"
+        },
+        "quality": {
+          "kind": "value",
+          "type": "string"
+        },
+        "roas": {
+          "kind": "value",
+          "type": "string"
+        },
+        "roasColor": {
+          "kind": "value",
+          "type": "string"
+        },
+        "spend": {
+          "kind": "value",
+          "type": "string"
+        },
+        "thumbStop": {
+          "kind": "value",
+          "type": "string"
+        },
+        "title": {
+          "kind": "value",
+          "type": "string"
+        },
+        "type": {
+          "kind": "value",
+          "type": "string"
+        },
+        "versions": {
+          "kind": "list",
+          "item": [
+            "note",
+            "tag",
+            "when"
+          ]
+        },
+        "watch": {
+          "kind": "value",
+          "type": "string"
+        },
+        "winning": {
+          "kind": "value",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

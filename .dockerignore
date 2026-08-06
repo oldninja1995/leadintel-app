@@ -1,0 +1,19 @@
+node_modules
+npm-debug.log
+
+# State, not source. The image must not ship one machine's raw store, audit
+# trail or session history — the volume supplies these at runtime, and baking
+# them in would mean every deploy resurrects a snapshot of somebody's data.
+var
+var-backups
+
+# Local only.
+*.log
+.env
+.env.*
+.git
+.gitignore
+
+# Tests and tooling are not needed to serve. `npm ci --omit=dev` already skips
+# dev dependencies; this keeps the layer small as well.
+test

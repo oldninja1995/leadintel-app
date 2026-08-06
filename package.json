@@ -1,0 +1,23 @@
+{
+  "name": "leadintel-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LeadIntel AI — hospitality revenue OS. Express implementation of LeadIntel App.dc.html.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "schemas": "node tools/derive-schemas.js",
+    "rebind": "node tools/rebind.js",
+    "backup": "node tools/backup.js create",
+    "drill": "node tools/backup.js drill",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "express": "^4.21.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,104 @@
+/* Phase 2's last known flaw — the attribution Sankey's hardcoded node labels.
+ *
+ *   node --test        or        npm test
+ *
+ * The design draws the Sankey as a hand-written SVG, so its node figures are
+ * literal text rather than `{{ }}`. They therefore never re-credited when the
+ * attribution model changed, and the diagram contradicted the table beneath it
+ * on the same screen — with a non-default model selected you could read ₹18.9L
+ * and ₹14.1L for Meta at once.
+ *
+ * The fix belongs to the converter (tools/literal-bindings.js), not to the
+ * generated view, so a re-run against the real design file reproduces it. These
+ * tests hold both halves in place: the binding mechanism, and the data the
+ * bound expressions read.
+ */
+
+const test = require('node:test');
+const assert = require('node:assert');
+const fs = require('fs');
+const path = require('path');
+
+const { LITERAL_BINDINGS, bindLiterals } = require('../tools/literal-bindings');
+const screen = require('../data/attribution');
+const attribution = require('../lib/attribution');
+
+const VIEW = path.join(__dirname, '..', 'views', 'screens', 'attribution.ejs');
+
+/* ── the binding mechanism ──────────────────────────────────────────────── */
+
+test('a literal is replaced with the expression that re-credits it', () => {
+  const html = '<text>₹18.9L</text>';
+  assert.equal(bindLiterals(html, 'attribution'), '<text><%= attrSankeyMeta %></text>');
+});
+
+test('binding is idempotent — the literal is gone after the first pass', () => {
+  const once = bindLiterals('<text>₹18.9L</text>', 'attribution');
+  assert.equal(bindLiterals(once, 'attribution'), once);
+});
+
+test('a binding that would match twice is refused rather than guessing', () => {
+  /* First-match-wins would bind the wrong node with nothing to show for it. */
+  assert.throws(
+    () => bindLiterals('<text>₹18.9L</text><text>₹18.9L</text>', 'attribution'),
+    /appears 2 times — a binding must be unambiguous/
+  );
+});
+
+test('bindings only apply to their own screen', () => {
+  const html = '<text>₹18.9L</text>';
+  assert.equal(bindLiterals(html, 'dashboard'), html);
+});
+
+test('every binding names a screen, a reason, and an expression', () => {
+  for (const binding of LITERAL_BINDINGS) {
+    assert.ok(binding.screen, 'a binding with no screen would apply nowhere');
+    assert.ok(binding.why, `${binding.find} has no stated reason`);
+    assert.match(binding.replace, /<%=\s+\w+\s+%>/, `${binding.find} does not bind to an expression`);
+  }
+});
+
+/* ── the generated view is bound ────────────────────────────────────────── */
+
+test('the attribution view holds no unbound Sankey literal', () => {
+  const view = fs.readFileSync(VIEW, 'utf8');
+  for (const binding of LITERAL_BINDINGS.filter((b) => b.screen === 'attribution')) {
+    assert.ok(!view.includes(binding.find),
+      `${binding.find} is still hardcoded — run: node tools/rebind.js`);
+    assert.ok(view.includes(binding.replace), `${binding.replace} is missing from the view`);
+  }
+});
+
+/* ── the data behind the expressions ────────────────────────────────────── */
+
+test('the Sankey figure follows the model, and matches the table', () => {
+  for (const key of attribution.ORDER) {
+    const payload = screen.select({ model: key });
+    const table = payload.attrChannels.find((c) => c.channel === 'Meta Ads').rev;
+    assert.equal(payload.attrSankeyMeta, table,
+      `under ${key} the Sankey says ${payload.attrSankeyMeta} while the table says ${table}`);
+  }
+});
+
+test('switching model moves the Sankey figure', () => {
+  /* The bug in one line: these used to be identical. */
+  assert.notEqual(
+    screen.select({ model: 'first' }).attrSankeyMeta,
+    screen.select({ model: 'last' }).attrSankeyMeta
+  );
+  assert.equal(screen.select({ model: 'first' }).attrSankeyMeta, '₹24.1L');
+  assert.equal(screen.select({ model: 'last' }).attrSankeyMeta, '₹14.1L');
+});
+
+test('a preview moves the Sankey too, or the diagram would contradict the preview bar', () => {
+  const payload = screen.select({ model: 'datadriven', preview: 'last' });
+  assert.equal(payload.attrSankeyMeta, '₹14.1L');
+});
+
+test('the booking node carries the total credited under the model in force', () => {
+  for (const key of attribution.ORDER) {
+    const payload = screen.select({ model: key });
+    const total = attribution.total(attribution.MODELS[key]);
+    assert.equal(payload.attrSankeyTotal, `₹${total.toFixed(1)}L`);
+  }
+});

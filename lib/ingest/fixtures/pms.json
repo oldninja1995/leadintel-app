@@ -1,0 +1,18 @@
+{
+  "_note": "SYNTHETIC. Not a real property management system's data. Folio F-2001 settles booking B-1001 at ₹42,800 against the CRM's ₹46,000 expectation — the disagreement the precedence rules exist to resolve, and the one the Analytics Engine page names first. See PHASES.md, Phase 4.",
+
+  "booking": [
+    { "booking_id": "B-1001", "guest_name": "George Kurien", "guest_phone": "+91 85476 63311", "property_id": "P-MUN", "property": "Munnar Hillside", "room_type": "Honeymoon suite", "check_in": "2026-07-28", "check_out": "2026-07-31", "status": "checked_in", "nights": 3, "currency": "INR", "updated_at": "2026-07-28T14:20:00+05:30" },
+    { "booking_id": "B-1002", "guest_name": "Anjali Menon", "guest_phone": "+91 98470 12345", "property_id": "P-MUN", "property": "Munnar Hillside", "room_type": "Cliff-view villa", "check_in": "2026-07-20", "check_out": "2026-07-22", "status": "cancelled", "nights": 2, "currency": "INR", "updated_at": "2026-07-18T10:05:00+05:30" }
+  ],
+
+  "folio": [
+    { "folio_id": "F-2001", "booking_id": "B-1001", "currency": "INR", "room_revenue": "₹38,400", "extras": "₹4,400", "total": "₹42,800", "commission": "₹0", "closed_at": "2026-07-31T11:00:00+05:30" },
+    { "folio_id": "F-2002", "booking_id": "B-1002", "currency": "INR", "room_revenue": "₹0", "extras": "₹0", "total": "₹0", "commission": "₹0", "closed_at": "2026-07-18T10:05:00+05:30" }
+  ],
+
+  "inventory_day": [
+    { "property_id": "P-MUN", "date": "2026-07-14", "rooms_available": 42, "rooms_sold": 33 },
+    { "property_id": "P-ALP", "date": "2026-07-14", "rooms_available": 28, "rooms_sold": 21 }
+  ]
+}

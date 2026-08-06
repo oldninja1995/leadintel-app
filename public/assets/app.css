@@ -1,0 +1,84 @@
+/* LeadIntel — app shell styles.
+   The Nocturne tokens live in nocturne.css. Everything here is either the
+   global shell (taken from the design's <helmet> block) or a real CSS rule
+   standing in for one of the design's `style-hover` attributes, which are a
+   Claude Design authoring convenience and not valid HTML. */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-body);
+}
+
+a { color: var(--color-accent-300); text-decoration: none; }
+a:hover { color: var(--color-accent-200); }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--color-neutral-800); border-radius: 8px; border: 2px solid var(--color-bg); }
+::-webkit-scrollbar-track { background: transparent; }
+
+@keyframes li-slide-in { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes li-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes li-pop { from { transform: translateY(6px) scale(.985); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
+@keyframes li-pulse { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+@keyframes li-shimmer { 0% { background-position: -320px 0; } 100% { background-position: 320px 0; } }
+
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; border-radius: 4px; }
+::selection { background: var(--color-accent-800); color: var(--color-accent-100); }
+
+table thead th { position: sticky; top: 0; background: var(--color-surface); z-index: 2; }
+
+/* Semantic status colours, resolved once instead of repeated inline. */
+:root {
+  --c-up: oklch(0.76 0.13 155);
+  --c-down: oklch(0.7 0.14 25);
+  --c-warn: oklch(0.8 0.12 85);
+  --c-code-bg: #14161f;
+}
+
+/* — shell — */
+.app { display: flex; height: 100vh; overflow: hidden; background: var(--color-bg); font-size: 13px; }
+
+.sidebar {
+  flex: none; display: flex; flex-direction: column;
+  border-right: 1px solid var(--color-neutral-900);
+  background: linear-gradient(180deg, var(--color-bg) 0%, #14161f 100%);
+  transition: width .22s ease; overflow: hidden;
+}
+.sidebar.is-expanded { width: 214px; }
+.sidebar.is-collapsed { width: 60px; }
+.sidebar.is-collapsed .sidebar-label { display: none; }
+
+.sidebar-search:hover { border-color: var(--color-neutral-700); color: var(--color-neutral-400); }
+.nav-item:hover { background: var(--color-neutral-900); }
+.sidebar-collapse:hover { background: var(--color-neutral-900); color: var(--color-neutral-300); }
+
+.main-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+main { flex: 1; overflow-y: auto; padding: 18px; }
+
+/* — responsive grid collapse, from the design's helmet block — */
+@media (max-width: 1180px) {
+  main [style*="grid-template-columns:repeat(6,1fr)"] { grid-template-columns: repeat(3, 1fr) !important; }
+  main [style*="grid-template-columns:repeat(5,1fr)"] { grid-template-columns: repeat(3, 1fr) !important; }
+  main [style*="grid-template-columns:repeat(4,1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+  main [style*="grid-template-columns:repeat(3,1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 900px) {
+  main [style*="grid-template-columns:2fr 1fr"], main [style*="grid-template-columns:1.7fr 1fr"],
+  main [style*="grid-template-columns:1.8fr 1fr"], main [style*="grid-template-columns:1.5fr 1fr"],
+  main [style*="grid-template-columns:1.4fr 1fr"], main [style*="grid-template-columns:1.3fr 1fr"],
+  main [style*="grid-template-columns:1.2fr 1fr"], main [style*="grid-template-columns:1fr 1.2fr"],
+  main [style*="grid-template-columns:1fr 1.3fr"], main [style*="grid-template-columns:1fr 1.4fr"],
+  main [style*="grid-template-columns:320px"], main [style*="grid-template-columns:340px"],
+  main [style*="grid-template-columns:250px"], main [style*="grid-template-columns:214px"],
+  main [style*="grid-template-columns:196px"] { grid-template-columns: 1fr !important; }
+  main [style*="grid-template-columns:repeat(3,1fr)"], main [style*="grid-template-columns:repeat(4,1fr)"],
+  main [style*="grid-template-columns:repeat(5,1fr)"], main [style*="grid-template-columns:repeat(6,1fr)"] { grid-template-columns: repeat(2, 1fr) !important; }
+  main table { min-width: 720px; }
+}
+@media (max-width: 640px) {
+  main { padding: 12px !important; }
+  main [style*="grid-template-columns"] { grid-template-columns: 1fr !important; }
+}

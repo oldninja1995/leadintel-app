@@ -1,0 +1,66 @@
+{
+  "resource": "_shell",
+  "generatedFrom": "data/generated/_shell.js",
+  "fields": {
+    "aiBtnBg": {
+      "kind": "value",
+      "type": "string"
+    },
+    "collapseIcon": {
+      "kind": "value",
+      "type": "string"
+    },
+    "expanded": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "sidebarWidth": {
+      "kind": "value",
+      "type": "string"
+    },
+    "up": {
+      "kind": "value",
+      "type": "string"
+    },
+    "wsOpen": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "navGroups": {
+      "kind": "list",
+      "item": [
+        "label",
+        "showLabel"
+      ],
+      "nested": {
+        "items": {
+          "item": [
+            "badge",
+            "bg",
+            "color",
+            "icon",
+            "name",
+            "pinned",
+            "rail",
+            "showBadge"
+          ]
+        }
+      }
+    },
+    "ranges": {
+      "kind": "list",
+      "item": [
+        "bg",
+        "color",
+        "label"
+      ]
+    },
+    "filters": {
+      "kind": "list",
+      "item": [
+        "k",
+        "v"
+      ]
+    }
+  }
+}

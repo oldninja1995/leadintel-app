@@ -1,0 +1,64 @@
+<div style="animation:li-fade .25s ease;" data-screen-label="Sales Pipeline">
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:19px;">Sales Pipeline</h1>
+            <span style="font-size:11.5px; color:var(--color-neutral-600);">₹18.6L open pipeline · 214 active leads</span>
+            <div style="flex:1;"></div>
+            <div style="display:flex; border:1px solid var(--color-neutral-800); border-radius:7px; overflow:hidden; font-size:11.5px;">
+              <span data-action="pipeKanban" style="display:flex; align-items:center; gap:5px; padding:5px 12px; cursor:pointer; color:<%= pipeKanbanColor %>; background:<%= pipeKanbanBg %>;"><i class="ph ph-kanban" style="font-size:13px;"></i>Kanban</span>
+              <span data-action="pipeListGo" style="display:flex; align-items:center; gap:5px; padding:5px 12px; cursor:pointer; color:<%= pipeListColor %>; background:<%= pipeListBg %>; border-left:1px solid var(--color-neutral-900);"><i class="ph ph-list-bullets" style="font-size:13px;"></i>List</span>
+            </div>
+          </div>
+          <% if (pipeIsKanban) { %>
+            <div style="display:flex; gap:10px; overflow-x:auto; padding-bottom:10px; align-items:flex-start;">
+              <% (pipeStages || []).forEach(function (st) { %>
+                <div style="width:212px; flex:none; background:#1a1c28; border-radius:11px; box-shadow:var(--shadow-sm); padding:10px;">
+                  <div style="display:flex; align-items:center; gap:7px; padding:2px 4px 8px;">
+                    <span style="font-size:11.5px; font-weight:500; color:var(--color-neutral-200); white-space:nowrap;"><%= st.name %></span>
+                    <span style="font-size:10px; background:var(--color-neutral-900); border-radius:99px; padding:1px 7px; color:var(--color-neutral-500); font-variant-numeric:tabular-nums;"><%= st.n %></span>
+                    <div style="flex:1;"></div>
+                    <span style="font-size:10px; color:var(--color-neutral-600); font-variant-numeric:tabular-nums;"><%= st.rev %></span>
+                  </div>
+                  <div style="display:flex; gap:8px; font-size:9px; color:var(--color-neutral-600); padding:0 4px 8px; border-bottom:1px solid var(--color-neutral-900);">
+                    <span>conv <b style="color:var(--color-neutral-400); font-weight:500;"><%= st.conv %></b></span>
+                    <span>avg <b style="color:var(--color-neutral-400); font-weight:500;"><%= st.time %></b></span>
+                    <span>drop <b style="color:<%= st.dropColor %>; font-weight:500;"><%= st.drop %></b></span>
+                  </div>
+                  <div style="display:flex; flex-direction:column; gap:7px; padding-top:8px;">
+                    <% (st.cards || []).forEach(function (c) { %>
+                      <div class="hv-4" style="background:var(--color-surface); border-radius:8px; box-shadow:var(--shadow-sm); padding:9px 11px; cursor:grab;">
+                        <div style="display:flex; align-items:center; gap:7px;"><span style="font-size:11.5px; font-weight:500; color:var(--color-neutral-200); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= c.name %></span><span style="font-size:10.5px; font-weight:500; color:var(--color-accent-300); font-variant-numeric:tabular-nums;"><%= c.val %></span></div>
+                        <div style="font-size:10px; color:var(--color-neutral-600); margin-top:2px;"><%= c.what %></div>
+                        <div style="display:flex; align-items:center; gap:6px; margin-top:7px;">
+                          <div style="width:16px; height:16px; border-radius:99px; background:var(--color-neutral-800); display:grid; place-items:center; font-size:7px; font-weight:600; color:var(--color-neutral-300);"><%= c.own %></div>
+                          <span style="font-size:9.5px; color:<%= c.ageColor %>;"><%= c.age %></span>
+                          <div style="flex:1;"></div>
+                          <i class="<%= c.chan %>" style="font-size:11px; color:var(--color-neutral-600);"></i>
+                        </div>
+                      </div>
+                    <% }); %>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          <% } %>
+          <% if (pipeIsList) { %>
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:6px 16px 12px;">
+              <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:9px 8px 9px 0; font-weight:500;">STAGE</th><th style="padding:9px 8px; text-align:right; font-weight:500;">LEADS</th><th style="padding:9px 8px; text-align:right; font-weight:500;">REVENUE</th><th style="padding:9px 8px; text-align:right; font-weight:500;">AVG TIME</th><th style="padding:9px 8px; text-align:right; font-weight:500;">CONVERSION</th><th style="padding:9px 8px; text-align:right; font-weight:500;">DROP-OFF</th><th style="padding:9px 0 9px 8px; font-weight:500;">FLOW</th></tr></thead>
+                <tbody>
+                  <% (pipeStages || []).forEach(function (st) { %>
+                    <tr class="hv-1" style="border-top:1px solid var(--color-neutral-900);">
+                      <td style="padding:9px 8px 9px 0; color:var(--color-neutral-200); font-weight:500; white-space:nowrap;"><%= st.name %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= st.n %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-200); font-weight:500;"><%= st.rev %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= st.time %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= st.conv %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:<%= st.dropColor %>;"><%= st.drop %></td>
+                      <td style="padding:9px 0 9px 8px; min-width:150px;"><div style="height:6px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= st.w %>; border-radius:99px; background:linear-gradient(90deg, var(--color-accent-700), var(--color-accent-400));"></div></div></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+        </div>

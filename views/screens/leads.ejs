@@ -1,0 +1,126 @@
+<div style="animation:li-fade .25s ease;" data-screen-label="Lead Intelligence">
+          <% if (leadList) { %>
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+              <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:19px;">Lead Intelligence</h1>
+              <span style="font-size:11.5px; color:var(--color-neutral-600);">1,847 leads · every lead carries full campaign attribution</span>
+              <div style="flex:1;"></div>
+              <div class="hv-7" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-accent-300); border:1px solid var(--color-accent-600); border-radius:7px; padding:5px 11px; cursor:pointer;"><i class="ph ph-plus" style="font-size:13px;"></i>New lead</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+              <div style="display:flex; align-items:center; gap:7px; border:1px solid var(--color-neutral-800); border-radius:7px; padding:6px 10px; width:230px; color:var(--color-neutral-600);"><i class="ph ph-magnifying-glass" style="font-size:12px;"></i><span style="font-size:11.5px;">Search name, phone, campaign…</span></div>
+              <span class="hv-3" style="font-size:11px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:4px 11px; color:var(--color-neutral-500); cursor:pointer;">Stage: All ▾</span>
+              <span class="hv-3" style="font-size:11px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:4px 11px; color:var(--color-neutral-500); cursor:pointer;">Owner: All ▾</span>
+              <span class="hv-3" style="font-size:11px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:4px 11px; color:var(--color-neutral-500); cursor:pointer;">Score: 70+ ▾</span>
+              <div style="flex:1;"></div>
+              <div style="display:flex; align-items:center; gap:8px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); border-radius:7px; padding:5px 11px; font-size:11px; color:var(--color-accent-200);">
+                2 selected
+                <span style="cursor:pointer; color:var(--color-accent-300);">Assign ▾</span><span style="cursor:pointer; color:var(--color-accent-300);">Stage ▾</span><span style="cursor:pointer; color:var(--color-accent-300);">WhatsApp template</span><span style="cursor:pointer; color:var(--color-accent-300);">Export</span>
+              </div>
+            </div>
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:6px 16px 10px; overflow-x:auto;">
+              <table style="width:100%; min-width:1060px; border-collapse:collapse; font-size:12px;">
+                <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:9px 6px 9px 0;"><i class="ph ph-square" style="font-size:13px;"></i></th><th style="padding:9px 8px; font-weight:500;">LEAD</th><th style="padding:9px 8px; font-weight:500;">SOURCE</th><th style="padding:9px 8px; font-weight:500;">INTEREST</th><th style="padding:9px 8px; text-align:center; font-weight:500;">SCORE</th><th style="padding:9px 8px; text-align:center; font-weight:500;">BOOKING PROB.</th><th style="padding:9px 8px; font-weight:500;">STAGE</th><th style="padding:9px 8px; font-weight:500;">OWNER</th><th style="padding:9px 8px; font-weight:500;">NEXT FOLLOW-UP</th><th style="padding:9px 0 9px 8px; text-align:right; font-weight:500;">VALUE</th></tr></thead>
+                <tbody>
+                  <% (leadRows || []).forEach(function (l) { %>
+                    <tr class="hv-1" data-action="<%= l.go %>" style="border-top:1px solid var(--color-neutral-900); cursor:pointer;">
+                      <td style="padding:9px 6px 9px 0;"><i class="<%= l.check %>" style="font-size:13px; color:<%= l.checkColor %>;"></i></td>
+                      <td style="padding:9px 8px;"><div style="color:var(--color-neutral-200); font-weight:500; white-space:nowrap;"><%= l.name %></div><div style="font-size:10.5px; color:var(--color-neutral-600);"><%= l.phone %></div></td>
+                      <td style="padding:9px 8px;"><div style="color:var(--color-neutral-400); white-space:nowrap; max-width:190px; overflow:hidden; text-overflow:ellipsis;"><%= l.campaign %></div><div style="font-size:10.5px; color:var(--color-neutral-600);"><%= l.platform %></div></td>
+                      <td style="padding:9px 8px;"><div style="color:var(--color-neutral-400); white-space:nowrap;"><%= l.room %></div><div style="font-size:10.5px; color:var(--color-neutral-600);"><%= l.property %></div></td>
+                      <td style="padding:9px 8px; text-align:center;"><span style="font-size:11px; font-weight:500; border:1px solid var(--color-neutral-800); border-radius:99px; padding:2px 8px; color:<%= l.scoreColor %>; font-variant-numeric:tabular-nums;"><%= l.score %></span></td>
+                      <td style="padding:9px 8px; min-width:90px;"><div style="display:flex; align-items:center; gap:6px;"><div style="flex:1; height:5px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= l.prob %>; border-radius:99px; background:linear-gradient(90deg, var(--color-accent-700), var(--color-accent-400));"></div></div><span style="font-size:10.5px; color:var(--color-neutral-400); font-variant-numeric:tabular-nums;"><%= l.prob %></span></div></td>
+                      <td style="padding:9px 8px;"><span style="font-size:10px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:2px 8px; color:<%= l.stageColor %>; white-space:nowrap;"><%= l.stage %></span></td>
+                      <td style="padding:9px 8px; color:var(--color-neutral-400); white-space:nowrap;"><%= l.owner %></td>
+                      <td style="padding:9px 8px; color:<%= l.fuColor %>; white-space:nowrap; font-variant-numeric:tabular-nums;"><%= l.followup %></td>
+                      <td style="padding:9px 0 9px 8px; text-align:right; color:var(--color-neutral-200); font-weight:500; font-variant-numeric:tabular-nums;"><%= l.value %></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+              <div style="font-size:10.5px; color:var(--color-neutral-600); padding-top:9px; border-top:1px solid var(--color-neutral-900); display:flex; align-items:center; gap:6px;"><i class="ph ph-cursor-click" style="font-size:12px;"></i>Click a lead to open the full profile & journey timeline</div>
+            </div>
+          <% } %>
+
+          <!-- Lead profile -->
+          <% if (leadProfile) { %>
+            <div data-screen-label="Lead profile">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                <span data-action="backToLeads" style="display:flex; align-items:center; gap:5px; font-size:12px; color:var(--color-accent-300); cursor:pointer;"><i class="ph ph-arrow-left"></i>Leads</span>
+                <i class="ph ph-caret-right" style="font-size:10px; color:var(--color-neutral-700);"></i>
+                <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:18px;"><%= selLead.name %></h1>
+                <span style="font-size:10px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:2px 9px; color:<%= selLead.stageColor %>;"><%= selLead.stage %></span>
+                <div style="flex:1;"></div>
+                <div style="display:flex; gap:6px;">
+                  <span class="hv-5" style="display:flex; align-items:center; gap:5px; font-size:11px; border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; color:var(--color-neutral-400); cursor:pointer;"><i class="ph ph-phone" style="font-size:12px;"></i>Call</span>
+                  <span class="hv-5" style="display:flex; align-items:center; gap:5px; font-size:11px; border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; color:var(--color-neutral-400); cursor:pointer;"><i class="ph ph-whatsapp-logo" style="font-size:12px;"></i>WhatsApp</span>
+                  <span class="hv-7" style="display:flex; align-items:center; gap:5px; font-size:11px; border:1px solid var(--color-accent-600); border-radius:7px; padding:5px 11px; color:var(--color-accent-300); cursor:pointer;"><i class="ph ph-calendar-plus" style="font-size:12px;"></i>Create reservation</span>
+                </div>
+              </div>
+              <div style="display:grid; grid-template-columns:320px 1fr; gap:12px; align-items:start;">
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                  <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                      <div style="width:44px; height:44px; border-radius:99px; background:linear-gradient(135deg, var(--color-accent-800), var(--color-accent-600)); display:grid; place-items:center; font-size:15px; font-weight:600; color:var(--color-accent-100);"><%= selLead.init %></div>
+                      <div><div style="font-size:14px; font-weight:500;"><%= selLead.name %></div><div style="font-size:11px; color:var(--color-neutral-500);"><%= selLead.location %></div></div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:7px; margin-top:13px; font-size:11.5px;">
+                      <div style="display:flex; gap:8px; color:var(--color-neutral-400);"><i class="ph ph-phone" style="font-size:13px; color:var(--color-neutral-600);"></i><%= selLead.phone %></div>
+                      <div style="display:flex; gap:8px; color:var(--color-neutral-400);"><i class="ph ph-envelope-simple" style="font-size:13px; color:var(--color-neutral-600);"></i><%= selLead.email %></div>
+                      <div style="display:flex; gap:8px; color:var(--color-neutral-400);"><i class="ph ph-device-mobile" style="font-size:13px; color:var(--color-neutral-600);"></i><%= selLead.device %></div>
+                    </div>
+                    <div style="display:flex; gap:9px; margin-top:14px; padding-top:12px; border-top:1px solid var(--color-neutral-900);">
+                      <div style="flex:1;"><div style="font-size:9px; color:var(--color-neutral-600); letter-spacing:.05em;">LEAD SCORE</div><div style="font-size:17px; font-weight:500; color:<%= selLead.scoreColor %>;"><%= selLead.score %></div></div>
+                      <div style="flex:1;"><div style="font-size:9px; color:var(--color-neutral-600); letter-spacing:.05em;">BOOKING PROB.</div><div style="font-size:17px; font-weight:500; color:var(--color-accent-300);"><%= selLead.prob %></div></div>
+                      <div style="flex:1;"><div style="font-size:9px; color:var(--color-neutral-600); letter-spacing:.05em;">VALUE</div><div style="font-size:17px; font-weight:500;"><%= selLead.value %></div></div>
+                    </div>
+                  </div>
+                  <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px; border-left:2px solid var(--color-accent-700);">
+                    <div style="display:flex; align-items:center; gap:7px; margin-bottom:9px;"><div style="font-size:12px; font-weight:500;">Marketing attribution</div><span style="font-size:8.5px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); border-radius:4px; padding:1px 6px; color:var(--color-accent-300);">CRM</span></div>
+                    <% (selLead.attribution || []).forEach(function (a) { %>
+                      <div style="display:flex; gap:8px; padding:4.5px 0; font-size:11px; border-top:1px solid var(--color-neutral-900);"><span style="width:92px; flex:none; color:var(--color-neutral-600);"><%= a.k %></span><span style="flex:1; color:var(--color-neutral-300); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><%= a.v %></span></div>
+                    <% }); %>
+                  </div>
+                  <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+                    <div style="font-size:12px; font-weight:500; margin-bottom:9px;">Stay intent</div>
+                    <% (selLead.intent || []).forEach(function (a) { %>
+                      <div style="display:flex; gap:8px; padding:4.5px 0; font-size:11px; border-top:1px solid var(--color-neutral-900);"><span style="width:92px; flex:none; color:var(--color-neutral-600);"><%= a.k %></span><span style="flex:1; color:var(--color-neutral-300);"><%= a.v %></span></div>
+                    <% }); %>
+                  </div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                  <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
+                    <div style="display:flex; align-items:center; margin-bottom:12px;"><div style="font-size:13px; font-weight:500;">Journey timeline</div><span style="font-size:10.5px; color:var(--color-neutral-600); margin-left:8px;">ad click → completed stay</span><div style="flex:1;"></div><span style="font-size:11px; color:var(--color-neutral-500);">Owner: <%= selLead.owner %></span></div>
+                    <div style="position:relative; padding-left:4px;">
+                      <% (selLead.timeline || []).forEach(function (t) { %>
+                        <div style="display:flex; gap:12px; align-items:flex-start; position:relative; padding-bottom:14px;">
+                          <div style="display:flex; flex-direction:column; align-items:center; align-self:stretch;">
+                            <div style="width:26px; height:26px; flex:none; border-radius:99px; border:1px solid <%= t.ring %>; background:<%= t.bg %>; display:grid; place-items:center;"><i class="<%= t.icon %>" style="font-size:12.5px; color:<%= t.color %>;"></i></div>
+                            <div style="width:1px; flex:1; background:linear-gradient(var(--color-neutral-800), transparent);"></div>
+                          </div>
+                          <div style="flex:1; padding-top:3px;">
+                            <div style="font-size:12px; color:var(--color-neutral-200);"><%= t.label %></div>
+                            <div style="font-size:10.5px; color:var(--color-neutral-600); margin-top:2px;"><%= t.when %> · <%= t.who %></div>
+                          </div>
+                          <span style="font-size:9.5px; letter-spacing:.04em; color:<%= t.tagColor %>; border:1px solid var(--color-neutral-800); border-radius:4px; padding:1px 6px; margin-top:4px;"><%= t.tag %></span>
+                        </div>
+                      <% }); %>
+                    </div>
+                  </div>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+                      <div style="display:flex; align-items:center; margin-bottom:8px;"><div style="font-size:12px; font-weight:500;">Notes</div><div style="flex:1;"></div><span style="font-size:11px; color:var(--color-accent-300); cursor:pointer;">+ Add</span></div>
+                      <div style="font-size:11.5px; color:var(--color-neutral-400); line-height:1.55; padding:7px 0; border-top:1px solid var(--color-neutral-900);">"Anniversary trip — wants the villa with the best sunset view. Budget flexible if we include the candlelight dinner." <span style="color:var(--color-neutral-600);">— Reshma, Jul 16</span></div>
+                      <div style="font-size:11.5px; color:var(--color-neutral-400); line-height:1.55; padding:7px 0; border-top:1px solid var(--color-neutral-900);">"Prefers WhatsApp over calls. Travels with a pet — confirmed Pool Villa is pet-friendly." <span style="color:var(--color-neutral-600);">— Reshma, Jul 17</span></div>
+                    </div>
+                    <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+                      <div style="display:flex; align-items:center; margin-bottom:8px;"><div style="font-size:12px; font-weight:500;">Tasks & documents</div><div style="flex:1;"></div><span style="font-size:11px; color:var(--color-accent-300); cursor:pointer;">+ Add</span></div>
+                      <div style="display:flex; gap:8px; align-items:center; padding:7px 0; border-top:1px solid var(--color-neutral-900); font-size:11.5px;"><i class="ph ph-square" style="color:<%= warn %>; font-size:13px;"></i><span style="flex:1; color:var(--color-neutral-300);">Confirm payment before quote expiry</span><span style="font-size:10px; color:<%= warn %>;">Today 6 PM</span></div>
+                      <div style="display:flex; gap:8px; align-items:center; padding:7px 0; border-top:1px solid var(--color-neutral-900); font-size:11.5px;"><i class="ph ph-check-square" style="color:var(--color-neutral-600); font-size:13px;"></i><span style="flex:1; color:var(--color-neutral-500); text-decoration:line-through;">Send Pool Villa quotation</span><span style="font-size:10px; color:var(--color-neutral-600);">Jul 17</span></div>
+                      <div style="display:flex; gap:8px; align-items:center; padding:7px 0; border-top:1px solid var(--color-neutral-900); font-size:11.5px;"><i class="ph ph-file-pdf" style="color:var(--color-accent-400); font-size:13px;"></i><span style="flex:1; color:var(--color-neutral-300);">Quotation_PoolVilla_4N.pdf</span><span style="font-size:10px; color:var(--color-neutral-600);">248 KB</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          <% } %>
+        </div>

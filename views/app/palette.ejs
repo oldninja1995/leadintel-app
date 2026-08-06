@@ -1,0 +1,28 @@
+<%
+/* ⌘K command palette. Not from the design — see lib/palette.js.
+   The index is embedded rather than fetched: it is a few kilobytes, it is the
+   same on every page, and a fetch would put a network round trip in front of a
+   control whose whole point is being faster than clicking. */
+%>
+<div id="li-palette" class="li-overlay" hidden>
+  <div class="li-overlay-scrim" data-li-close></div>
+
+  <div class="li-palette-box" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div class="li-palette-field">
+      <i class="ph ph-magnifying-glass"></i>
+      <input id="li-palette-input" type="text" autocomplete="off" spellcheck="false"
+             placeholder="Go to a screen or view…" aria-label="Search screens and views">
+      <kbd class="li-kbd">esc</kbd>
+    </div>
+
+    <div id="li-palette-list" class="li-palette-list" role="listbox"></div>
+
+    <div class="li-palette-foot">
+      <span><kbd class="li-kbd">↑</kbd><kbd class="li-kbd">↓</kbd> navigate</span>
+      <span><kbd class="li-kbd">↵</kbd> open</span>
+      <span class="li-palette-foot-note">screens and views only — actions arrive with the design</span>
+    </div>
+  </div>
+</div>
+
+<script type="application/json" id="li-palette-data"><%- JSON.stringify(palette || []) %></script>

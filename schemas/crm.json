@@ -1,0 +1,67 @@
+{
+  "resource": "crm",
+  "generatedFrom": "data/generated/crm.js",
+  "fields": {
+    "warn": {
+      "kind": "value",
+      "type": "string"
+    },
+    "crmHero": {
+      "kind": "list",
+      "item": [
+        "delta",
+        "deltaColor",
+        "icon",
+        "label",
+        "spark",
+        "src",
+        "srcBorder",
+        "srcColor",
+        "sub",
+        "tip",
+        "value"
+      ]
+    },
+    "crmKpis": {
+      "kind": "list",
+      "item": [
+        "delta",
+        "deltaColor",
+        "label",
+        "src",
+        "srcBorder",
+        "srcColor",
+        "tip",
+        "value"
+      ]
+    },
+    "crmStages": {
+      "kind": "list",
+      "item": [
+        "label",
+        "n",
+        "rev",
+        "w"
+      ]
+    },
+    "reps": {
+      "kind": "list",
+      "item": [
+        "init",
+        "meta",
+        "name",
+        "rev"
+      ]
+    },
+    "followups": {
+      "kind": "list",
+      "item": [
+        "dot",
+        "meta",
+        "name",
+        "what",
+        "when"
+      ]
+    }
+  }
+}

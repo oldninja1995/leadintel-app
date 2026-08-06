@@ -1,0 +1,281 @@
+/* Phase 2 additions that have no design markup: the ⌘K palette, the
+   notification panel, the filter-chip dropdowns and the filter note.
+   Everything below uses the Nocturne tokens from nocturne.css, so these
+   controls inherit the design's palette even though their layout is mine. */
+
+/* — shared overlay — */
+.li-overlay, .li-panel { position: fixed; inset: 0; z-index: 200; }
+.li-overlay[hidden], .li-panel[hidden] { display: none; }
+.li-overlay-scrim { position: absolute; inset: 0; background: rgba(8, 9, 14, .62); animation: li-fade .12s ease; }
+
+.li-kbd {
+  font: inherit; font-size: 10px; line-height: 1; color: var(--color-neutral-500);
+  border: 1px solid var(--color-neutral-800); border-radius: 4px;
+  padding: 3px 5px; background: var(--color-neutral-900);
+}
+
+.li-icon-btn {
+  background: none; border: 0; cursor: pointer; color: var(--color-neutral-500);
+  font-size: 16px; padding: 4px; border-radius: 6px; display: flex;
+}
+.li-icon-btn:hover { background: var(--color-neutral-900); color: var(--color-neutral-300); }
+
+/* — command palette — */
+.li-palette-box {
+  position: relative; width: min(620px, calc(100vw - 32px));
+  margin: 12vh auto 0; background: var(--color-surface);
+  border: 1px solid var(--color-neutral-800); border-radius: 12px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, .55); overflow: hidden;
+  animation: li-pop .14s ease;
+}
+
+.li-palette-field { display: flex; align-items: center; gap: 10px; padding: 13px 15px; border-bottom: 1px solid var(--color-neutral-900); }
+.li-palette-field i { font-size: 16px; color: var(--color-neutral-600); }
+.li-palette-field input {
+  flex: 1; background: none; border: 0; outline: 0; color: var(--color-text);
+  font-family: inherit; font-size: 14px;
+}
+.li-palette-field input::placeholder { color: var(--color-neutral-600); }
+
+.li-palette-list { max-height: min(420px, 52vh); overflow-y: auto; padding: 6px; }
+
+.li-row {
+  display: flex; align-items: center; gap: 11px; width: 100%;
+  padding: 8px 10px; border-radius: 7px; cursor: pointer; text-align: left;
+  background: none; border: 0; color: inherit; font: inherit;
+}
+.li-row i { font-size: 15px; color: var(--color-neutral-500); flex: none; }
+.li-row-label { font-size: 12.5px; color: var(--color-neutral-200); }
+.li-row-context { font-size: 11px; color: var(--color-neutral-600); margin-left: auto; flex: none; }
+.li-row[aria-selected="true"] { background: var(--color-accent-900); }
+.li-row[aria-selected="true"] i, .li-row[aria-selected="true"] .li-row-label { color: var(--color-accent-200); }
+
+.li-palette-empty { padding: 26px 14px; text-align: center; font-size: 12px; color: var(--color-neutral-600); }
+
+.li-palette-foot {
+  display: flex; align-items: center; gap: 14px;
+  padding: 8px 14px; border-top: 1px solid var(--color-neutral-900);
+  font-size: 10.5px; color: var(--color-neutral-600);
+}
+.li-palette-foot span { display: flex; align-items: center; gap: 4px; }
+.li-palette-foot-note { margin-left: auto; color: var(--color-neutral-700); }
+
+/* — notification panel — */
+.li-panel-box {
+  position: absolute; top: 0; right: 0; bottom: 0; width: min(392px, 100vw);
+  display: flex; flex-direction: column;
+  background: var(--color-surface); border-left: 1px solid var(--color-neutral-800);
+  animation: li-slide-in .16s ease;
+}
+
+.li-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 15px 16px; border-bottom: 1px solid var(--color-neutral-900); }
+.li-panel-head h2 { font-size: 14px; font-weight: 500; margin: 0; color: var(--color-neutral-200); }
+.li-panel-head p { font-size: 11px; color: var(--color-neutral-600); margin: 3px 0 0; }
+
+.li-panel-body { flex: 1; overflow-y: auto; padding: 8px; }
+
+.li-alert {
+  display: flex; gap: 11px; padding: 11px 12px; border-radius: 8px;
+  border: 1px solid var(--color-neutral-900); margin-bottom: 7px;
+  background: var(--color-bg); color: inherit;
+}
+.li-alert:hover { border-color: var(--color-neutral-800); }
+.li-alert i { font-size: 16px; flex: none; margin-top: 1px; }
+.li-alert strong { display: block; font-size: 12.5px; font-weight: 500; color: var(--color-neutral-200); }
+.li-alert p { font-size: 11.5px; color: var(--color-neutral-500); margin: 3px 0 0; line-height: 1.5; word-break: break-word; }
+.li-alert span { display: block; font-size: 10.5px; color: var(--color-neutral-700); margin-top: 4px; }
+.li-alert--critical i { color: var(--c-down); }
+.li-alert--warning i { color: var(--c-warn); }
+.li-alert--info i { color: var(--color-neutral-500); }
+
+.li-panel-empty { padding: 44px 22px; text-align: center; }
+.li-panel-empty i { font-size: 26px; color: var(--c-up); }
+.li-panel-empty p { font-size: 12.5px; color: var(--color-neutral-400); margin: 11px 0 0; line-height: 1.6; }
+.li-panel-empty span { display: block; font-size: 11px; color: var(--color-neutral-700); margin-top: 9px; line-height: 1.6; }
+
+.li-panel-foot { padding: 9px 14px; border-top: 1px solid var(--color-neutral-900); font-size: 10.5px; color: var(--color-neutral-700); }
+
+/* — notification bell badge, attached to the design's own topbar button — */
+.li-bell-dot {
+  position: absolute; top: -1px; right: -1px; min-width: 14px; height: 14px;
+  border-radius: 99px; background: var(--c-down); color: #0b0c12;
+  font-size: 9px; font-weight: 600; line-height: 14px; text-align: center;
+  padding: 0 3px; border: 2px solid var(--color-bg); box-sizing: content-box;
+}
+
+/* — filter chip dropdown — */
+.li-menu {
+  position: absolute; z-index: 300; min-width: 172px; max-height: 300px; overflow-y: auto;
+  background: var(--color-surface); border: 1px solid var(--color-neutral-800);
+  border-radius: 9px; box-shadow: 0 16px 40px rgba(0, 0, 0, .5); padding: 5px;
+  animation: li-pop .1s ease;
+}
+.li-menu button {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  background: none; border: 0; cursor: pointer; font: inherit; font-size: 12px;
+  color: var(--color-neutral-300); padding: 7px 9px; border-radius: 6px;
+}
+.li-menu button:hover { background: var(--color-neutral-900); }
+.li-menu button[aria-checked="true"] { color: var(--color-accent-300); }
+.li-menu button i { font-size: 12px; margin-left: auto; opacity: 0; }
+.li-menu button[aria-checked="true"] i { opacity: 1; }
+.li-menu-inert { padding: 8px 9px; font-size: 11px; color: var(--color-neutral-600); line-height: 1.5; }
+
+/* An active chip is marked in the design's own chip markup, which this file
+   cannot edit — so the state is carried by a class the enhancement adds. */
+.li-chip-active { border-color: var(--color-accent-800) !important; background: var(--color-accent-900); }
+.li-chip-active span:last-of-type { color: var(--color-accent-300) !important; }
+
+/* — attribution preview bar (5.2) — */
+.li-preview {
+  display: block; margin: 0 0 14px; padding: 11px 13px; border-radius: 9px;
+  border: 1px solid var(--color-accent-800); background: var(--color-accent-900);
+  font-size: 11.5px;
+}
+.li-preview-head { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.li-preview-head > i { font-size: 15px; color: var(--color-accent-300); }
+.li-preview-title { color: var(--color-neutral-300); }
+.li-preview-title strong { color: var(--color-accent-200); font-weight: 500; }
+.li-preview-sub { color: var(--c-warn); }
+.li-preview-headline { margin-left: auto; color: var(--color-neutral-400); font-variant: small-caps; letter-spacing: .04em; }
+
+.li-preview-channels { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+.li-delta {
+  display: inline-flex; align-items: baseline; gap: 6px;
+  padding: 4px 9px; border-radius: 99px; border: 1px solid var(--color-neutral-800);
+  background: var(--color-bg);
+}
+.li-delta-ch { color: var(--color-neutral-500); text-transform: capitalize; }
+.li-delta-v { color: var(--color-neutral-300); }
+.li-delta-d { font-weight: 500; }
+.li-delta--up .li-delta-d { color: var(--c-up); }
+.li-delta--down .li-delta-d { color: var(--c-down); }
+.li-delta--flat .li-delta-d { color: var(--color-neutral-500); }
+
+.li-preview-foot { display: flex; align-items: center; gap: 9px; margin: 11px 0 0; flex-wrap: wrap; }
+.li-preview-foot label { color: var(--color-neutral-500); }
+.li-preview-foot input {
+  flex: 1 1 220px; min-width: 160px; background: var(--color-bg); color: var(--color-text);
+  border: 1px solid var(--color-neutral-800); border-radius: 7px; padding: 6px 10px;
+  font-family: inherit; font-size: 11.5px;
+}
+.li-preview-foot input::placeholder { color: var(--color-neutral-600); }
+.li-preview-cancel { color: var(--color-neutral-500); margin-left: auto; }
+.li-preview-apply {
+  border: 1px solid var(--color-accent-600); background: var(--color-accent-800);
+  color: var(--color-accent-100); border-radius: 7px; padding: 6px 14px;
+  font-family: inherit; font-size: 11.5px; font-weight: 500; cursor: pointer;
+}
+.li-preview-apply:hover { background: var(--color-accent-600); }
+.li-preview-error { display: flex; align-items: center; gap: 6px; margin: 9px 0 0; color: var(--c-down); }
+
+/* — skip link (Phase 10) — */
+.li-skip {
+  position: absolute; left: -9999px; top: 8px; z-index: 400;
+  background: var(--color-accent-800); color: var(--color-accent-100);
+  border: 1px solid var(--color-accent-600); border-radius: 8px;
+  padding: 9px 14px; font-size: 12.5px;
+}
+.li-skip:focus { left: 8px; }
+
+/* A promoted `div` gets no focus ring from the browser, because the browser
+   does not know it is a control. `:focus-visible` in app.css supplies one for
+   real controls; this extends it to the ones we promoted. */
+[data-li-operable="1"]:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+main:focus { outline: none; }
+
+/* — sign-in (Phase 9) — */
+.li-login { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+.li-login-card {
+  width: min(420px, 100%); background: var(--color-surface);
+  border: 1px solid var(--color-neutral-800); border-radius: 14px;
+  padding: 26px 26px 20px; box-shadow: 0 24px 64px rgba(0, 0, 0, .5);
+}
+.li-login-brand { display: flex; align-items: center; gap: 11px; margin-bottom: 20px; }
+.li-login-mark {
+  width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center;
+  border: 1px solid var(--color-accent-600); color: var(--color-accent-400); font-size: 17px;
+}
+.li-login-brand strong { display: block; font-size: 14.5px; font-weight: 600; color: var(--color-neutral-100); }
+.li-login-brand span { font-size: 11px; color: var(--color-neutral-600); letter-spacing: .04em; }
+
+.li-login form { display: flex; flex-direction: column; gap: 6px; }
+.li-login label { font-size: 11px; color: var(--color-neutral-500); margin-top: 8px; }
+.li-login select,
+.li-login input {
+  background: var(--color-bg); color: var(--color-text);
+  border: 1px solid var(--color-neutral-800); border-radius: 8px;
+  padding: 9px 11px; font-family: inherit; font-size: 12.5px;
+}
+.li-login select:focus, .li-login input:focus { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.li-login button {
+  margin-top: 16px; padding: 10px 14px; border-radius: 8px; cursor: pointer;
+  border: 1px solid var(--color-accent-600); background: var(--color-accent-800);
+  color: var(--color-accent-100); font-family: inherit; font-size: 13px; font-weight: 500;
+}
+.li-login button:hover { background: var(--color-accent-600); }
+
+.li-login-error {
+  display: flex; align-items: center; gap: 7px; margin: 0 0 14px;
+  padding: 9px 11px; border-radius: 8px; font-size: 12px;
+  border: 1px solid var(--c-down); color: var(--c-down); background: rgba(0, 0, 0, .2);
+}
+.li-login-note { font-size: 11px; color: var(--color-neutral-600); line-height: 1.6; margin: 14px 0 0; }
+.li-login-note strong { color: var(--color-neutral-400); font-weight: 500; }
+.li-login-note code {
+  font-family: ui-monospace, monospace; font-size: 10.5px;
+  border: 1px solid var(--color-neutral-800); border-radius: 4px; padding: 1px 5px;
+  color: var(--color-accent-300);
+}
+
+/* — presentation mode (Phase 8) — */
+
+/* Dark room: everything recedes except the slide, for a room with the lights
+   off. The slide itself is deliberately untouched — dimming the thing people
+   came to read would be the wrong half. */
+body.li-darkroom { background: #05060a; }
+body.li-darkroom .sidebar,
+body.li-darkroom header,
+body.li-darkroom nav { opacity: .28; transition: opacity .25s ease; }
+body.li-darkroom .sidebar:hover,
+body.li-darkroom header:hover { opacity: 1; }
+
+/* TV mode: the same, plus the chrome out of the way entirely — nobody drives a
+   wall display from the sidebar. */
+body.li-tv .sidebar,
+body.li-tv header { display: none; }
+body.li-tv main { padding: 0 !important; }
+
+/* A slide taken fullscreen keeps its own background rather than inheriting the
+   browser's black, so the 16:9 framing survives. */
+[style*="aspect-ratio:16/9"]:fullscreen,
+[style*="aspect-ratio: 16/9"]:fullscreen {
+  width: 100vw; height: 100vh; border-radius: 0;
+  display: flex; align-items: stretch; justify-content: stretch;
+}
+
+/* — filter note — */
+.li-filter-note {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin: 0 0 14px; padding: 9px 13px; border-radius: 8px;
+  border: 1px solid var(--color-accent-800); background: var(--color-accent-900);
+  font-size: 11.5px; color: var(--color-neutral-300);
+}
+.li-filter-note > i { font-size: 14px; color: var(--color-accent-300); }
+.li-filter-note--empty { border-color: var(--color-neutral-800); background: var(--color-neutral-900); }
+.li-filter-note--empty > i { color: var(--c-warn); }
+
+.li-filter-note-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.li-filter-chip {
+  display: inline-flex; gap: 5px; padding: 2.5px 9px; border-radius: 99px;
+  border: 1px solid var(--color-neutral-800); color: var(--color-neutral-500);
+}
+.li-filter-chip strong { font-weight: 500; color: var(--color-neutral-200); }
+
+.li-filter-note-text { color: var(--color-neutral-500); line-height: 1.55; }
+.li-filter-note-text strong { color: var(--color-neutral-300); font-weight: 500; }
+.li-filter-clear { margin-left: auto; color: var(--color-accent-300); white-space: nowrap; }

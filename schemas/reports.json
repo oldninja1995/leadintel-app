@@ -1,0 +1,196 @@
+{
+  "resource": "reports",
+  "generatedFrom": "data/generated/reports.js",
+  "fields": {
+    "down": {
+      "kind": "value",
+      "type": "string"
+    },
+    "repBuilder": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "repPresent": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "repSchedule": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "repScorecard": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "repTemplates": {
+      "kind": "value",
+      "type": "boolean"
+    },
+    "up": {
+      "kind": "value",
+      "type": "string"
+    },
+    "selReport": {
+      "kind": "object",
+      "fields": {
+        "name": {
+          "kind": "value",
+          "type": "string"
+        },
+        "period": {
+          "kind": "value",
+          "type": "string"
+        },
+        "recs": {
+          "kind": "list",
+          "scalar": true
+        },
+        "summary": {
+          "kind": "value",
+          "type": "string"
+        },
+        "top": {
+          "kind": "list",
+          "item": [
+            "name",
+            "val"
+          ]
+        },
+        "worst": {
+          "kind": "list",
+          "item": [
+            "name",
+            "val"
+          ]
+        }
+      }
+    },
+    "repTabs": {
+      "kind": "list",
+      "item": [
+        "border",
+        "color",
+        "label"
+      ]
+    },
+    "widgetGroups": {
+      "kind": "list",
+      "item": [
+        "label"
+      ],
+      "nested": {
+        "items": {
+          "item": [
+            "icon",
+            "name"
+          ]
+        }
+      }
+    },
+    "dashTabs": {
+      "kind": "list",
+      "item": [
+        "bg",
+        "color",
+        "label"
+      ]
+    },
+    "canvasWidgets": {
+      "kind": "list",
+      "item": [
+        "delta",
+        "deltaColor",
+        "h",
+        "isAi",
+        "isBar",
+        "isDonut",
+        "isFunnel",
+        "isKpi",
+        "isLine",
+        "isTable",
+        "span",
+        "text",
+        "title",
+        "value"
+      ]
+    },
+    "scorecardKpis": {
+      "kind": "list",
+      "item": [
+        "delta",
+        "deltaColor",
+        "label",
+        "value"
+      ]
+    },
+    "scoreOpps": {
+      "kind": "list",
+      "item": [
+        "text",
+        "value"
+      ]
+    },
+    "scoreRisks": {
+      "kind": "list",
+      "item": [
+        "text",
+        "value"
+      ]
+    },
+    "presentKpis": {
+      "kind": "list",
+      "item": [
+        "delta",
+        "deltaColor",
+        "label",
+        "value"
+      ]
+    },
+    "schedules": {
+      "kind": "list",
+      "item": [
+        "freq",
+        "icon",
+        "name",
+        "next",
+        "status",
+        "statusColor",
+        "to"
+      ],
+      "nested": {
+        "channels": {
+          "scalar": true
+        }
+      }
+    },
+    "shareRows": {
+      "kind": "list",
+      "item": [
+        "access",
+        "init",
+        "meta",
+        "who"
+      ]
+    },
+    "exportOpts": {
+      "kind": "list",
+      "item": [
+        "color",
+        "icon",
+        "meta",
+        "name"
+      ]
+    },
+    "reportList": {
+      "kind": "list",
+      "item": [
+        "bg",
+        "border",
+        "freq",
+        "icon",
+        "iconColor",
+        "name"
+      ]
+    }
+  }
+}
