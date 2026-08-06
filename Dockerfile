@@ -23,9 +23,11 @@
 
 FROM node:22-alpine
 
-# Tini, so SIGTERM reaches node rather than being swallowed by PID 1. The
-# graceful shutdown in server.js is worth nothing if the signal never arrives.
-RUN apk add --no-cache tini
+# tini    so SIGTERM reaches node rather than being swallowed by PID 1 — the
+#         graceful shutdown in server.js is worth nothing if it never arrives
+# su-exec so the entrypoint can fix the volume's ownership as root and then
+#         drop to `node` before exec'ing the app
+RUN apk add --no-cache tini su-exec
 
 WORKDIR /app
 
@@ -35,13 +37,26 @@ RUN npm ci --omit=dev
 
 COPY . .
 
-# `var/` is state, not build output. Mount a volume here or every restart is a
-# cold start with an empty raw store.
-VOLUME ["/app/var"]
+# `var/` is state, not build output. **A volume must be mounted at /app/var** or
+# every restart is a cold start with an empty raw store.
+#
+# Declared as a comment rather than a `VOLUME` instruction: Railway rejects
+# `VOLUME` outright ("use Railway Volumes"), because it manages the mount
+# itself, and other platforms want it declared in their own config too. The
+# requirement is the same everywhere; only who declares it changes.
+#
+#   railway   railway volume add --mount-path /app/var
+#   fly       [mounts] destination = "/app/var" in fly.toml
+#   compose   volumes: ["leadintel-var:/app/var"]
+#   docker    -v leadintel-var:/app/var
 
-# Not root. The app writes only to /app/var, which the volume owns.
+# The app writes only to /app/var. It does **not** run as root — but it cannot
+# simply `USER node` either, because the volume is mounted over /app/var at
+# runtime and arrives root-owned whatever the image did at build time. The
+# entrypoint fixes that after the mount exists and then drops privileges. See
+# docker-entrypoint.sh.
 RUN chown -R node:node /app
-USER node
+COPY --chmod=755 docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
 ENV NODE_ENV=production
 EXPOSE 3000
@@ -51,5 +66,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
   CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||3000)+'/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
 
-ENTRYPOINT ["/sbin/tini", "--"]
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
 CMD ["node", "server.js"]
