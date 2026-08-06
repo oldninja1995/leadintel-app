@@ -29,6 +29,7 @@ const { FireLog } = require('./lib/rules/firelog');
 const schedules = require('./lib/schedules');
 const auth = require('./lib/auth');
 const authSessions = require('./lib/auth/sessions');
+const { Connections } = require('./lib/connections');
 const hardening = require('./lib/http/hardening');
 const observability = require('./lib/http/observability');
 
@@ -50,6 +51,7 @@ function entitiesFor(workspaceId) {
 const runner = new SyncRunner({ store: ingest.storeFor('parakkat') });
 const workspace = new attribution.Workspace();
 const dispatches = new reports.Dispatches();
+const connections = new Connections();
 const reasoner = createReasoner();
 const fires = new FireLog();
 
@@ -550,6 +552,89 @@ app.post('/schedules/run', express.json(), gatekeeper.gate('schedule.run'), (req
     res.status(500).json({ error: err.message });
   }
 });
+
+/* Connections — where a credential goes. The design draws no integrations
+   screen, so until this existed there was nowhere to put a token and every
+   connector read fixtures. Owner only: a credential can read a whole external
+   system. */
+async function renderConnections(req, res, { error = null, saved = null } = {}) {
+  const screen = (await repo.screens()).find((s) => s.slug === 'connections');
+  res.render('layout', {
+    screen,
+    screens: await repo.screens(),
+    shell: await shellData('connections', req.query),
+    hasView: false,
+    data: {
+      connections: connections.list(req.workspace),
+      workspaceName: auth.identity.workspace(req.workspace).name,
+      canManage: auth.permissions.can(req.user, 'connection.manage'),
+      secretSet: Boolean(process.env.LEADINTEL_SECRET),
+      error,
+      saved,
+    },
+    drawer: null,
+    palette: await palette(),
+    notifications: notifications(req.workspace),
+    filterData: filterData(null),
+    filterNote: null,
+    attrPreview: null,
+  });
+}
+
+app.get('/connections', (req, res, next) => {
+  renderConnections(req, res, { error: req.query.error || null, saved: req.query.saved || null }).catch(next);
+});
+
+app.post('/connections/:source',
+  express.urlencoded({ extended: false }), express.json(),
+  gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'set' })),
+  (req, res, next) => {
+    const source = req.params.source;
+    try {
+      /* A blank field means "keep what is stored" rather than "clear it", so
+         updating one credential does not silently wipe the others. */
+      const existing = connections.secretsFor(req.workspace, source) || {};
+      const merged = { ...existing };
+      for (const [key, value] of Object.entries(req.body || {})) {
+        if (String(value || '').trim()) merged[key] = String(value).trim();
+      }
+
+      connections.set(req.workspace, source, merged, { by: req.user.name });
+      return res.redirect(`/connections?saved=${encodeURIComponent(`${source} saved. The credential is encrypted and will not be shown again.`)}`);
+    } catch (err) {
+      return res.redirect(`/connections?error=${encodeURIComponent(err.message)}`);
+    }
+  });
+
+app.post('/connections/:source/remove',
+  express.urlencoded({ extended: false }), express.json(),
+  gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'remove' })),
+  (req, res) => {
+    connections.remove(req.workspace, req.params.source);
+    return res.redirect(`/connections?saved=${encodeURIComponent(`${req.params.source} disconnected — it will read fixtures again.`)}`);
+  });
+
+/* Tests the credential by asking the live transport for one record. It throws
+   with its reason until a connector for that source is written, which is the
+   honest answer: a stored key and a working connector are different things. */
+app.post('/connections/:source/test',
+  express.urlencoded({ extended: false }), express.json(),
+  gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'test' })),
+  async (req, res) => {
+    const source = req.params.source;
+    let result;
+    try {
+      const credentials = connections.secretsFor(req.workspace, source);
+      if (!credentials) throw new Error('no credential stored');
+      const transport = ingest.createTransport('http', { credentials });
+      const rows = await transport.fetch({ source: ingest.sources.get(source), kind: ingest.sources.get(source).kinds[0], window: null });
+      result = { ok: true, detail: `${rows.length} record(s) returned` };
+    } catch (err) {
+      result = { ok: false, detail: err.message };
+    }
+    connections.recordTest(req.workspace, source, result);
+    return res.redirect(`/connections?${result.ok ? 'saved' : 'error'}=${encodeURIComponent(`${source}: ${result.detail}`)}`);
+  });
 
 /* Alert rules (Phase 8). Each carries its 90-day fire count and false-positive
    rate, so a noisy threshold stays visible rather than becoming background. */

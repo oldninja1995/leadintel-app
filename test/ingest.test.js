@@ -74,10 +74,28 @@ test('a source that cannot stream returns nothing from a webhook', async () => {
   assert.deepEqual(await connectors.get('meta_ads').receive({ kind: 'campaign_day', body: {} }), []);
 });
 
-test('the live transport says why it is not implemented rather than pretending', async () => {
+test('the live transport says which half is missing, not just that it failed', async () => {
+  /* Two different failures, and telling them apart is the point: one is fixed
+     by pasting a key on the Connections screen, the other needs that vendor's
+     API documentation. A single vague error would send somebody hunting for
+     the wrong thing. */
   await assert.rejects(
     () => httpTransport().fetch({ source: sources.get('pms') }),
-    /no credentials.*not implemented/s
+    /no credential stored .* add one on the Connections screen/s
+  );
+
+  await assert.rejects(
+    () => httpTransport({ credentials: { apiKey: 'x' } }).fetch({ source: sources.get('pms') }),
+    /has a credential but no connector/s
+  );
+});
+
+test('a stored credential does not make a connector', async () => {
+  /* The distinction the Connections screen must not blur: a key that is saved
+     and a source that can actually be read are different states. */
+  await assert.rejects(
+    () => httpTransport({ credentials: { apiKey: 'x' } }).fetch({ source: sources.get('telecrm') }),
+    /needs that vendor's API documentation, not another key/s
   );
 });
 

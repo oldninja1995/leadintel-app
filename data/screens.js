@@ -32,6 +32,13 @@ const SCREENS = [
   { slug: 'leads',       view: 'leads',       gate: 'isLeads',    name: 'Lead Intelligence',    icon: 'ph ph-user-circle',       group: 'Sales' },
   { slug: 'pipeline',    view: 'pipeline',    gate: 'isPipe',     name: 'Sales Pipeline',       icon: 'ph ph-funnel',            group: 'Sales' },
   { slug: 'sales',       view: 'sales',       gate: 'isSales',    name: 'Sales Analytics',      icon: 'ph ph-handshake',         group: 'Sales' },
+
+  /* NOT FROM THE DESIGN. Every screen above is converted from
+     `LeadIntel App.dc.html`; this one is ours. The design draws no way to
+     connect a source, so credentials had nowhere to go and every connector
+     read fixtures. `app` points at views/app/ rather than views/screens/,
+     which the converter owns — see views/layout.ejs. */
+  { slug: 'connections', view: 'connections', gate: null, app: 'connections', name: 'Connections', icon: 'ph ph-plugs-connected', group: 'Settings' },
 ];
 
 /* Sidebar groups, derived so SCREENS stays the single source of truth. */

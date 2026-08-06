@@ -34,7 +34,14 @@
     <main id="main" tabindex="-1" aria-label="<%= screen.name %>">
       <%- include('app/attribution-preview', { attrPreview: attrPreview }) %>
       <%- include('app/filter-note', { filterNote: filterNote }) %>
-      <% if (hasView) { %>
+      <%
+      /* A screen the design does not define — Connections is ours, not the
+         design's, so its markup lives in views/app/ and the converter never
+         touches it. */
+      %>
+      <% if (screen.app) { %>
+        <%- include('app/' + screen.app, data || {}) %>
+      <% } else if (hasView) { %>
         <%- include('screens/' + screen.view, data || {}) %>
       <% } else { %>
         <div style="max-width:620px; margin:64px auto; text-align:center;">

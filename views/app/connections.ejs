@@ -1,0 +1,105 @@
+<%
+/* Connections — where a credential goes.
+ *
+ * Not from the design: `LeadIntel App.dc.html` draws no integrations screen, so
+ * until now there was nowhere to put a token and every connector read synthetic
+ * fixtures. Built from the Nocturne tokens, deliberately plain.
+ *
+ * No stored secret is rendered here, not even masked — a mask still leaks
+ * length. Each field says only whether it is set. See lib/connections.js. */
+%>
+<div class="li-conn">
+  <header class="li-conn-head">
+    <div>
+      <h1>Connections</h1>
+      <p>Credentials for the five sources, for <strong><%= workspaceName %></strong>. Stored encrypted; never shown again once saved.</p>
+    </div>
+    <span class="li-conn-count"><%= connections.filter(function (c) { return c.configured; }).length %> of <%= connections.length %> connected</span>
+  </header>
+
+  <% if (!canManage) { %>
+    <p class="li-conn-notice"><i class="ph ph-lock-simple"></i>Only an Owner can add or change a credential. You can see which sources are connected.</p>
+  <% } %>
+
+  <% if (!secretSet) { %>
+    <p class="li-conn-notice li-conn-notice--warn">
+      <i class="ph ph-warning-circle"></i>
+      <span><strong>LEADINTEL_SECRET is not set</strong>, so credentials cannot be encrypted and will not be stored.
+      Set it in the environment first — without it there is nowhere safe to keep a token.</span>
+    </p>
+  <% } %>
+
+  <% if (error) { %>
+    <p class="li-conn-notice li-conn-notice--error"><i class="ph ph-warning-circle"></i><%= error %></p>
+  <% } %>
+  <% if (saved) { %>
+    <p class="li-conn-notice li-conn-notice--ok"><i class="ph ph-check-circle"></i><%= saved %></p>
+  <% } %>
+
+  <% connections.forEach(function (c) { %>
+    <section class="li-conn-card">
+      <div class="li-conn-card-head">
+        <span class="li-conn-dot li-conn-dot--<%= c.configured ? (c.readable ? 'on' : 'broken') : 'off' %>"></span>
+        <strong><%= c.name %></strong>
+        <% if (c.configured && c.readable) { %>
+          <span class="li-conn-state li-conn-state--on">connected</span>
+        <% } else if (c.configured) { %>
+          <span class="li-conn-state li-conn-state--broken">unreadable</span>
+        <% } else { %>
+          <span class="li-conn-state">reading fixtures</span>
+        <% } %>
+        <div style="flex:1;"></div>
+        <% if (c.docs) { %><a class="li-conn-docs" href="<%= c.docs %>" target="_blank" rel="noreferrer noopener">API docs ↗</a><% } %>
+      </div>
+
+      <% if (c.configured && !c.readable) { %>
+        <p class="li-conn-hint li-conn-hint--warn">
+          Stored, but it cannot be decrypted — <code>LEADINTEL_SECRET</code> has changed since it was saved.
+          Re-enter the credentials below.
+        </p>
+      <% } %>
+
+      <% if (c.configured) { %>
+        <p class="li-conn-hint">
+          Set <%= new Date(c.configuredAt).toISOString().slice(0, 10) %><%= c.configuredBy ? ' by ' + c.configuredBy : '' %>.
+          <% if (c.lastTest) { %>
+            Last test <%= c.lastTest.ok ? 'succeeded' : 'failed' %> — <%= c.lastTest.detail || '' %>
+          <% } else { %>
+            Never tested.
+          <% } %>
+        </p>
+      <% } %>
+
+      <% if (canManage) { %>
+        <form method="post" action="/connections/<%= c.source %>" class="li-conn-form">
+          <% c.fields.forEach(function (f) { %>
+            <label for="<%= c.source %>-<%= f.key %>">
+              <%= f.label %><% if (f.optional) { %> <span>optional</span><% } %>
+              <% if (f.set) { %><span class="li-conn-set">set</span><% } %>
+            </label>
+            <input id="<%= c.source %>-<%= f.key %>" name="<%= f.key %>"
+                   type="<%= f.secret ? 'password' : 'text' %>"
+                   autocomplete="off" spellcheck="false"
+                   placeholder="<%= f.set ? 'leave blank to keep' : (f.hint || '') %>">
+          <% }); %>
+
+          <div class="li-conn-actions">
+            <button type="submit" <%= secretSet ? '' : 'disabled' %>><%= c.configured ? 'Update' : 'Connect' %></button>
+            <% if (c.configured) { %>
+              <button type="submit" formaction="/connections/<%= c.source %>/test" class="li-conn-secondary">Test</button>
+              <button type="submit" formaction="/connections/<%= c.source %>/remove" class="li-conn-danger">Disconnect</button>
+            <% } %>
+          </div>
+        </form>
+      <% } %>
+    </section>
+  <% }); %>
+
+  <p class="li-conn-foot">
+    A source with no credential reads the synthetic fixtures in
+    <code>lib/ingest/fixtures/</code> — which is why every figure in this app is
+    currently invented. Connecting one changes that for that source only, and
+    nothing downstream can tell the difference: normalisation, identity
+    resolution, attribution and the metric registry read whatever arrives.
+  </p>
+</div>
