@@ -2,104 +2,145 @@
 /* Connections — where a credential goes.
  *
  * Not from the design: `LeadIntel App.dc.html` draws no integrations screen, so
- * until now there was nowhere to put a token and every connector read synthetic
- * fixtures. Built from the Nocturne tokens, deliberately plain.
+ * until this existed there was nowhere to put a token and every connector read
+ * synthetic fixtures. Built from the Nocturne tokens.
  *
- * No stored secret is rendered here, not even masked — a mask still leaks
+ * Cards collapse. Five sources with five open forms is a long scroll where
+ * nothing stands out, and the common case is touching one source and reading
+ * the status of the other four. `<details>` does it natively — no script, and
+ * it is keyboard-operable and screen-reader-announced without any help.
+ *
+ * No stored secret is rendered back, not even masked: a mask still leaks
  * length. Each field says only whether it is set. See lib/connections.js. */
+
+const connected = connections.filter(function (c) { return c.configured && c.readable; });
+const broken = connections.filter(function (c) { return c.configured && !c.readable; });
+
+/* Exactly one card starts open, and only when there is something to do:
+   whichever source most needs attention. Opening every unconnected one is the
+   wall of five forms this screen collapses to avoid — and on a fresh install
+   that is all of them, which is precisely when it is worst. */
+const needsAttention = connections.find(function (c) { return c.configured && !c.readable; })
+  || connections.find(function (c) { return !c.configured; });
+const openSource = canManage && needsAttention ? needsAttention.source : null;
 %>
 <div class="li-conn">
-  <header class="li-conn-head">
-    <div>
-      <h1>Connections</h1>
-      <p>Credentials for the five sources, for <strong><%= workspaceName %></strong>. Stored encrypted; never shown again once saved.</p>
-    </div>
-    <span class="li-conn-count"><%= connections.filter(function (c) { return c.configured; }).length %> of <%= connections.length %> connected</span>
-  </header>
 
-  <% if (!canManage) { %>
-    <p class="li-conn-notice"><i class="ph ph-lock-simple"></i>Only an Owner can add or change a credential. You can see which sources are connected.</p>
-  <% } %>
+  <header class="li-conn-head">
+    <div class="li-conn-title">
+      <h1>Connections</h1>
+      <p>
+        Credentials for <strong><%= workspaceName %></strong>. Encrypted at rest and never shown again once saved.
+        A source with no credential reads synthetic fixtures.
+      </p>
+    </div>
+    <div class="li-conn-tally">
+      <span class="li-conn-tally-n"><%= connected.length %><em>/<%= connections.length %></em></span>
+      <span class="li-conn-tally-l">connected</span>
+    </div>
+  </header>
 
   <% if (!secretSet) { %>
     <p class="li-conn-notice li-conn-notice--warn">
       <i class="ph ph-warning-circle"></i>
-      <span><strong>LEADINTEL_SECRET is not set</strong>, so credentials cannot be encrypted and will not be stored.
-      Set it in the environment first — without it there is nowhere safe to keep a token.</span>
+      <span><strong>LEADINTEL_SECRET is not set.</strong> Credentials cannot be encrypted, so nothing will be
+      stored. Set it in the environment first — without it there is nowhere safe to keep a token.</span>
     </p>
   <% } %>
-
+  <% if (broken.length) { %>
+    <p class="li-conn-notice li-conn-notice--warn">
+      <i class="ph ph-key"></i>
+      <span><strong><%= broken.length %> credential<%= broken.length === 1 ? '' : 's' %> cannot be decrypted.</strong>
+      <code>LEADINTEL_SECRET</code> has changed since they were saved. Re-enter them below.</span>
+    </p>
+  <% } %>
+  <% if (!canManage) { %>
+    <p class="li-conn-notice"><i class="ph ph-lock-simple"></i><span>Only an Owner can add or change a credential. You can see which sources are connected.</span></p>
+  <% } %>
   <% if (error) { %>
-    <p class="li-conn-notice li-conn-notice--error"><i class="ph ph-warning-circle"></i><%= error %></p>
+    <p class="li-conn-notice li-conn-notice--error"><i class="ph ph-warning-circle"></i><span><%= error %></span></p>
   <% } %>
   <% if (saved) { %>
-    <p class="li-conn-notice li-conn-notice--ok"><i class="ph ph-check-circle"></i><%= saved %></p>
+    <p class="li-conn-notice li-conn-notice--ok"><i class="ph ph-check-circle"></i><span><%= saved %></span></p>
   <% } %>
 
-  <% connections.forEach(function (c) { %>
-    <section class="li-conn-card">
-      <div class="li-conn-card-head">
-        <span class="li-conn-dot li-conn-dot--<%= c.configured ? (c.readable ? 'on' : 'broken') : 'off' %>"></span>
-        <strong><%= c.name %></strong>
-        <% if (c.configured && c.readable) { %>
-          <span class="li-conn-state li-conn-state--on">connected</span>
-        <% } else if (c.configured) { %>
-          <span class="li-conn-state li-conn-state--broken">unreadable</span>
-        <% } else { %>
-          <span class="li-conn-state">reading fixtures</span>
-        <% } %>
-        <div style="flex:1;"></div>
-        <% if (c.docs) { %><a class="li-conn-docs" href="<%= c.docs %>" target="_blank" rel="noreferrer noopener">API docs ↗</a><% } %>
-      </div>
+  <div class="li-conn-list">
+    <% connections.forEach(function (c) { %>
+      <%
+      const state = !c.configured ? 'off' : (c.readable ? 'on' : 'broken');
+      const label = state === 'on' ? 'connected' : state === 'broken' ? 'unreadable' : 'not connected';
+      const open = c.source === openSource;
+      %>
+      <details class="li-conn-card li-conn-card--<%= state %>" <%= open ? 'open' : '' %>>
+        <summary>
+          <span class="li-conn-icon"><i class="<%= c.icon %>"></i></span>
 
-      <% if (c.configured && !c.readable) { %>
-        <p class="li-conn-hint li-conn-hint--warn">
-          Stored, but it cannot be decrypted — <code>LEADINTEL_SECRET</code> has changed since it was saved.
-          Re-enter the credentials below.
-        </p>
-      <% } %>
+          <span class="li-conn-id">
+            <strong><%= c.name %></strong>
+            <span><%= c.feeds %></span>
+          </span>
 
-      <% if (c.configured) { %>
-        <p class="li-conn-hint">
-          Set <%= new Date(c.configuredAt).toISOString().slice(0, 10) %><%= c.configuredBy ? ' by ' + c.configuredBy : '' %>.
-          <% if (c.lastTest) { %>
-            Last test <%= c.lastTest.ok ? 'succeeded' : 'failed' %> — <%= c.lastTest.detail || '' %>
-          <% } else { %>
-            Never tested.
+          <span class="li-conn-status li-conn-status--<%= state %>">
+            <span class="li-conn-dot"></span><%= label %>
+          </span>
+
+          <i class="ph ph-caret-down li-conn-caret"></i>
+        </summary>
+
+        <div class="li-conn-body">
+          <% if (c.configured) { %>
+            <p class="li-conn-meta">
+              Set <%= new Date(c.configuredAt).toISOString().slice(0, 10) %><%= c.configuredBy ? ' by ' + c.configuredBy : '' %>.
+              <% if (c.lastTest) { %>
+                Last test <strong class="<%= c.lastTest.ok ? 'li-ok' : 'li-bad' %>"><%= c.lastTest.ok ? 'succeeded' : 'failed' %></strong>
+                — <%= c.lastTest.detail || '' %>
+              <% } else { %>
+                Never tested.
+              <% } %>
+            </p>
           <% } %>
-        </p>
-      <% } %>
 
-      <% if (canManage) { %>
-        <form method="post" action="/connections/<%= c.source %>" class="li-conn-form">
-          <% c.fields.forEach(function (f) { %>
-            <label for="<%= c.source %>-<%= f.key %>">
-              <%= f.label %><% if (f.optional) { %> <span>optional</span><% } %>
-              <% if (f.set) { %><span class="li-conn-set">set</span><% } %>
-            </label>
-            <input id="<%= c.source %>-<%= f.key %>" name="<%= f.key %>"
-                   type="<%= f.secret ? 'password' : 'text' %>"
-                   autocomplete="off" spellcheck="false"
-                   placeholder="<%= f.set ? 'leave blank to keep' : (f.hint || '') %>">
-          <% }); %>
+          <% if (canManage) { %>
+            <form method="post" action="/connections/<%= c.source %>" class="li-conn-form">
+              <div class="li-conn-grid">
+                <% c.fields.forEach(function (f) { %>
+                  <div class="li-conn-field<%= f.hint && f.hint.length > 48 ? ' li-conn-field--wide' : '' %>">
+                    <label for="<%= c.source %>-<%= f.key %>">
+                      <span><%= f.label %></span>
+                      <% if (f.set) { %><em class="li-conn-set">set</em><% } %>
+                      <% if (f.optional) { %><em>optional</em><% } %>
+                    </label>
+                    <input id="<%= c.source %>-<%= f.key %>" name="<%= f.key %>"
+                           type="<%= f.secret ? 'password' : 'text' %>"
+                           autocomplete="off" spellcheck="false"
+                           placeholder="<%= f.set ? 'leave blank to keep' : (f.hint || '') %>">
+                    <% if (f.hint && f.set) { %><small><%= f.hint %></small><% } %>
+                  </div>
+                <% }); %>
+              </div>
 
-          <div class="li-conn-actions">
-            <button type="submit" <%= secretSet ? '' : 'disabled' %>><%= c.configured ? 'Update' : 'Connect' %></button>
-            <% if (c.configured) { %>
-              <button type="submit" formaction="/connections/<%= c.source %>/test" class="li-conn-secondary">Test</button>
-              <button type="submit" formaction="/connections/<%= c.source %>/remove" class="li-conn-danger">Disconnect</button>
-            <% } %>
-          </div>
-        </form>
-      <% } %>
-    </section>
-  <% }); %>
+              <div class="li-conn-actions">
+                <button type="submit" <%= secretSet ? '' : 'disabled' %>>
+                  <i class="ph <%= c.configured ? 'ph-arrow-clockwise' : 'ph-plugs-connected' %>"></i><%= c.configured ? 'Update' : 'Connect' %>
+                </button>
+                <% if (c.configured) { %>
+                  <button type="submit" formaction="/connections/<%= c.source %>/test" class="li-conn-secondary"><i class="ph ph-pulse"></i>Test</button>
+                  <button type="submit" formaction="/connections/<%= c.source %>/remove" class="li-conn-danger"><i class="ph ph-plugs"></i>Disconnect</button>
+                <% } %>
+                <div style="flex:1;"></div>
+                <% if (c.docs) { %><a class="li-conn-docs" href="<%= c.docs %>" target="_blank" rel="noreferrer noopener">API docs <i class="ph ph-arrow-square-out"></i></a><% } %>
+              </div>
+            </form>
+          <% } %>
+        </div>
+      </details>
+    <% }); %>
+  </div>
 
   <p class="li-conn-foot">
-    A source with no credential reads the synthetic fixtures in
-    <code>lib/ingest/fixtures/</code> — which is why every figure in this app is
-    currently invented. Connecting one changes that for that source only, and
-    nothing downstream can tell the difference: normalisation, identity
-    resolution, attribution and the metric registry read whatever arrives.
+    <i class="ph ph-info"></i>
+    <span>Connecting a source changes it for that source only, and nothing downstream can tell the difference —
+    normalisation, identity resolution, attribution and the metric registry read whatever arrives. A stored
+    credential and a working connector are separate things: <strong>Test</strong> says which you have.</span>
   </p>
 </div>

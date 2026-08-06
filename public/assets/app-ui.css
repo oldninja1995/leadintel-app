@@ -1,4 +1,4 @@
-/* Phase 2 additions that have no design markup: the ⌘K palette, the
+/* Phase 2 additions that have no design markup: the —R—K palette, the
    notification panel, the filter-chip dropdowns and the filter note.
    Everything below uses the Nocturne tokens from nocturne.css, so these
    controls inherit the design's palette even though their layout is mine. */
@@ -170,70 +170,129 @@
 .li-preview-error { display: flex; align-items: center; gap: 6px; margin: 9px 0 0; color: var(--c-down); }
 
 /* — connections — */
-.li-conn { max-width: 780px; }
-.li-conn-head { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 18px; }
-.li-conn-head h1 { font-size: 19px; font-weight: 500; margin: 0; color: var(--color-neutral-100); }
-.li-conn-head p { font-size: 12px; color: var(--color-neutral-500); margin: 5px 0 0; line-height: 1.6; }
-.li-conn-head strong { color: var(--color-neutral-300); font-weight: 500; }
-.li-conn-count { flex: none; font-size: 11px; color: var(--color-neutral-500); border: 1px solid var(--color-neutral-800); border-radius: 99px; padding: 4px 11px; }
+.li-conn { max-width: 900px; }
+
+.li-conn-head { display: flex; align-items: flex-start; gap: 24px; margin-bottom: 20px; }
+.li-conn-title h1 { font-size: 20px; font-weight: 500; margin: 0; color: var(--color-neutral-100); letter-spacing: -0.01em; }
+.li-conn-title p { font-size: 12px; color: var(--color-neutral-500); margin: 6px 0 0; line-height: 1.65; max-width: 60ch; }
+.li-conn-title strong { color: var(--color-neutral-300); font-weight: 500; }
+
+.li-conn-tally {
+  flex: none; text-align: right; border-left: 1px solid var(--color-neutral-800);
+  padding-left: 18px; line-height: 1.15;
+}
+.li-conn-tally-n { display: block; font-size: 26px; font-weight: 300; color: var(--color-accent-300); }
+.li-conn-tally-n em { font-style: normal; font-size: 15px; color: var(--color-neutral-700); }
+.li-conn-tally-l { font-size: 10.5px; color: var(--color-neutral-600); letter-spacing: .07em; text-transform: uppercase; }
 
 .li-conn-notice {
-  display: flex; align-items: flex-start; gap: 8px; font-size: 12px; line-height: 1.6;
+  display: flex; align-items: flex-start; gap: 9px; font-size: 12px; line-height: 1.6;
   border: 1px solid var(--color-neutral-800); border-radius: 9px;
-  padding: 10px 13px; margin: 0 0 14px; color: var(--color-neutral-400);
+  padding: 11px 13px; margin: 0 0 12px; color: var(--color-neutral-400);
 }
 .li-conn-notice i { font-size: 15px; flex: none; margin-top: 1px; }
+.li-conn-notice strong { font-weight: 500; }
+.li-conn-notice code { font-family: ui-monospace, monospace; font-size: 10.5px; border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; opacity: .8; }
 .li-conn-notice--warn { border-color: var(--c-warn); color: var(--c-warn); }
 .li-conn-notice--error { border-color: var(--c-down); color: var(--c-down); }
 .li-conn-notice--ok { border-color: var(--c-up); color: var(--c-up); }
 
+.li-conn-list { display: flex; flex-direction: column; gap: 9px; }
+
 .li-conn-card {
   border: 1px solid var(--color-neutral-800); border-radius: 11px;
-  padding: 15px 16px; margin-bottom: 12px; background: var(--color-surface);
+  background: var(--color-surface); overflow: hidden;
+  transition: border-color .15s ease;
 }
-.li-conn-card-head { display: flex; align-items: center; gap: 9px; }
-.li-conn-card-head strong { font-size: 13.5px; font-weight: 500; color: var(--color-neutral-200); }
+.li-conn-card:hover { border-color: var(--color-neutral-700); }
+.li-conn-card--on { border-left: 2px solid var(--c-up); }
+.li-conn-card--broken { border-left: 2px solid var(--c-down); }
 
-.li-conn-dot { width: 8px; height: 8px; border-radius: 99px; flex: none; }
-.li-conn-dot--on { background: var(--c-up); }
-.li-conn-dot--off { background: var(--color-neutral-700); }
-.li-conn-dot--broken { background: var(--c-down); }
+.li-conn-card summary {
+  display: flex; align-items: center; gap: 13px;
+  padding: 13px 15px; cursor: pointer; list-style: none;
+}
+.li-conn-card summary::-webkit-details-marker { display: none; }
+.li-conn-card summary:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; border-radius: 10px; }
 
-.li-conn-state { font-size: 10.5px; color: var(--color-neutral-600); border: 1px solid var(--color-neutral-800); border-radius: 99px; padding: 2px 8px; }
-.li-conn-state--on { color: var(--c-up); border-color: var(--c-up); }
-.li-conn-state--broken { color: var(--c-down); border-color: var(--c-down); }
-.li-conn-docs { font-size: 11px; }
+.li-conn-icon {
+  flex: none; width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center;
+  border: 1px solid var(--color-neutral-800); background: var(--color-bg);
+  color: var(--color-neutral-400); font-size: 17px;
+}
+.li-conn-card--on .li-conn-icon { border-color: var(--color-accent-800); color: var(--color-accent-300); background: var(--color-accent-900); }
 
-.li-conn-hint { font-size: 11.5px; color: var(--color-neutral-600); margin: 9px 0 0; line-height: 1.6; }
-.li-conn-hint--warn { color: var(--c-warn); }
-.li-conn-hint code, .li-conn-foot code {
-  font-family: ui-monospace, monospace; font-size: 10.5px;
-  border: 1px solid var(--color-neutral-800); border-radius: 4px; padding: 1px 5px;
+.li-conn-id { flex: 1; min-width: 0; }
+.li-conn-id strong { display: block; font-size: 13.5px; font-weight: 500; color: var(--color-neutral-200); }
+.li-conn-id span {
+  display: block; font-size: 11px; color: var(--color-neutral-600); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-.li-conn-form { display: flex; flex-direction: column; gap: 4px; margin-top: 12px; }
-.li-conn-form label { font-size: 11px; color: var(--color-neutral-500); margin-top: 7px; display: flex; gap: 7px; align-items: center; }
-.li-conn-form label span { font-size: 10px; color: var(--color-neutral-700); }
-.li-conn-set { color: var(--c-up) !important; border: 1px solid var(--c-up); border-radius: 99px; padding: 0 6px; }
-.li-conn-form input {
+.li-conn-status {
+  flex: none; display: flex; align-items: center; gap: 6px;
+  font-size: 10.5px; letter-spacing: .04em; color: var(--color-neutral-600);
+  border: 1px solid var(--color-neutral-800); border-radius: 99px; padding: 3.5px 10px;
+}
+.li-conn-status .li-conn-dot { width: 6px; height: 6px; border-radius: 99px; background: var(--color-neutral-700); }
+.li-conn-status--on { color: var(--c-up); border-color: color-mix(in srgb, var(--c-up) 40%, transparent); }
+.li-conn-status--on .li-conn-dot { background: var(--c-up); }
+.li-conn-status--broken { color: var(--c-down); border-color: color-mix(in srgb, var(--c-down) 40%, transparent); }
+.li-conn-status--broken .li-conn-dot { background: var(--c-down); }
+
+.li-conn-caret { flex: none; font-size: 13px; color: var(--color-neutral-600); transition: transform .18s ease; }
+.li-conn-card[open] .li-conn-caret { transform: rotate(180deg); }
+
+.li-conn-body { padding: 14px 15px 15px; border-top: 1px solid var(--color-neutral-900); }
+.li-conn-meta { font-size: 11.5px; color: var(--color-neutral-600); margin: 0 0 14px; line-height: 1.6; }
+.li-conn-meta .li-ok { color: var(--c-up); font-weight: 500; }
+.li-conn-meta .li-bad { color: var(--c-down); font-weight: 500; }
+
+/* Short fields pair up; anything with a long hint takes the full row. */
+.li-conn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+.li-conn-field--wide { grid-column: 1 / -1; }
+.li-conn-field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.li-conn-field label { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--color-neutral-500); }
+.li-conn-field label em { font-style: normal; font-size: 9.5px; color: var(--color-neutral-700); letter-spacing: .04em; text-transform: uppercase; }
+.li-conn-set { color: var(--c-up) !important; border: 1px solid color-mix(in srgb, var(--c-up) 45%, transparent); border-radius: 99px; padding: 1px 6px; }
+.li-conn-field input {
   background: var(--color-bg); color: var(--color-text);
   border: 1px solid var(--color-neutral-800); border-radius: 7px;
-  padding: 8px 10px; font-family: inherit; font-size: 12px;
+  padding: 8px 11px; font-family: inherit; font-size: 12px; min-width: 0;
 }
-.li-conn-form input::placeholder { color: var(--color-neutral-700); }
+.li-conn-field input:focus { outline: 2px solid var(--color-accent); outline-offset: -1px; }
+.li-conn-field input::placeholder { color: var(--color-neutral-700); }
+.li-conn-field small { font-size: 10.5px; color: var(--color-neutral-700); line-height: 1.5; }
 
-.li-conn-actions { display: flex; gap: 8px; margin-top: 14px; }
+.li-conn-actions { display: flex; align-items: center; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
 .li-conn-actions button {
+  display: inline-flex; align-items: center; gap: 6px;
   border: 1px solid var(--color-accent-600); background: var(--color-accent-800);
-  color: var(--color-accent-100); border-radius: 7px; padding: 7px 15px;
+  color: var(--color-accent-100); border-radius: 7px; padding: 7px 14px;
   font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
 }
+.li-conn-actions button i { font-size: 13px; }
 .li-conn-actions button:hover { background: var(--color-accent-600); }
-.li-conn-actions button:disabled { opacity: .45; cursor: not-allowed; }
+.li-conn-actions button:disabled { opacity: .4; cursor: not-allowed; }
 .li-conn-secondary { background: transparent !important; border-color: var(--color-neutral-800) !important; color: var(--color-neutral-400) !important; }
-.li-conn-danger { background: transparent !important; border-color: var(--c-down) !important; color: var(--c-down) !important; }
+.li-conn-secondary:hover { border-color: var(--color-neutral-700) !important; color: var(--color-neutral-200) !important; }
+.li-conn-danger { background: transparent !important; border-color: color-mix(in srgb, var(--c-down) 45%, transparent) !important; color: var(--c-down) !important; }
+.li-conn-danger:hover { background: color-mix(in srgb, var(--c-down) 12%, transparent) !important; }
 
-.li-conn-foot { font-size: 11.5px; color: var(--color-neutral-600); line-height: 1.7; margin-top: 20px; max-width: 640px; }
+.li-conn-docs { font-size: 11px; display: inline-flex; align-items: center; gap: 5px; }
+
+.li-conn-foot {
+  display: flex; gap: 9px; margin-top: 22px; padding-top: 16px;
+  border-top: 1px solid var(--color-neutral-900);
+  font-size: 11.5px; color: var(--color-neutral-600); line-height: 1.7; max-width: 72ch;
+}
+.li-conn-foot i { font-size: 14px; flex: none; margin-top: 2px; }
+.li-conn-foot strong { color: var(--color-neutral-400); font-weight: 500; }
+
+@media (max-width: 780px) {
+  .li-conn-grid { grid-template-columns: 1fr; }
+  .li-conn-id span { display: none; }
+}
 
 /* — skip link (Phase 10) — */
 .li-skip {
