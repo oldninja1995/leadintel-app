@@ -335,3 +335,27 @@ test('the fixture spelling still maps, so replay is unaffected', () => {
   assert.equal(mapped.spend.value, 700000);
   assert.equal(mapped.leads.value, 21);
 });
+
+/* The ads edge answers with every ad ever created unless told otherwise, and
+   expanding a creative for each is what made Meta refuse the request. */
+test('the ads request asks only for ads that still exist', () => {
+  const { url } = meta.request({ kind: 'creative', window: null, credentials: CREDS });
+  const filtering = JSON.parse(new URL(url).searchParams.get('filtering'));
+
+  assert.equal(filtering[0].field, 'ad.effective_status');
+  /* Paused is kept deliberately: an ad paused yesterday still spent yesterday. */
+  assert.ok(filtering[0].value.includes('PAUSED'));
+  assert.ok(!filtering[0].value.includes('ARCHIVED'));
+});
+
+test('a refusal names the kind that caused it', async () => {
+  const fetchImpl = async () => ({
+    ok: false, status: 400,
+    json: async () => ({ error: { message: "Please reduce the amount of data you're asking for" } }),
+  });
+
+  await assert.rejects(
+    () => httpTransport({ credentials: CREDS, fetchImpl }).fetch({ source: META, kind: 'ad_day', window: null }),
+    /asking for ad_day/
+  );
+});
