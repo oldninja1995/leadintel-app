@@ -65,10 +65,21 @@ test('a half-open window becomes an inclusive until, one day back', () => {
   assert.deepEqual(range, { since: '2026-07-01', until: '2026-07-14' });
 });
 
+/* Thirty days, not seven: fatigue is a comparison of a creative's recent week
+   against its own baseline, and a seven-day pull leaves nothing to compare. */
 test('no window falls back to a preset rather than an account\'s whole history', () => {
   const params = new URL(meta.request({ kind: 'campaign_day', window: null, credentials: CREDS }).url).searchParams;
-  assert.equal(params.get('date_preset'), 'last_7d');
+  assert.equal(params.get('date_preset'), 'last_30d');
   assert.equal(params.get('time_range'), null);
+});
+
+test('the ad-level request asks for what fatigue, hook and hold need', () => {
+  const fields = new URL(meta.request({ kind: 'ad_day', window: null, credentials: CREDS }).url)
+    .searchParams.get('fields');
+
+  for (const field of ['frequency', 'cpm', 'video_play_actions', 'video_p100_watched_actions']) {
+    assert.ok(fields.includes(field), `ad level must request ${field}`);
+  }
 });
 
 test('a bare account number is prefixed rather than refused', () => {
