@@ -240,6 +240,25 @@
 .li-conn-status--broken { color: var(--c-down); border-color: color-mix(in srgb, var(--c-down) 40%, transparent); }
 .li-conn-status--broken .li-conn-dot { background: var(--c-down); }
 
+/* Stored but silent. Amber rather than green, because a credential that is
+   saved and a source that is sending are different states and this screen used
+   to draw both the same way. */
+.li-conn-status--idle { color: var(--c-warn); border-color: color-mix(in srgb, var(--c-warn) 40%, transparent); }
+.li-conn-status--idle .li-conn-dot { background: var(--c-warn); }
+.li-conn-card--idle { border-left: 2px solid var(--c-warn); }
+
+/* The intake block: URL to give the source, and what it has actually sent. */
+.li-conn-hook { margin: 12px 0 0; padding: 12px 14px; border: 1px solid var(--color-neutral-800); border-radius: 8px; background: var(--color-neutral-950); }
+.li-conn-hook h4 { margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--color-neutral-400); }
+.li-conn-hook p { margin: 0 0 8px; font-size: 13px; color: var(--color-neutral-300); }
+.li-conn-url { display: block; padding: 8px 10px; border: 1px solid var(--color-neutral-800); border-radius: 6px;
+  background: var(--color-neutral-900); font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px; color: var(--color-neutral-200); word-break: break-all; }
+.li-conn-token { margin-top: 8px; padding: 10px; border: 1px solid var(--c-warn); border-radius: 6px;
+  background: color-mix(in srgb, var(--c-warn) 8%, transparent); }
+.li-conn-token code { display: block; margin-top: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px; word-break: break-all; color: var(--color-neutral-100); }
+
 .li-conn-caret { flex: none; font-size: 13px; color: var(--color-neutral-600); transition: transform .18s ease; }
 .li-conn-card[open] .li-conn-caret { transform: rotate(180deg); }
 

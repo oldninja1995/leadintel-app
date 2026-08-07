@@ -14,6 +14,7 @@ const { subviewState } = require('./lib/view-state');
 const schema = require('./lib/schema');
 const ingest = require('./lib/ingest');
 const { SyncRunner } = require('./lib/ingest/runner');
+const httpConnectors = require('./lib/ingest/http');
 const filters = require('./lib/filters');
 const alerts = require('./lib/alerts');
 const commandPalette = require('./lib/palette');
@@ -48,10 +49,43 @@ function entitiesFor(workspaceId) {
   return ingest.snapshot({ store: ingest.storeFor(workspaceId) });
 }
 
-const runner = new SyncRunner({ store: ingest.storeFor('parakkat') });
 const workspace = new attribution.Workspace();
 const dispatches = new reports.Dispatches();
 const connections = new Connections();
+
+/* Which transport each source gets, decided per sync rather than once at boot.
+ *
+ * A source pulls for real only when **both** halves are present: a stored
+ * credential, and a request shape written from that vendor's documentation. Any
+ * source missing either keeps reading fixtures, which is why connecting Meta
+ * Ads does not disturb the other four — and why storing a TeleCRM key does not
+ * silently make its screens go empty.
+ *
+ * `LEADINTEL_TRANSPORT` still overrides everything, so a run can be forced onto
+ * fixtures or onto http wholesale for testing.
+ */
+function transportFor(sourceId) {
+  const forced = process.env.LEADINTEL_TRANSPORT;
+  if (forced) {
+    return ingest.createTransport(forced, {
+      credentials: connections.secretsFor(SYNC_WORKSPACE, sourceId),
+    });
+  }
+
+  if (!httpConnectors.has(sourceId)) return ingest.createTransport('fixture');
+
+  const credentials = connections.secretsFor(SYNC_WORKSPACE, sourceId);
+  if (!credentials) return ingest.createTransport('fixture');
+
+  return ingest.createTransport('http', { credentials });
+}
+
+/* The sync loop serves one workspace, as it has since it was written — the
+   store it was given is that workspace's. Named rather than repeated, so the
+   assumption is visible instead of appearing three times as a literal. */
+const SYNC_WORKSPACE = 'parakkat';
+
+const runner = new SyncRunner({ store: ingest.storeFor(SYNC_WORKSPACE), transportFor });
 const reasoner = createReasoner();
 const fires = new FireLog();
 
@@ -298,6 +332,12 @@ app.use('/assets', express.static(path.join(__dirname, 'public', 'assets'), {
 const gatekeeper = auth.create();
 const AUTH_OFF = process.env.LEADINTEL_AUTH === 'off';
 
+/* Bearer credentials for the sources that push. Separate from `connections`,
+   which holds credentials this app presents *outward*; these are the ones it
+   accepts *inward*, and they are hashed rather than encrypted because they are
+   only ever checked. */
+const webhookTokens = new auth.webhooks.Webhooks();
+
 /* Phase 10 — configuration that is merely unwise locally and unsafe in
    production is refused there rather than warned about. A warning in a startup
    log is read once, by the person who already knew. */
@@ -373,6 +413,78 @@ app.post('/logout', (req, res) => {
   return res.json({ ok: true });
 });
 
+/* ── Webhook intake ──────────────────────────────────────────────────────────
+ *
+ * Registered **before** the session gate, because that gate is precisely what
+ * made this route unreachable by any real source. A delivery authenticates with
+ * a webhook token instead (lib/auth/webhooks.js), which carries its own
+ * workspace and source — so `req.workspace` still does not come from the
+ * request, it comes from the credential.
+ *
+ * A request with no token falls through untouched, which leaves the original
+ * session-gated route below working for a signed-in Owner testing by hand.
+ */
+app.post('/ingest/webhook/:source', express.json({ limit: '1mb' }), async (req, res, next) => {
+  /* Header first; `?token=` second, because some senders cannot set headers on
+     an outbound hook and a credential in a query string is worth supporting
+     while saying it is the weaker of the two. */
+  const header = req.get('authorization') || '';
+  const presented = header.toLowerCase().startsWith('bearer ')
+    ? header.slice(7).trim()
+    : (req.query.token || '');
+
+  if (!presented) return next();
+
+  const claim = webhookTokens.verify(presented);
+  if (!claim) {
+    /* Audited with no user, because there is no user — an unverifiable token is
+       exactly the event somebody would want to find later. */
+    gatekeeper.audit.record({
+      user: null,
+      action: 'ingest.webhook',
+      outcome: 'refused',
+      workspace: null,
+      detail: { source: req.params.source, reason: 'unverifiable webhook token' },
+    });
+    return res.status(401).json({ error: 'webhook token not recognised' });
+  }
+
+  /* A token is minted for one source. Posting it to another source's intake is
+     refused rather than accepted under the token's own source, which would let
+     one credential write records it was never issued for. */
+  if (claim.source !== req.params.source) {
+    gatekeeper.audit.record({
+      user: null,
+      action: 'ingest.webhook',
+      outcome: 'refused',
+      workspace: claim.workspace,
+      detail: { source: req.params.source, reason: `token is for ${claim.source}` },
+    });
+    return res.status(403).json({ error: `this token is for ${claim.source}, not ${req.params.source}` });
+  }
+
+  try {
+    const result = await ingest.receive(req.params.source, req.body, {
+      store: ingest.storeFor(claim.workspace),
+    });
+    webhookTokens.recordDelivery(claim.id, { records: result && result.received });
+    gatekeeper.audit.record({
+      user: null,
+      action: 'ingest.webhook',
+      outcome: 'allowed',
+      workspace: claim.workspace,
+      detail: { source: req.params.source, received: result && result.received },
+    });
+    return res.json(result);
+  } catch (err) {
+    /* Still counted as a delivery: a source that is reaching us with a payload
+       we cannot read is a different problem from one that is not reaching us at
+       all, and the Connections screen has to be able to say which. */
+    webhookTokens.recordDelivery(claim.id, { records: 0 });
+    return res.status(400).json({ error: err.message });
+  }
+});
+
 if (!AUTH_OFF) {
   app.use(gatekeeper.authenticate);
 } else {
@@ -419,7 +531,14 @@ app.use('/ingest', express.json({ limit: '1mb' }));
    surprise. */
 app.post('/ingest/webhook/:source', gatekeeper.gate('ingest.webhook', (req) => ({ source: req.params.source })), async (req, res) => {
   try {
-    res.json(await ingest.receive(req.params.source, req.body));
+    /* Into the caller's own workspace store. Omitting this wrote deliveries to
+       the root of `var/raw/` — the directory that *contains* the tenants — so
+       the records landed nowhere any screen reads and the delivery still
+       answered 200. The token-authenticated route above had to get this right
+       to work at all; this one was quietly wrong. */
+    res.json(await ingest.receive(req.params.source, req.body, {
+      store: ingest.storeFor(req.workspace),
+    }));
   } catch (err) {
     /* A malformed delivery is the sender's problem, not a server fault — and
        it must say so, or a source will retry a payload that can never work. */
@@ -557,15 +676,35 @@ app.post('/schedules/run', express.json(), gatekeeper.gate('schedule.run'), (req
    screen, so until this existed there was nowhere to put a token and every
    connector read fixtures. Owner only: a credential can read a whole external
    system. */
-async function renderConnections(req, res, { error = null, saved = null } = {}) {
+async function renderConnections(req, res, { error = null, saved = null, mintedToken = null } = {}) {
   const screen = (await repo.screens()).find((s) => s.slug === 'connections');
+
+  /* The base a source should post to. Taken from the platform's own domain
+     where it publishes one, because telling somebody to point TeleCRM at
+     `localhost` is telling them to point it at TeleCRM's own server. */
+  const publicBase = process.env.LEADINTEL_PUBLIC_URL
+    || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null);
+
   res.render('layout', {
     screen,
     screens: await repo.screens(),
     shell: await shellData('connections', req.query),
     hasView: false,
     data: {
-      connections: connections.list(req.workspace),
+      connections: connections.list(req.workspace).map((c) => ({
+        ...c,
+        /* Which sources can be *pushed to* at all. A poll-only source has no
+           intake, and offering a webhook URL for one would be an invitation to
+           configure something that can never fire. */
+        streams: (ingest.sources.get(c.source) || {}).cadence
+          ? ingest.sources.get(c.source).cadence.mode === 'stream'
+          : false,
+        webhook: webhookTokens.describe(req.workspace, c.source),
+        webhookUrl: publicBase ? `${publicBase}/ingest/webhook/${c.source}` : null,
+      })),
+      publicBase,
+      /* Shown once, immediately after minting, and never retrievable again. */
+      mintedToken,
       workspaceName: auth.identity.workspace(req.workspace).name,
       canManage: auth.permissions.can(req.user, 'connection.manage'),
       secretSet: Boolean(process.env.LEADINTEL_SECRET),
@@ -634,6 +773,51 @@ app.post('/connections/:source/test',
     }
     connections.recordTest(req.workspace, source, result);
     return res.redirect(`/connections?${result.ok ? 'saved' : 'error'}=${encodeURIComponent(`${source}: ${result.detail}`)}`);
+  });
+
+/* Mints the credential a pushing source uses to call `/ingest/webhook/:source`.
+ *
+ * Rendered rather than redirected, deliberately: a redirect would put a live
+ * bearer token in a `Location` header, the browser's history and every proxy
+ * log between here and the screen. It is shown once, on this response, and the
+ * store keeps only its hash — so nobody, including this app, can show it again.
+ */
+app.post('/connections/:source/webhook',
+  express.urlencoded({ extended: false }), express.json(),
+  gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'mint-webhook' })),
+  (req, res, next) => {
+    const source = req.params.source;
+    const definition = ingest.sources.get(source);
+    if (!definition) {
+      return renderConnections(req, res, { error: `unknown source "${source}"` }).catch(next);
+    }
+    /* Refused for a source that cannot push, rather than minted and left to
+       never fire — a credential that exists implies something can use it. */
+    if (definition.cadence.mode !== 'stream') {
+      return renderConnections(req, res, {
+        error: `${definition.name} polls; it has no intake to call. A webhook token would never be used.`,
+      }).catch(next);
+    }
+
+    const minted = webhookTokens.mint(req.workspace, source, { by: req.user.name });
+    return renderConnections(req, res, {
+      mintedToken: { source, token: minted.token, replaced: minted.replaced },
+      saved: minted.replaced
+        ? `${source}: new token minted. The previous one stopped working just now.`
+        : `${source}: token minted.`,
+    }).catch(next);
+  });
+
+app.post('/connections/:source/webhook/remove',
+  express.urlencoded({ extended: false }), express.json(),
+  gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'revoke-webhook' })),
+  (req, res, next) => {
+    const removed = webhookTokens.revoke(req.workspace, req.params.source);
+    return renderConnections(req, res, {
+      saved: removed
+        ? `${req.params.source}: token revoked — deliveries using it will now be refused.`
+        : `${req.params.source}: no token to revoke.`,
+    }).catch(next);
   });
 
 /* Alert rules (Phase 8). Each carries its 90-day fire count and false-positive

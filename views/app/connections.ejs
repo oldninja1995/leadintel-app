@@ -67,8 +67,18 @@ const openSource = canManage && needsAttention ? needsAttention.source : null;
   <div class="li-conn-list">
     <% connections.forEach(function (c) { %>
       <%
-      const state = !c.configured ? 'off' : (c.readable ? 'on' : 'broken');
-      const label = state === 'on' ? 'connected' : state === 'broken' ? 'unreadable' : 'not connected';
+      /* Four states, not two. "Configured" used to render as "connected",
+         which is how a stored credential that has never carried a single
+         record could sit on this screen looking finished. A source is only
+         green once something has actually arrived from it. */
+      const receiving = c.webhook && c.webhook.records > 0;
+      const state = !c.configured && !(c.webhook && c.webhook.minted) ? 'off'
+        : (c.configured && !c.readable) ? 'broken'
+        : receiving ? 'on' : 'idle';
+      const label = state === 'on' ? 'receiving'
+        : state === 'broken' ? 'unreadable'
+        : state === 'idle' ? 'stored, no data yet'
+        : 'not connected';
       const open = c.source === openSource;
       %>
       <details class="li-conn-card li-conn-card--<%= state %>" <%= open ? 'open' : '' %>>
@@ -98,6 +108,63 @@ const openSource = canManage && needsAttention ? needsAttention.source : null;
                 Never tested.
               <% } %>
             </p>
+          <% } %>
+
+          <% if (c.streams) { %>
+            <div class="li-conn-hook">
+              <h4>Push intake</h4>
+              <% if (!c.webhookUrl) { %>
+                <p>No public URL is configured, so there is no address to give this source.
+                Set <code>LEADINTEL_PUBLIC_URL</code> and this will show the address to paste.</p>
+              <% } else { %>
+                <p>Point this source's outbound webhook here. It authenticates with the token
+                below, not a login — which is what lets a real system reach it.</p>
+                <span class="li-conn-url"><%= c.webhookUrl %></span>
+              <% } %>
+
+              <p style="margin-top:8px;">
+                <% if (c.webhook.minted) { %>
+                  Token minted <%= new Date(c.webhook.createdAt).toISOString().slice(0, 10) %><%= c.webhook.createdBy ? ' by ' + c.webhook.createdBy : '' %>.
+                  <% if (c.webhook.deliveries) { %>
+                    <strong class="<%= c.webhook.records ? 'li-ok' : 'li-bad' %>"><%= c.webhook.deliveries %></strong>
+                    deliver<%= c.webhook.deliveries === 1 ? 'y' : 'ies' %> carrying
+                    <strong class="<%= c.webhook.records ? 'li-ok' : 'li-bad' %>"><%= c.webhook.records %></strong>
+                    record<%= c.webhook.records === 1 ? '' : 's' %>, last
+                    <%= new Date(c.webhook.lastDeliveryAt).toISOString().slice(0, 16).replace('T', ' ') %> UTC.
+                    <% if (!c.webhook.records) { %>
+                      <em>Reaching us, but nothing readable in the payload.</em>
+                    <% } %>
+                  <% } else { %>
+                    <em>Nothing has been delivered to it yet.</em>
+                  <% } %>
+                <% } else { %>
+                  No token yet — this intake refuses every call until one exists.
+                <% } %>
+              </p>
+
+              <% if (canManage) { %>
+                <form method="post" action="/connections/<%= c.source %>/webhook" class="li-conn-actions">
+                  <button type="submit" class="li-conn-secondary">
+                    <i class="ph ph-key"></i><%= c.webhook.minted ? 'Replace token' : 'Mint token' %>
+                  </button>
+                  <% if (c.webhook.minted) { %>
+                    <button type="submit" formaction="/connections/<%= c.source %>/webhook/remove" class="li-conn-danger">
+                      <i class="ph ph-prohibit"></i>Revoke
+                    </button>
+                  <% } %>
+                </form>
+              <% } %>
+
+              <% if (mintedToken && mintedToken.source === c.source) { %>
+                <div class="li-conn-token">
+                  <strong>Copy this now — it is shown once and never again.</strong>
+                  <% if (mintedToken.replaced) { %>
+                    <br><em>The previous token stopped working the moment this one was made.</em>
+                  <% } %>
+                  <code><%= mintedToken.token %></code>
+                </div>
+              <% } %>
+            </div>
           <% } %>
 
           <% if (canManage) { %>
