@@ -8,7 +8,7 @@
               <span class="hv-3" style="padding:5px 12px; color:var(--color-neutral-500); cursor:pointer; border-left:1px solid var(--color-neutral-900);">Leaderboard</span>
               <span class="hv-3" style="padding:5px 12px; color:var(--color-neutral-500); cursor:pointer; border-left:1px solid var(--color-neutral-900);">Timeline</span>
             </div>
-            <div class="hv-3" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-neutral-500); border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; cursor:pointer;">Sort: Revenue<i class="ph ph-caret-down" style="font-size:11px;"></i></div>
+            <div class="hv-3" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-neutral-500); border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; cursor:pointer;" data-action="<%= sortNext %>">Sort: <%= sortLabel %><i class="ph ph-caret-down" style="font-size:11px;"></i></div>
           </div>
           <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
             <% (creatives || []).forEach(function (cr) { %>
@@ -26,12 +26,12 @@
                     <div><div style="font-size:9.5px; color:var(--color-neutral-600);">SPEND</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.spend %></div></div>
                     <div><div style="font-size:9.5px; color:var(--color-neutral-600);">CPL</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.cpl %></div></div>
                     <div><div style="font-size:9.5px; color:var(--color-neutral-600);">CTR</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.ctr %></div></div>
-                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">BOOKINGS</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.bookings %></div></div>
-                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">REVENUE</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.rev %></div></div>
-                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">NET ROAS</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums; color:<%= cr.roasColor %>;"><%= cr.roas %></div></div>
+                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">CPM</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.bookings %></div></div>
+                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">FREQUENCY</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.rev %></div></div>
+                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">CPC</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums; color:<%= cr.roasColor %>;"><%= cr.roas %></div></div>
                   </div>
                   <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
-                    <span style="font-size:9.5px; color:var(--color-neutral-600);">WINNING SCORE</span>
+                    <span style="font-size:9.5px; color:var(--color-neutral-600);">HOLD RATE</span>
                     <div style="flex:1; height:5px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= cr.winning %>; border-radius:99px; background:linear-gradient(90deg, var(--color-accent-700), var(--color-accent-400));"></div></div>
                     <span style="font-size:11px; font-weight:500; color:var(--color-accent-300); font-variant-numeric:tabular-nums;"><%= cr.winning %></span>
                   </div>

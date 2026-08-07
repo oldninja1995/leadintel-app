@@ -40,6 +40,52 @@ const LITERAL_BINDINGS = [
     pairedWith: '>HOOK RATE<',
     why: 'the value beneath the re-labelled CPL cell',
   },
+  /* Three cells the design gave to figures Meta cannot supply — bookings,
+     revenue and net ROAS all need PMS and CRM data that is still fixtures —
+     re-labelled to three it can. The values move with them, below. */
+  {
+    screen: 'creatives',
+    find: '>BOOKINGS<',
+    replace: '>CPM<',
+    relabel: true,
+    valueFrom: 'cr.bookings',
+    why: 'bookings need PMS revenue; CPM is fetched and judges reach cost',
+  },
+  {
+    screen: 'creatives',
+    find: '>REVENUE<',
+    replace: '>FREQUENCY<',
+    relabel: true,
+    valueFrom: 'cr.rev',
+    why: 'revenue needs the CRM; frequency is fetched and is the first fatigue signal',
+  },
+  {
+    screen: 'creatives',
+    find: '>NET ROAS<',
+    replace: '>CPC<',
+    relabel: true,
+    valueFrom: 'cr.roas',
+    why: 'ROAS needs attributed revenue; cost per click is derivable from spend and clicks',
+  },
+  {
+    screen: 'creatives',
+    find: '>WINNING SCORE<',
+    replace: '>HOLD RATE<',
+    relabel: true,
+    valueFrom: 'cr.winning',
+    why: 'nothing computes a winning score; hold rate measures whether the creative earns attention',
+  },
+  /* The sort control was drawn with a cursor and no behaviour — no handler, no
+     parameter, nothing behind it — so it has never sorted anything. Giving it a
+     `data-action` is a conversion concern for the same reason the Sankey labels
+     were: the design declares the control, and binding it here means a
+     converter re-run reproduces the wiring rather than dropping it. */
+  {
+    screen: 'creatives',
+    find: 'cursor:pointer;">Sort: Revenue<i class="ph ph-caret-down"',
+    replace: 'cursor:pointer;" data-action="<%= sortNext %>">Sort: <%= sortLabel %><i class="ph ph-caret-down"',
+    why: 'the design draws the control but wires nothing to it; revenue is not a column this screen can fill',
+  },
   {
     screen: 'attribution',
     find: '>₹18.9L<',

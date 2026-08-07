@@ -46,18 +46,46 @@ test('a creative nothing measured declines rather than reporting zero', () => {
 test('the fields Meta cannot support are declined, never filled', () => {
   const [row] = creatives(entitiesWith([CREATIVE]));
 
-  for (const field of ['type', 'dur', 'hook', 'hookRate', 'bookings', 'rev', 'roas', 'fatigue', 'winning']) {
+  /* What is left after the re-labelled cells took the ones Meta can answer:
+     format needs the creative object, hook and hold need video milestones, and
+     fatigue needs history. */
+  for (const field of ['type', 'dur', 'hook', 'hookRate', 'fatigue']) {
     assert.equal(row[field], '—', `${field} must be declined, not invented`);
   }
+});
+
+/* The three cells that used to be permanently dead now carry Meta metrics, and
+   their labels were re-bound to match — see tools/literal-bindings.js. */
+test('the re-labelled cells carry the metric their label now names', () => {
+  const [row] = creatives(entitiesWith([
+    { ...CREATIVE, cpm: 210.5, frequency: 1.84, spend: 126000, clicks: 34 },
+  ]));
+
+  assert.equal(row.bookings, '₹211', 'CPM');
+  assert.equal(row.rev, '1.8×', 'frequency');
+  assert.equal(row.roas, '₹37', 'CPC — ₹1,260 over 34 clicks');
+});
+
+test('a re-labelled cell still declines when its metric is missing', () => {
+  const [row] = creatives(entitiesWith([
+    { ...CREATIVE, cpm: null, frequency: null, clicks: 0 },
+  ]));
+
+  assert.equal(row.bookings, '—');
+  assert.equal(row.rev, '—');
+  assert.equal(row.roas, '—', 'no clicks is not a cost per click of zero');
 });
 
 /* Revenue per creative needs ad-level identity resolution joined to PMS
    bookings, and the PMS is still on fixtures — crediting real ads with fixture
    revenue would invent a return nobody earned. */
-test('roas is declined rather than computed against fixture revenue', () => {
-  const [row] = creatives(entitiesWith([CREATIVE]));
-  assert.equal(row.roas, '—');
-  assert.equal(row.rev, '—');
+/* Revenue-based judgement is still declined — it is simply no longer occupying
+   those cells. The detail panel is where bookings and ROAS now live, and both
+   stay dashed until the PMS and CRM are real. */
+test('revenue and bookings stay declined in the detail panel', () => {
+  const panel = PROJECTIONS['overlay-creative-detail'](entitiesWith([CREATIVE]), { cr: '1' }).selCr;
+  assert.equal(panel.roas, '—');
+  assert.equal(panel.bookings, '—');
 });
 
 test('rows are ranked by spend', () => {
@@ -222,7 +250,8 @@ const THREE = {
    whichever creative you clicked, you got the first one's numbers. */
 test('each card links to its own detail', () => {
   const rows = creatives(THREE);
-  assert.deepEqual(rows.map((r) => r.go), ['/creatives?cr=1', '/creatives?cr=2', '/creatives?cr=3']);
+  /* The ranking rides along, so a card opens what was clicked. */
+  assert.deepEqual(rows.map((r) => r.go), ['/creatives?sort=spend&cr=1', '/creatives?sort=spend&cr=2', '/creatives?sort=spend&cr=3']);
 });
 
 test('the panel shows the creative that was clicked', () => {
@@ -253,4 +282,54 @@ test('the panel declines what Meta does not report', () => {
   for (const field of ['thumbStop', 'watch', 'quality', 'bookings', 'roas']) {
     assert.equal(panel[field], '—', `${field} must be declined`);
   }
+});
+
+/* ── sorting ────────────────────────────────────────────────────────────── */
+
+const RANKABLE = {
+  creatives: [
+    { ...CREATIVE, adId: 'a', title: 'big-spend', spend: 900, clicks: 10, impressions: 10000, cpm: 300, frequency: 3.1 },
+    { ...CREATIVE, adId: 'b', title: 'efficient', spend: 500, clicks: 50, impressions: 10000, cpm: 100, frequency: 1.2 },
+    { ...CREATIVE, adId: 'c', title: 'unmeasured', spend: 100, clicks: 0, impressions: 10000, cpm: null, frequency: null },
+  ],
+};
+
+test('the screen ranks by spend unless told otherwise', () => {
+  const out = project(RANKABLE);
+  assert.equal(out.sortLabel, 'Spend');
+  assert.deepEqual(out.creatives.map((r) => r.title), ['big-spend', 'efficient', 'unmeasured']);
+});
+
+test('a cost metric ranks cheapest first, a performance metric ranks best first', () => {
+  assert.equal(project(RANKABLE, { sort: 'cpm' }).creatives[0].title, 'efficient');
+  assert.equal(project(RANKABLE, { sort: 'ctr' }).creatives[0].title, 'efficient');
+  assert.equal(project(RANKABLE, { sort: 'frequency' }).creatives[0].title, 'big-spend');
+});
+
+/* A creative with no CPM is not the cheapest one on the screen. */
+test('unknown sinks whichever way the column sorts', () => {
+  for (const sort of ['cpm', 'frequency', 'cpc']) {
+    const last = project(RANKABLE, { sort }).creatives.at(-1);
+    assert.equal(last.title, 'unmeasured', `${sort} must not float an unknown to the top`);
+  }
+});
+
+test('an unknown sort falls back rather than emptying the screen', () => {
+  const out = project(RANKABLE, { sort: 'nonsense' });
+  assert.equal(out.sortLabel, 'Spend');
+  assert.equal(out.creatives.length, 3);
+});
+
+test('the control offers a next ranking to move to', () => {
+  assert.match(project(RANKABLE).sortNext, /^\/creatives\?sort=\w+$/);
+});
+
+/* Clicking a card under one ranking must not open whatever sat at that
+   position under another. */
+test('a card carries the ranking it was clicked under', () => {
+  const rows = project(RANKABLE, { sort: 'cpm' }).creatives;
+  assert.match(rows[0].go, /sort=cpm/);
+
+  const panel = PROJECTIONS['overlay-creative-detail'](RANKABLE, { sort: 'cpm', cr: '1' }).selCr;
+  assert.equal(panel.title, 'efficient', 'the panel must rank the same way the screen did');
 });
