@@ -124,6 +124,78 @@ test('runaway paging stops and says so, rather than writing a partial pull', asy
   );
 });
 
+/* ── asking for too much ────────────────────────────────────────────────── */
+
+/* Ad-level daily rows are the same account multiplied by every ad in it, so
+   they cannot use the page size campaign-level can. */
+test('a heavier level asks for a smaller page', () => {
+  assert.ok(meta.pageSizeFor('ad_day') < meta.pageSizeFor('campaign_day'));
+  assert.equal(new URL(meta.request({ kind: 'ad_day', window: null, credentials: CREDS }).url)
+    .searchParams.get('limit'), String(meta.PAGE_FOR.ad_day));
+});
+
+/* Recognised by wording, because Meta returns it as its generic code 1/99. */
+test('"reduce the amount of data" is recognised as a size refusal', () => {
+  assert.equal(meta.isTooMuchData(new Error("Please reduce the amount of data you're asking for")), true);
+  assert.equal(meta.isTooMuchData(new Error('User request limit reached')), false);
+});
+
+test('a size refusal is retried smaller, from the same cursor, and succeeds', async () => {
+  const limits = [];
+  let refusals = 2;
+  const fetchImpl = async (url) => {
+    limits.push(Number(new URL(url).searchParams.get('limit')));
+    if (refusals-- > 0) {
+      return {
+        ok: false,
+        status: 400,
+        json: async () => ({ error: { message: "Please reduce the amount of data you're asking for", code: 1, error_subcode: 99 } }),
+      };
+    }
+    return { ok: true, status: 200, json: async () => page([{ ad_id: '1', date_start: '2026-07-14' }]) };
+  };
+
+  const rows = await httpTransport({ credentials: CREDS, fetchImpl })
+    .fetch({ source: META, kind: 'ad_day', window: null });
+
+  assert.equal(rows.length, 1, 'the pull must still return its rows');
+  assert.deepEqual(limits, [100, 25, 10], 'each retry asks for less, down to the floor');
+});
+
+/* The bug this guards: retrying re-requests the same page, and on page one the
+   cursor is null — a loop keyed on the cursor would read that as "no more
+   results" and return nothing at all. */
+test('a first-page retry does not end the pull', async () => {
+  let refused = false;
+  const fetchImpl = async () => {
+    if (!refused) {
+      refused = true;
+      return { ok: false, status: 400, json: async () => ({ error: { message: "Please reduce the amount of data you're asking for" } }) };
+    }
+    return { ok: true, status: 200, json: async () => page([{ ad_id: '1', date_start: '2026-07-14' }]) };
+  };
+
+  const rows = await httpTransport({ credentials: CREDS, fetchImpl })
+    .fetch({ source: META, kind: 'ad_day', window: null });
+
+  assert.equal(rows.length, 1, 'the retried first page must still be collected');
+});
+
+/* Shrinking for ever would turn a permanent refusal into an infinite loop. */
+test('a refusal that never relents is reported rather than retried for ever', async () => {
+  let calls = 0;
+  const fetchImpl = async () => {
+    calls += 1;
+    return { ok: false, status: 400, json: async () => ({ error: { message: "Please reduce the amount of data you're asking for" } }) };
+  };
+
+  await assert.rejects(
+    () => httpTransport({ credentials: CREDS, fetchImpl }).fetch({ source: META, kind: 'ad_day', window: null }),
+    /reduce the amount of data/
+  );
+  assert.ok(calls <= 5, `gave up after ${calls} attempts rather than looping`);
+});
+
 /* ── failures, told apart ───────────────────────────────────────────────── */
 
 test('a rate limit is not reported as a credential problem', () => {
