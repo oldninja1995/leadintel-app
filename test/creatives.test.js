@@ -12,7 +12,10 @@ const assert = require('node:assert/strict');
 const { PROJECTIONS } = require('../lib/repository/projections');
 const canonical = require('../lib/ingest/canonical');
 
-const creatives = PROJECTIONS.creatives;
+const project = PROJECTIONS.creatives;
+/* The driver spreads a projection over the payload, so it returns an object
+   keyed by collection name. Unwrapped here to keep the assertions readable. */
+const creatives = (entities) => project(entities).creatives;
 
 const entitiesWith = (rows) => ({ creatives: rows });
 
