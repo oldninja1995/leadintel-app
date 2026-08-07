@@ -207,3 +207,50 @@ test('a creative missing optional fields raises no normalisation problem', () =>
 
   assert.deepEqual(entities.problems, []);
 });
+
+/* ── the detail panel ───────────────────────────────────────────────────── */
+
+const overlay = PROJECTIONS['overlay-creative-detail'];
+
+const THREE = {
+  creatives: ['first', 'second', 'third'].map((t, i) => ({
+    ...CREATIVE, adId: `ad-${i}`, title: t, spend: 900 - i * 100,
+  })),
+};
+
+/* The bug this exists to prevent: every card was hardcoded to cr=1, so
+   whichever creative you clicked, you got the first one's numbers. */
+test('each card links to its own detail', () => {
+  const rows = creatives(THREE);
+  assert.deepEqual(rows.map((r) => r.go), ['/creatives?cr=1', '/creatives?cr=2', '/creatives?cr=3']);
+});
+
+test('the panel shows the creative that was clicked', () => {
+  assert.equal(overlay(THREE, { cr: '2' }).selCr.title, 'second');
+  assert.equal(overlay(THREE, { cr: '3' }).selCr.title, 'third');
+});
+
+/* A panel that disagreed with the card it opened from would be worse than
+   either being wrong alone. */
+test('the panel agrees with its card', () => {
+  const card = creatives(THREE)[1];
+  const panel = overlay(THREE, { cr: '2' }).selCr;
+
+  assert.equal(panel.title, card.title);
+  assert.equal(panel.spend, card.spend);
+  assert.equal(panel.ctr, card.ctr);
+  assert.equal(panel.fatigue, card.fatigue);
+});
+
+test('an out-of-range or missing selection falls back rather than emptying', () => {
+  assert.equal(overlay(THREE, { cr: '99' }).selCr.title, 'first');
+  assert.equal(overlay(THREE, {}).selCr.title, 'first');
+  assert.deepEqual(overlay({ creatives: [] }, { cr: '1' }), {});
+});
+
+test('the panel declines what Meta does not report', () => {
+  const panel = overlay(THREE, { cr: '1' }).selCr;
+  for (const field of ['thumbStop', 'watch', 'quality', 'bookings', 'roas']) {
+    assert.equal(panel[field], '—', `${field} must be declined`);
+  }
+});
