@@ -54,7 +54,26 @@ test('every binding names a screen, a reason, and an expression', () => {
   for (const binding of LITERAL_BINDINGS) {
     assert.ok(binding.screen, 'a binding with no screen would apply nowhere');
     assert.ok(binding.why, `${binding.find} has no stated reason`);
-    assert.match(binding.replace, /<%=\s+\w+\s+%>/, `${binding.find} does not bind to an expression`);
+
+    /* A binding normally exists to make a hardcoded figure follow the data, so
+       replacing text with more text usually means somebody bound the wrong
+       half. The exception is a re-label — a column that now carries a different
+       metric — and it has to be declared, so the ordinary case stays guarded. */
+    if (binding.relabel) {
+      assert.ok(!/<%=/.test(binding.replace), `${binding.find} is declared a relabel but binds an expression`);
+      continue;
+    }
+    /* Dotted paths count: a row-scoped binding reads `cr.cpl`, not a bare name. */
+    assert.match(binding.replace, /<%=\s+[\w.]+\s+%>/, `${binding.find} does not bind to an expression`);
+  }
+});
+
+/* A re-labelled column whose value still came from the old field would be a
+   mislabel — worse than the dead cell it replaced. */
+test('a relabelled column has its value rebound too', () => {
+  for (const binding of LITERAL_BINDINGS.filter((b) => b.relabel)) {
+    const partner = LITERAL_BINDINGS.find((b) => b.screen === binding.screen && !b.relabel && b.pairedWith === binding.find);
+    assert.ok(partner, `${binding.find} was relabelled but no binding moves its value`);
   }
 });
 

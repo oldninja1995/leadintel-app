@@ -85,7 +85,16 @@ function transportFor(sourceId) {
    assumption is visible instead of appearing three times as a literal. */
 const SYNC_WORKSPACE = 'parakkat';
 
-const runner = new SyncRunner({ store: ingest.storeFor(SYNC_WORKSPACE), transportFor });
+const runner = new SyncRunner({
+  store: ingest.storeFor(SYNC_WORKSPACE),
+  transportFor,
+  /* The ingested driver caches its snapshot of the raw store, so newly synced
+     records are invisible to every screen until something drops that cache.
+     Dropped here, on write, rather than per request: replaying the whole store
+     on each page load would put the p95 budget out of reach for no benefit
+     between syncs. */
+  onWrite: () => { if (typeof repo.refresh === 'function') repo.refresh(); },
+});
 const reasoner = createReasoner();
 const fires = new FireLog();
 

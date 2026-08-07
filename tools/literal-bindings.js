@@ -20,6 +20,26 @@
  */
 
 const LITERAL_BINDINGS = [
+  /* The creative card's middle metric was HOOK RATE, which is a video statistic
+     this product does not fetch and cannot compute — it renders "—" on every
+     row and always will. Cost per lead can be computed from what Meta already
+     reports at ad level, and is the number this screen is read for. So the cell
+     is re-labelled rather than left dead. Both halves are bound: a label
+     changed without its value would be worse than either. */
+  {
+    screen: 'creatives',
+    find: '>HOOK RATE<',
+    replace: '>CPL<',
+    relabel: true,
+    why: 'hook rate is not fetchable; the cell carries cost per lead instead',
+  },
+  {
+    screen: 'creatives',
+    find: '<%= cr.hookRate %>',
+    replace: '<%= cr.cpl %>',
+    pairedWith: '>HOOK RATE<',
+    why: 'the value beneath the re-labelled CPL cell',
+  },
   {
     screen: 'attribution',
     find: '>₹18.9L<',
