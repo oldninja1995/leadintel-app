@@ -60,14 +60,67 @@ test('roas is declined rather than computed against fixture revenue', () => {
   assert.equal(row.rev, '—');
 });
 
-test('rows are ranked by spend, with unmeasured ones last', () => {
+test('rows are ranked by spend', () => {
   const rows = creatives(entitiesWith([
     { ...CREATIVE, adId: 'a', title: 'small', spend: 100 },
-    { ...CREATIVE, adId: 'b', title: 'none', spend: null },
     { ...CREATIVE, adId: 'c', title: 'big', spend: 900 },
   ]));
 
-  assert.deepEqual(rows.map((r) => r.title), ['big', 'small', 'none']);
+  assert.deepEqual(rows.map((r) => r.title), ['big', 'small']);
+});
+
+/* The ads edge answers with every ad the account ever created, while insights
+   cover only the window pulled — 1,175 against 47 on the real account. Showing
+   all of them buries the ones that matter under rows of `—`. */
+test('creatives nothing measured are kept out of the ranking', () => {
+  const rows = creatives(entitiesWith([
+    { ...CREATIVE, adId: 'a', title: 'ran', spend: 100 },
+    { ...CREATIVE, adId: 'b', title: 'never ran', spend: null },
+    { ...CREATIVE, adId: 'c', title: 'also never', spend: undefined },
+  ]));
+
+  assert.deepEqual(rows.map((r) => r.title), ['ran']);
+});
+
+/* An empty screen would read as a broken connection rather than a quiet spell. */
+test('when nothing at all was measured, the unmeasured set is shown instead', () => {
+  const rows = creatives(entitiesWith([
+    { ...CREATIVE, adId: 'a', title: 'one', spend: null },
+    { ...CREATIVE, adId: 'b', title: 'two', spend: null },
+  ]));
+
+  assert.equal(rows.length, 2, 'better a screen of dashes than a screen of nothing');
+});
+
+/* ── the creative itself ────────────────────────────────────────────────── */
+
+test('a thumbnail is delivered through the proxy, not from Meta directly', () => {
+  const [row] = creatives(entitiesWith([
+    { ...CREATIVE, thumbnailUrl: 'https://scontent.xx.fbcdn.net/v/t45.png?_nc_cat=1' },
+  ]));
+
+  assert.match(row.grad, /url\('\/creatives\/99201\/thumbnail'\)/);
+  assert.ok(!row.grad.includes('fbcdn.net'), 'the CDN address must not reach the browser');
+});
+
+/* An expired signature should look like it did before, not like a broken page. */
+test('the gradient stays underneath as the fallback', () => {
+  const [withImage] = creatives(entitiesWith([{ ...CREATIVE, thumbnailUrl: 'https://x.fbcdn.net/a.png' }]));
+  const [without] = creatives(entitiesWith([{ ...CREATIVE, thumbnailUrl: null }]));
+
+  assert.match(withImage.grad, /linear-gradient/);
+  assert.equal(without.grad, 'linear-gradient(135deg,#2b2741,#5d5294)');
+});
+
+test('Meta\'s object type becomes the format column', () => {
+  const video = creatives(entitiesWith([{ ...CREATIVE, objectType: 'VIDEO' }]))[0];
+  const image = creatives(entitiesWith([{ ...CREATIVE, objectType: 'SHARE' }]))[0];
+  const unknown = creatives(entitiesWith([{ ...CREATIVE, objectType: null }]))[0];
+
+  assert.equal(video.type, 'Video');
+  assert.equal(video.icon, 'ph-fill ph-play-circle');
+  assert.equal(image.type, 'Image');
+  assert.equal(unknown.type, '—', 'an unreported format is declined, not guessed');
 });
 
 test('a creative with no name falls back to its ad id rather than blank', () => {

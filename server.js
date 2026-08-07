@@ -830,6 +830,68 @@ app.post('/connections/:source/webhook/remove',
     }).catch(next);
   });
 
+/* Creative thumbnails, proxied.
+ *
+ * The images are on Meta's CDN, and the page's CSP is `img-src 'self' data:` —
+ * deliberately. Relaxing it to name Meta's image hosts would widen the policy
+ * for every page in the app to solve one screen, and Meta's thumbnail URLs are
+ * signed and expire, so a browser fetching them directly would show a wall of
+ * broken images within weeks. Proxying keeps both problems in one place.
+ *
+ * **The URL is never taken from the request.** The route accepts an ad id,
+ * looks the creative up in the caller's own entities, and fetches the address
+ * *the pipeline stored*. A route that fetched a URL from the query string would
+ * be an open proxy sitting inside the network perimeter — the classic shape of
+ * a server-side request forgery, and the reason this reads a little
+ * indirectly.
+ */
+const THUMBNAIL_HOSTS = /(^|\.)(fbcdn\.net|facebook\.com)$/i;
+
+app.get('/creatives/:adId/thumbnail', async (req, res) => {
+  let creative;
+  try {
+    creative = (entitiesFor(req.workspace).creatives || [])
+      .find((c) => c.adId === req.params.adId);
+  } catch (err) {
+    return res.status(503).end();
+  }
+
+  if (!creative || !creative.thumbnailUrl) return res.status(404).end();
+
+  /* Belt and braces: the address came from our own store, but it came
+     originally from a third party, so it is still checked against the hosts
+     Meta serves images from before anything is fetched. */
+  let target;
+  try {
+    target = new URL(creative.thumbnailUrl);
+  } catch (err) {
+    return res.status(404).end();
+  }
+  if (target.protocol !== 'https:' || !THUMBNAIL_HOSTS.test(target.hostname)) {
+    return res.status(404).end();
+  }
+
+  try {
+    const upstream = await fetch(target, { redirect: 'follow' });
+    if (!upstream.ok) return res.status(502).end();
+
+    const type = upstream.headers.get('content-type') || '';
+    /* Only images. Whatever else the far end might serve, this route will not
+       hand it to a browser under this app's own origin. */
+    if (!type.startsWith('image/')) return res.status(502).end();
+
+    res.setHeader('content-type', type);
+    /* Cached hard: a creative's thumbnail does not change, and every card on
+       the screen is one of these. `private` because it is behind a session. */
+    res.setHeader('cache-control', 'private, max-age=86400');
+    return res.end(Buffer.from(await upstream.arrayBuffer()));
+  } catch (err) {
+    /* An expired signature or a CDN hiccup renders as a missing image, which
+       the card already handles by falling back to its gradient. */
+    return res.status(502).end();
+  }
+});
+
 /* Alert rules (Phase 8). Each carries its 90-day fire count and false-positive
    rate, so a noisy threshold stays visible rather than becoming background. */
 app.get('/rules', (req, res) => {
