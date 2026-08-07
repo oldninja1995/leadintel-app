@@ -77,10 +77,16 @@ test('a bare account number is prefixed rather than refused', () => {
   assert.throws(() => meta.accountPath(''), /ad account id/);
 });
 
-test('creatives use their own edge, not insights', () => {
+/* /adcreatives lists creatives with no reference to the ads running them, and a
+   creative with no ad has no spend to show. The ads edge carries the join. */
+test('creatives come from the ads edge, so they can be joined to spend', () => {
   const { url } = meta.request({ kind: 'creative', window: null, credentials: CREDS });
-  assert.ok(url.includes('/adcreatives?'));
+  const params = new URL(url).searchParams;
+
+  assert.ok(url.includes('/ads?'), 'must use the ads edge');
+  assert.ok(!url.includes('/adcreatives'), 'not the unjoinable creatives edge');
   assert.ok(!url.includes('/insights'));
+  assert.ok(params.get('fields').includes('creative'), 'must request the creative link');
 });
 
 test('a kind with no request shape is refused rather than pulled as empty', () => {
@@ -251,8 +257,8 @@ test('the three sources with no request shape are still absent', () => {
    to answer per endpoint the way Meta does. */
 function accountStub() {
   return async (url) => {
-    const body = url.includes('/adcreatives')
-      ? page([{ id: 'CR-9021', name: 'UGC video 03' }])
+    const body = url.includes('/ads?')
+      ? page([{ id: '99201', name: 'UGC video 03', status: 'ACTIVE', creative: { id: 'CR-9021' } }])
       : page([{
         campaign_id: '23851', adset_id: '88101', ad_id: '99201',
         date_start: '2026-07-14', account_currency: 'INR', spend: '1',
@@ -271,8 +277,8 @@ test('a live row keys the same way a fixture row does', async () => {
   assert.equal(byKind.campaign_day, '23851:2026-07-14');
   assert.equal(byKind.adset_day, '88101:2026-07-14');
   assert.equal(byKind.ad_day, '99201:2026-07-14');
-  /* Meta names a creative's id plainly `id`. */
-  assert.equal(byKind.creative, 'CR-9021');
+  /* Keyed by the ad, because that is the unit a creative is measured in. */
+  assert.equal(byKind.creative, '99201');
 });
 
 test('a pull covers every kind the source declares', async () => {
