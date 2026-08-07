@@ -22,7 +22,13 @@ const broken = connections.filter(function (c) { return c.configured && !c.reada
    that is all of them, which is precisely when it is worst. */
 const needsAttention = connections.find(function (c) { return c.configured && !c.readable; })
   || connections.find(function (c) { return !c.configured; });
-const openSource = canManage && needsAttention ? needsAttention.source : null;
+
+/* A refused paste opens the card it was refused on, whatever else needs
+   attention — a message about a field the reader cannot see is a message they
+   have to go looking for. */
+const openSource = canManage
+  ? (errorSource || (needsAttention ? needsAttention.source : null))
+  : null;
 %>
 <div class="li-conn">
 

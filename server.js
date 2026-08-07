@@ -676,7 +676,9 @@ app.post('/schedules/run', express.json(), gatekeeper.gate('schedule.run'), (req
    screen, so until this existed there was nowhere to put a token and every
    connector read fixtures. Owner only: a credential can read a whole external
    system. */
-async function renderConnections(req, res, { error = null, saved = null, mintedToken = null } = {}) {
+async function renderConnections(req, res, {
+  error = null, saved = null, mintedToken = null, errorSource = null,
+} = {}) {
   const screen = (await repo.screens()).find((s) => s.slug === 'connections');
 
   /* The base a source should post to. Taken from the platform's own domain
@@ -705,6 +707,7 @@ async function renderConnections(req, res, { error = null, saved = null, mintedT
       publicBase,
       /* Shown once, immediately after minting, and never retrievable again. */
       mintedToken,
+      errorSource,
       workspaceName: auth.identity.workspace(req.workspace).name,
       canManage: auth.permissions.can(req.user, 'connection.manage'),
       secretSet: Boolean(process.env.LEADINTEL_SECRET),
@@ -721,7 +724,11 @@ async function renderConnections(req, res, { error = null, saved = null, mintedT
 }
 
 app.get('/connections', (req, res, next) => {
-  renderConnections(req, res, { error: req.query.error || null, saved: req.query.saved || null }).catch(next);
+  renderConnections(req, res, {
+    error: req.query.error || null,
+    saved: req.query.saved || null,
+    errorSource: req.query.source || null,
+  }).catch(next);
 });
 
 app.post('/connections/:source',
@@ -741,7 +748,9 @@ app.post('/connections/:source',
       connections.set(req.workspace, source, merged, { by: req.user.name });
       return res.redirect(`/connections?saved=${encodeURIComponent(`${source} saved. The credential is encrypted and will not be shown again.`)}`);
     } catch (err) {
-      return res.redirect(`/connections?error=${encodeURIComponent(err.message)}`);
+      /* The message names the field and what the value looked like — never the
+         value itself, which must not travel in a URL. */
+      return res.redirect(`/connections?source=${encodeURIComponent(source)}&error=${encodeURIComponent(err.message)}`);
     }
   });
 
@@ -772,7 +781,8 @@ app.post('/connections/:source/test',
       result = { ok: false, detail: err.message };
     }
     connections.recordTest(req.workspace, source, result);
-    return res.redirect(`/connections?${result.ok ? 'saved' : 'error'}=${encodeURIComponent(`${source}: ${result.detail}`)}`);
+    const query = `${result.ok ? 'saved' : 'error'}=${encodeURIComponent(`${source}: ${result.detail}`)}`;
+    return res.redirect(`/connections?source=${encodeURIComponent(source)}&${query}`);
   });
 
 /* Mints the credential a pushing source uses to call `/ingest/webhook/:source`.
