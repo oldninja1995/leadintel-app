@@ -198,3 +198,51 @@ test('targeting and the name still answer on a single-objective account', () => 
   /* And with the targeting fetched, the city ad sets resolve properly. */
   assert.equal(funnel.stageFor({ adsetName: 'Cities | TN', targeting: { customAudienceIds: [] } }, {}, opts).stage, 'Top');
 });
+
+/* ── stacked audiences ──────────────────────────────────────────────────── */
+
+/* The real account's shape, and the reason MOFU was unreachable on it.
+ *
+ * Every retargeting ad set stacks a small 30-day pool beside a much larger
+ * 60-day one. Picking the shortest window described the part of the ad set that
+ * barely runs: 28 creatives read BOFU and not one read MOFU, which described
+ * the rule rather than the account. */
+const STACKED = {
+  hot: { name: '75% Video Watchers 30 Days', retentionDays: 30, size: 3900 },
+  warm: { name: '50% Watchers 60 days', retentionDays: 60, size: 53400 },
+  old: { name: 'IG Messaged Customers 180 Days', retentionDays: 180, size: 2400 },
+  unsized: { name: 'Wishlist 30 Days', retentionDays: 30, size: null },
+  unsizedWarm: { name: 'Website Leads 60 Days', retentionDays: 60, size: null },
+};
+
+const stacked = (...ids) => funnel.stageFor({ targeting: { customAudienceIds: ids } }, STACKED, { objectiveVaries: false });
+
+test('the audience that receives the delivery decides the stage', () => {
+  /* 53,400 people at 60 days beside 3,900 at 30: roughly ninety-three percent
+     of the impressions go to the warm pool, so the ad set is warm. */
+  const mixed = stacked('hot', 'warm');
+  assert.equal(mixed.stage, 'Middle');
+  assert.match(mixed.because, /largest audience is a 60-day pool/);
+  assert.match(mixed.because, /50% Watchers 60 days/, 'and names which pool decided it');
+});
+
+test('a genuinely hot ad set is still hot', () => {
+  assert.equal(stacked('hot').stage, 'Bottom');
+  assert.equal(stacked('hot', 'old').stage, 'Bottom', '3,900 beats 2,400');
+});
+
+test('a stack of warm pools is warm', () => {
+  assert.equal(stacked('warm', 'old').stage, 'Middle');
+});
+
+/* Meta withholds sizes on very small audiences. With nothing to weigh by, the
+   hottest audience is the safer assumption. */
+test('with no sizes reported it falls back to the shortest window', () => {
+  const r = stacked('unsized', 'unsizedWarm');
+  assert.equal(r.stage, 'Bottom');
+  assert.match(r.because, /retargeting a 30-day audience/);
+});
+
+test('one sized pool among unsized ones still decides', () => {
+  assert.equal(stacked('unsized', 'warm').stage, 'Middle', 'the only pool with a size is the one that can be weighed');
+});
