@@ -50,9 +50,37 @@ test('a creative just above the median is left alone', () => {
   assert.equal(only(row(320000, 12, worn('healthy', 0))).action, 'keep');
 });
 
-test('being fresh does not save an expensive creative', () => {
-  /* "It might improve" is what keeps them running. */
+test('being unworn does not save an expensive creative', () => {
+  /* "It might improve" is what keeps them running — once there is enough
+     history to know that it has not. */
   assert.equal(only(row(400000, 10, worn('healthy', 0))).action, 'stop');
+});
+
+/* A creative with no fatigue reading has under a fortnight of usable days,
+   which puts it at or near Meta's learning phase. An ad that looks dear in week
+   one routinely settles by week three, and turning it off is the mistake every
+   media buyer is warned about. */
+test('an expensive creative too young to score is reviewed, not stopped', () => {
+  const v = only(row(600000, 12, null));
+
+  assert.equal(v.action, 'review');
+  assert.equal(v.instruction, 'Check it before deciding');
+  assert.match(v.because.join(' '), /140% above/, 'it must still say it is expensive');
+  assert.match(v.because.join(' '), /too new to judge on cost alone/, 'and why that is not yet a decision');
+});
+
+/* The same cost, once there is history behind it, is a decision. */
+test('the same creative is stopped once it has history', () => {
+  assert.equal(only(row(600000, 12, worn('healthy', 0))).action, 'stop');
+  assert.equal(only(row(600000, 12, worn('replace', 90, ['frequency 4.4']))).action, 'stop');
+});
+
+/* Review sits between Refresh and Keep: more urgent than nothing to do, less
+   settled than a decision already made. */
+test('review ranks below refresh and above keep running', () => {
+  const order = verdicts.ACTION_ORDER;
+  assert.ok(order.indexOf('refresh') < order.indexOf('review'));
+  assert.ok(order.indexOf('review') < order.indexOf('keep'));
 });
 
 test('a tiring creative that still pays its way is refreshed, not stopped', () => {

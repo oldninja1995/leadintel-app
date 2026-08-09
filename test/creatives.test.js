@@ -509,6 +509,26 @@ test('every card carries an instruction, and the instruction carries its reasons
   }
 });
 
+/* Within one action, the money riding on the decision decides. This ranked
+   cheapest-lead-first, which is right for Scale and backwards for Stop — it put
+   the creative wasting the least above the one wasting the most. */
+test('within an action the biggest spender leads', () => {
+  const pair = {
+    creatives: [
+      { ...CREATIVE, adId: 'small', title: 'small waste', objective: 'OUTCOME_LEADS', spend: 37400, leads: 4, series: worn30 },
+      { ...CREATIVE, adId: 'big', title: 'big waste', objective: 'OUTCOME_LEADS', spend: 6868200, leads: 700, series: worn30 },
+      { ...CREATIVE, adId: 'a', title: 'ordinary a', objective: 'OUTCOME_LEADS', spend: 300000, leads: 12 },
+      { ...CREATIVE, adId: 'b', title: 'ordinary b', objective: 'OUTCOME_LEADS', spend: 280000, leads: 11 },
+      { ...CREATIVE, adId: 'c', title: 'ordinary c', objective: 'OUTCOME_LEADS', spend: 260000, leads: 10 },
+    ],
+  };
+
+  const rows = project(pair, { sort: 'best' }).creatives;
+  const refreshing = rows.filter((r) => r.verdict === 'Refresh').map((r) => r.title);
+
+  assert.deepEqual(refreshing, ['big waste', 'small waste'], 'the bigger spend is the bigger decision');
+});
+
 test('the worn-out creative burning three times the going rate is told to stop', () => {
   const rows = byTitle();
 

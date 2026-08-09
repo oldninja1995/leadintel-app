@@ -419,16 +419,31 @@ things agree. Under 14 days of usable history it scores **nothing at all** — u
 never healthy, and a green zero would be a confident wrong answer. Thresholds are ad-ops
 consensus with the sources named in the file, not a vendor specification.
 
-**Action** (`lib/creative-verdict.js`) is the instruction — Scale, Keep running, Refresh,
-Stop, or Not enough data — and it is what the screen was missing: fatigue said something was
-wrong and left the reader to decide what to do about it. It weighs fatigue against cost per
-lead **compared to the account's median**, because ₹2,000 a lead is cheap for a suite and
-dear for a day pass, and the only honest reference is what the rest of the account is paying.
-Money beats tiredness (an ad not paying for itself stops whether or not it is fresh) and
-tiredness beats silence. Every verdict carries the numbers that produced it.
+**Action** (`lib/creative-verdict.js`) is the instruction — Stop, Refresh, Review, Keep
+running, Scale, or Not enough data — and it is what the screen was missing: fatigue said
+something was wrong and left the reader to decide what to do about it. It weighs fatigue
+against cost per lead **compared to the account's median** (not the mean — one ad burning 4×
+the rate would drag a mean up until everything else looked efficient beside it), because
+₹2,000 a lead is cheap for a suite and dear for a day pass. Stop at **1.5×** the median,
+Scale at **0.75×** or below with fatigue healthy. Every verdict carries the numbers that
+produced it.
+
+**Fatigue and the verdict are separate judgements.** A creative with no fatigue reading can
+still be judged on cost, so `Fatigue —` beside a real instruction is correct, not a bug.
+
+**But an expensive creative with no fatigue reading is *Reviewed*, never Stopped.** No
+reading means under a fortnight of usable history, which puts the creative at or near Meta's
+learning phase — an ad that looks dear in week one routinely settles by week three, and
+turning it off is the mistake every media buyer is warned about. The instruction says what is
+known and stops short of the decision.
 
 Under three leads there is no cost per lead, under three peers there is no median, and either
-gap reaches *Not enough data* rather than any of the four confident answers.
+gap reaches *Not enough data* rather than any confident answer.
+
+**Within one action, the biggest spender leads.** Ranking cheapest-lead-first inside a group
+is right for Scale and backwards for Stop — it put the creative wasting the least above the
+one wasting the most. Spend is the one tiebreak that reads correctly everywhere, because it
+is not a judgement about the creative at all: it is how much money is riding on the decision.
 
 **Funnel stage** (`lib/creative-funnel.js`) is read from the **ad set's targeting**, on
 audience recency: no custom audience is *Top* (cold), an audience with a retention window
