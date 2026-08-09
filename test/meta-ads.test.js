@@ -471,3 +471,25 @@ test('a creative pull refused with code 1/99 retries smaller and succeeds', asyn
   assert.equal(rows.length, 1, 'the creatives must arrive after the retry');
   assert.ok(limits[1] < limits[0], `the retry must ask for less — got ${limits.join(' then ')}`);
 });
+
+/* A 64-pixel image stretched across a card is a smudge, which reads as "I
+ * cannot see the creative" rather than as an image that loaded — and Meta's
+ * `thumbnail_url` defaults to 64x64, about 1.7 KB. It matters most for video,
+ * which frequently reports no `image_url` at all, so the thumbnail is not the
+ * fallback there, it is the only still that exists. */
+test('the creative still is requested at a size worth looking at', () => {
+  const params = new URL(meta.request({ kind: 'creative', window: null, credentials: CREDS }).url).searchParams;
+
+  assert.equal(params.get('thumbnail_width'), String(meta.THUMBNAIL_PX));
+  assert.equal(params.get('thumbnail_height'), String(meta.THUMBNAIL_PX));
+  assert.ok(meta.THUMBNAIL_PX >= 320, 'a card renders at roughly 300 CSS pixels');
+});
+
+/* Only the creative request needs it — asking insights for a thumbnail size is
+   noise on every other call. */
+test('the thumbnail size is asked for only where a thumbnail is fetched', () => {
+  for (const kind of ['campaign_day', 'adset_day', 'ad_day']) {
+    const params = new URL(meta.request({ kind, window: null, credentials: CREDS }).url).searchParams;
+    assert.equal(params.get('thumbnail_width'), null, `${kind} must not ask for a thumbnail size`);
+  }
+});
