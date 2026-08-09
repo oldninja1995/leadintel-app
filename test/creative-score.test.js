@@ -280,7 +280,7 @@ test('one extreme outlier does not flatten the ranking', () => {
 
 /* ── the recommendation ─────────────────────────────────────────────────── */
 
-test('the recommendation is one of three and explains itself', () => {
+test('the recommendation is one of the seven, and explains itself', () => {
   const ctx = world({
     GOOD: { leads: 60, interested: 30, bookings: 9, revenuePer: 900000 },
     BAD: { leads: 60, interested: 2, bookings: 0, revenuePer: 0 },
@@ -293,15 +293,18 @@ test('the recommendation is one of three and explains itself', () => {
     creative('C', 'Bottom', { leads: 60 }),
   ], ctx);
 
+  const labels = Object.values(scoring.ACTIONS).map((x) => x.label);
   for (const row of rows) {
     const call = scoring.recommend(row);
-    assert.ok(['SCALE', 'WATCH', 'REPLACE'].includes(call.label));
+    assert.ok(labels.includes(call.label), call.label);
     assert.ok(call.because.length, `${row.creative.adId} gave no reason`);
   }
 
   const byId = Object.fromEntries(rows.map((r) => [r.creative.adId, scoring.recommend(r)]));
   assert.equal(byId.GOOD.label, 'SCALE');
-  assert.equal(byId.BAD.label, 'REPLACE');
+  assert.equal(byId.BAD.label, 'PAUSE RECOMMENDED');
+  /* Advice, never an action: nothing in this codebase pauses an ad. */
+  assert.match(byId.BAD.instruction, /your call/i);
 });
 
 /* Scaling is a decision to spend more money, and four leads cannot support it
@@ -321,6 +324,11 @@ test('a thin creative is never told to scale', () => {
 
   const thin = rows.find((r) => r.creative.adId === 'THIN');
   assert.notEqual(scoring.recommend(thin).label, 'SCALE');
+
+  /* And a creative with nothing behind it is told to keep testing, never to
+     pause — the only honest reading of two leads is that nobody knows yet. */
+  const none = scoring.score([creative('N', 'Bottom', { leads: 1, spend: 5000 })], goals.context({}))[0];
+  assert.equal(scoring.recommend(none).label, 'INSUFFICIENT DATA');
 });
 
 /* Fatigue is a modifier at 5–10% of the score, not a veto. */

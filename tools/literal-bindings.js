@@ -159,6 +159,24 @@ const LITERAL_BINDINGS = [
     screen: 'creatives',
     find: '          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">',
     replace: [
+      '          <% if ((typeof creativeCensus !== "undefined") && creativeCensus && creativeCensus.length) { %>',
+      '          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; background:var(--color-surface); border:1px solid var(--color-neutral-900); border-radius:11px; padding:10px 14px; margin-bottom:12px; font-size:11.5px;">',
+      '            <span style="color:var(--color-neutral-400); font-weight:500;"><%= creativeCensus.reduce(function (t, c) { return t + Number(c.count); }, 0) %> creatives analysed</span>',
+      '            <% creativeCensus.forEach(function (c) { %>',
+      '              <span style="color:<%= c.color %>;"><%= c.marker %> <%= c.count %> <%= c.label %></span>',
+      '            <% }); %>',
+      '          </div>',
+      '          <% } %>',
+      '          <% if ((typeof creativeNotes !== "undefined") && creativeNotes && creativeNotes.length) { %>',
+      '          <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px;">',
+      '            <% creativeNotes.forEach(function (n) { %>',
+      '              <div style="flex:1 1 240px; background:var(--color-surface); border:1px solid var(--color-neutral-900); border-radius:10px; padding:9px 12px;">',
+      '                <div style="font-size:9.5px; color:var(--color-neutral-600); text-transform:uppercase; letter-spacing:.04em;"><%= n.heading %></div>',
+      '                <div style="font-size:11px; color:var(--color-neutral-300); margin-top:3px; line-height:1.45;"><%= n.text %></div>',
+      '              </div>',
+      '            <% }); %>',
+      '          </div>',
+      '          <% } %>',
       '          <% if ((typeof bestByStage !== "undefined") && bestByStage && bestByStage.length > 1) { %>',
       '          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">',
       '            <% bestByStage.forEach(function (b) { %>',
@@ -238,6 +256,10 @@ const LITERAL_BINDINGS = [
       '                  <div style="display:flex; align-items:flex-start; gap:8px; margin-top:10px; padding-top:9px; border-top:1px solid var(--color-neutral-900);" title="<%= cr.verdictWhy %>">',
       '                    <span style="flex:none; font-size:10px; font-weight:500; border-radius:5px; padding:3px 8px; background:<%= cr.verdictBg %>; color:<%= cr.verdictColor %>;"><%= cr.verdict %></span>',
       '                    <span style="font-size:10.5px; color:var(--color-neutral-500); line-height:1.35;"><%= cr.verdictInstruction %> — <%= cr.verdictBecause %></span>',
+      '                  </div>',
+      '                  <div style="display:flex; align-items:center; gap:10px; margin-top:7px; font-size:10px;">',
+      '                    <span style="color:<%= cr.trendColor %>;" title="<%= cr.trendWhy %>"><%= cr.trend %></span>',
+      '                    <span style="color:var(--color-neutral-600);"><%= cr.lifecycle %></span>',
       '                  </div>',
       '                </div>',
     ].join('\n'),
@@ -340,6 +362,54 @@ const LITERAL_BINDINGS = [
     find: 'cursor:pointer;">Sort: Revenue<i class="ph ph-caret-down"',
     replace: 'cursor:pointer;" data-action="<%= sortNext %>">Sort: <%= sortLabel %><i class="ph ph-caret-down"',
     why: 'the design draws the control but wires nothing to it; revenue is not a column this screen can fill',
+  },
+  /* The executive summary, above everything else on the screen: how many
+     creatives were analysed, what each was recommended for, and the two or
+     three sentences a reader wants before reading any card. Every figure is a
+     tally of the recommendations below it, so the summary cannot disagree with
+     the screen it summarises.
+
+     Anchored on the best-by-stage strip's own opening, rewritten with a marker
+     so this add cannot match its own output on a later run. */
+  {
+    screen: 'creatives',
+    find: '          <% if ((typeof bestByStage !== "undefined") && bestByStage && bestByStage.length > 1) { %>',
+    replace: [
+      '          <% if ((typeof creativeCensus !== "undefined") && creativeCensus && creativeCensus.length) { %>',
+      '          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; background:var(--color-surface); border:1px solid var(--color-neutral-900); border-radius:11px; padding:10px 14px; margin-bottom:12px; font-size:11.5px;">',
+      '            <span style="color:var(--color-neutral-400); font-weight:500;"><%= creativeCensus.reduce(function (t, c) { return t + Number(c.count); }, 0) %> creatives analysed</span>',
+      '            <% creativeCensus.forEach(function (c) { %>',
+      '              <span style="color:<%= c.color %>;"><%= c.marker %> <%= c.count %> <%= c.label %></span>',
+      '            <% }); %>',
+      '          </div>',
+      '          <% } %>',
+      '          <% if ((typeof creativeNotes !== "undefined") && creativeNotes && creativeNotes.length) { %>',
+      '          <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px;">',
+      '            <% creativeNotes.forEach(function (n) { %>',
+      '              <div style="flex:1 1 240px; background:var(--color-surface); border:1px solid var(--color-neutral-900); border-radius:10px; padding:9px 12px;">',
+      '                <div style="font-size:9.5px; color:var(--color-neutral-600); text-transform:uppercase; letter-spacing:.04em;"><%= n.heading %></div>',
+      '                <div style="font-size:11px; color:var(--color-neutral-300); margin-top:3px; line-height:1.45;"><%= n.text %></div>',
+      '              </div>',
+      '            <% }); %>',
+      '          </div>',
+      '          <% } %>',
+      '          <% if (bestByStage && bestByStage.length > 1) { %>',
+    ].join('\n'),
+    why: 'a screen of cards with no summary makes the reader do the counting',
+  },
+  /* Which way the creative is going, and where it is in its life — beside the
+     recommendation, because the recommendation was partly decided by them. */
+  {
+    screen: 'creatives',
+    find: '<span style="font-size:10.5px; color:var(--color-neutral-500); line-height:1.35;"><%= cr.verdictInstruction %> — <%= cr.verdictBecause %></span>',
+    replace: [
+      '<span data-li-slot="why" style="font-size:10.5px; color:var(--color-neutral-500); line-height:1.35;"><%= cr.verdictInstruction %> — <%= cr.verdictBecause %></span>',
+      '                  </div>',
+      '                  <div style="display:flex; align-items:center; gap:10px; margin-top:7px; font-size:10px;">',
+      '                    <span style="color:<%= cr.trendColor %>; cursor:help;" title="<%= cr.trendWhy %>"><%= cr.trend %></span>',
+      '                    <span style="color:var(--color-neutral-600);"><%= cr.lifecycle %></span>',
+    ].join('\n'),
+    why: 'a recommendation partly decided by trend and fatigue should show both',
   },
   {
     screen: 'attribution',

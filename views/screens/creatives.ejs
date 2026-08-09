@@ -16,7 +16,25 @@
             <span data-li-slot="verdict-legend"><%= verdictLegend %></span>
             <% if (typeof goalNote !== 'undefined' && goalNote) { %><span style="color:#ffcf85;"><%= goalNote %></span><% } %>
           </div>
-          <% if ((typeof bestByStage !== "undefined") && bestByStage && bestByStage.length > 1) { %>
+          <% if ((typeof creativeCensus !== "undefined") && creativeCensus && creativeCensus.length) { %>
+          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; background:var(--color-surface); border:1px solid var(--color-neutral-900); border-radius:11px; padding:10px 14px; margin-bottom:12px; font-size:11.5px;">
+            <span style="color:var(--color-neutral-400); font-weight:500;"><%= creativeCensus.reduce(function (t, c) { return t + Number(c.count); }, 0) %> creatives analysed</span>
+            <% creativeCensus.forEach(function (c) { %>
+              <span style="color:<%= c.color %>;"><%= c.marker %> <%= c.count %> <%= c.label %></span>
+            <% }); %>
+          </div>
+          <% } %>
+          <% if ((typeof creativeNotes !== "undefined") && creativeNotes && creativeNotes.length) { %>
+          <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+            <% creativeNotes.forEach(function (n) { %>
+              <div style="flex:1 1 240px; background:var(--color-surface); border:1px solid var(--color-neutral-900); border-radius:10px; padding:9px 12px;">
+                <div style="font-size:9.5px; color:var(--color-neutral-600); text-transform:uppercase; letter-spacing:.04em;"><%= n.heading %></div>
+                <div style="font-size:11px; color:var(--color-neutral-300); margin-top:3px; line-height:1.45;"><%= n.text %></div>
+              </div>
+            <% }); %>
+          </div>
+          <% } %>
+          <% if (bestByStage && bestByStage.length > 1) { %>
           <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
             <% bestByStage.forEach(function (b) { %>
               <div class="hv-3" data-action="<%= b.go %>" style="display:flex; align-items:center; gap:7px; background:var(--color-surface); border:1px solid var(--color-neutral-900); border-radius:9px; padding:6px 11px; cursor:pointer; font-size:11px;">
@@ -61,7 +79,11 @@
                   </div>
                   <div style="display:flex; align-items:flex-start; gap:8px; margin-top:10px; padding-top:9px; border-top:1px solid var(--color-neutral-900);" title="<%= cr.verdictWhy %>">
                     <span style="flex:none; font-size:10px; font-weight:500; border-radius:5px; padding:3px 8px; background:<%= cr.verdictBg %>; color:<%= cr.verdictColor %>;"><%= cr.verdict %></span>
-                    <span style="font-size:10.5px; color:var(--color-neutral-500); line-height:1.35;"><%= cr.verdictInstruction %> — <%= cr.verdictBecause %></span>
+                    <span data-li-slot="why" style="font-size:10.5px; color:var(--color-neutral-500); line-height:1.35;"><%= cr.verdictInstruction %> — <%= cr.verdictBecause %></span>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:10px; margin-top:7px; font-size:10px;">
+                    <span style="color:<%= cr.trendColor %>; cursor:help;" title="<%= cr.trendWhy %>"><%= cr.trend %></span>
+                    <span style="color:var(--color-neutral-600);"><%= cr.lifecycle %></span>
                   </div>
                 </div>
               </div>

@@ -448,9 +448,16 @@ test('an unknown goal falls back to CPL rather than judging nothing', () => {
    the column it came from. */
 test('the verdict names the goal it weighed', () => {
   for (const row of project(FLEET).creatives) {
-    assert.ok(['SCALE', 'WATCH', 'REPLACE'].includes(row.verdict), `${row.title}: ${row.verdict}`);
+    assert.match(row.verdict, /SCALE|CONTINUE|WATCH|REDUCE|RETEST|PAUSE RECOMMENDED|INSUFFICIENT DATA/, row.verdict);
     assert.ok(row.headline.length > 0, 'every card needs its one-line read');
     assert.ok(row.verdictBecause.length > 0);
+    assert.ok(row.lifecycle.length > 0, 'and a lifecycle state');
+    assert.ok(row.trend.length > 0, 'and a direction of travel');
+  }
+
+  /* This is an analytics tool. It recommends; it never changes an ad. */
+  for (const row of project(FLEET).creatives) {
+    assert.doesNotMatch(row.verdict, /^PAUSED$/, 'the label is a recommendation, not a state');
   }
 });
 
@@ -461,7 +468,7 @@ test('the verdict names the goal it weighed', () => {
 const worn30 = Array.from({ length: 30 }, (_, i) => {
   const late = i >= 23;
   return {
-    date: `2026-07-${String(i + 8).padStart(2, '0')}`,
+    date: new Date(Date.UTC(2026, 6, 8 + i)).toISOString().slice(0, 10),
     impressions: 9000,
     clicks: Math.round(9000 * (late ? 0.0139 : 0.0188)),
     spend: 300000,
@@ -579,14 +586,15 @@ test('within an action the biggest spender leads', () => {
 
 /* The recommendation is one of three, and it reads the business score for the
    creative's own funnel stage rather than cost per lead. */
-test('the worn-out creative burning three times the going rate is told to replace', () => {
+test('the worn-out creative burning three times the going rate is not recommended for scaling', () => {
   const rows = byTitle();
 
-  assert.equal(rows['worn out'].verdict, 'REPLACE');
-  assert.match(rows['worn out'].verdictWhy, /Swap it out/);
-  for (const row of Object.values(rows)) {
-    assert.ok(['SCALE', 'WATCH', 'REPLACE'].includes(row.verdict));
-  }
+  /* It is worn out and expensive, but only nine leads deep — low confidence.
+     So it is watched, not paused: recommending someone switch off an ad on
+     nine events is the mistake the confidence tiers exist to prevent. */
+  assert.doesNotMatch(rows['worn out'].verdict, /SCALE/);
+  assert.match(rows['worn out'].verdict, /WATCH|REDUCE|RETEST/);
+  assert.match(rows['worn out'].verdictBecause, /low confidence/);
 });
 
 /* ── the panel agrees with the card, on the new fields too ─────────────── */
