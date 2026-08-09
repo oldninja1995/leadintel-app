@@ -183,6 +183,17 @@ const LITERAL_BINDINGS = [
     ].join('\n'),
     why: 'the measure a creative is judged on is a property of the business, and the design draws no control for it',
   },
+  /* The goal control shipped without a `data-action`, and the enhancer finds
+     its controls among the elements that carry one — so the caret opened
+     nothing at all. It also had no fallback for a reader without JavaScript,
+     which the sort control has had since the day it was wired. Both are the
+     same attribute. */
+  {
+    screen: 'creatives',
+    find: '<div class="hv-3" data-li-slot="goal" style=',
+    replace: '<div class="hv-3" data-li-slot="goal" data-action="<%= goalNext %>" style=',
+    why: 'without it the goal control is unreachable by the menu enhancer and dead without JavaScript',
+  },
   /* Said out loud when a goal has no source behind it. An empty column under a
      control that appears to work reads as an account that earned nothing, which
      is the failure this screen has had to undo more than once. */
