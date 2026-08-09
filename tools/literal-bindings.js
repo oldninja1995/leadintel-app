@@ -103,6 +103,22 @@ const LITERAL_BINDINGS = [
     pairedWith: 'Fatigue <%= cr.fatigue %></span>',
     why: 'what the score reads, over what window, against what — there is nowhere else on the card for it',
   },
+  /* The leaderboard's position. The design draws no rank column — it draws one
+     card grid — so the number rides in the corner of the card it belongs to,
+     and renders only in the view that has positions to show. */
+  /* Anchored on the format badge's opening tag, which the replacement rewrites
+     with a `data-li-slot` marker so the pattern cannot match a second time.
+     This binding *adds* markup rather than swapping it, and an add that still
+     matches its own output stacks another copy on every rebind. */
+  {
+    screen: 'creatives',
+    find: '<span style="position:absolute; top:8px; left:8px; font-size:10px;',
+    replace: [
+      '<% if (cr.rank) { %><span style="position:absolute; bottom:8px; left:8px; font-size:11px; font-weight:600; border-radius:5px; padding:2px 8px; background:rgba(20,22,31,.82); color:var(--color-accent-300); font-variant-numeric:tabular-nums;">#<%= cr.rank %></span><% } %>',
+      '                  <span data-li-slot="format" style="position:absolute; top:8px; left:8px; font-size:10px;',
+    ].join('\n'),
+    why: 'the leaderboard needs to show position, and the design gives it no column to show it in',
+  },
   {
     screen: 'creatives',
     find: 'color:var(--color-neutral-300);"><%= cr.dur %></span>',

@@ -174,6 +174,67 @@
     });
   }
 
+  /* ── Sort control ─────────────────────────────────────────────────────── */
+
+  /* The design draws "Sort: Revenue" with a caret and nothing behind it — no
+   * handler, no parameter, and no menu markup either. Phase 9 gave the caret a
+   * destination so at least it cycled; a caret that cycles is still lying about
+   * what it is, because a caret means "a list opens here".
+   *
+   * The list is built at runtime for the same reason the filter chips' is:
+   * `views/screens/` is generated and must stay free to be overwritten. The
+   * options come from the payload through `li-sort-data`, so the menu can never
+   * offer a ranking the screen cannot actually perform.
+   *
+   * `data-action` stays on the control as the fallback. With JavaScript the
+   * menu opens; without it the caret cycles as before. Neither state is a dead
+   * control.
+   */
+  function enhanceSort() {
+    const options = json('li-sort-data', []);
+    if (!options.length) return;
+
+    /* Found by its caret and its own label rather than by a class the converter
+       would have to know about — the same way presentation mode finds its
+       three controls. */
+    const control = Array.from(document.querySelectorAll('[data-action]')).find(
+      (el) => el.querySelector('.ph-caret-down') && /^Sort:/.test(el.textContent.trim()),
+    );
+    if (!control) return;
+
+    control.setAttribute('role', 'button');
+    control.setAttribute('aria-haspopup', 'menu');
+
+    control.addEventListener('click', (ev) => {
+      /* Stops the document-level handler in actions.js from navigating to the
+         next ranking behind the menu that just opened. */
+      ev.stopPropagation();
+      ev.preventDefault();
+      if (menu) { closeMenu(); return; }
+
+      closeMenu();
+      menu = document.createElement('div');
+      menu.className = 'li-menu';
+      menu.setAttribute('role', 'menu');
+      menu.innerHTML = options.map((o) =>
+        '<button type="button" role="menuitemradio" data-go="' + o.go.replace(/"/g, '&quot;') + '"' +
+        ' aria-checked="' + (o.active === true) + '">' + o.label + '<i class="ph ph-check"></i></button>'
+      ).join('');
+
+      const box = control.getBoundingClientRect();
+      menu.style.top = (box.bottom + 6) + 'px';
+      /* Right-aligned to the control: this one sits near the edge of the
+         screen, and left-aligning it puts the menu half off the page. */
+      menu.style.left = Math.max(8, Math.min(box.left, window.innerWidth - 190)) + 'px';
+      document.body.appendChild(menu);
+
+      menu.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (btn) window.location.href = btn.dataset.go;
+      });
+    });
+  }
+
   function enhanceChips() {
     const funnel = document.querySelector('.ph-funnel-simple');
     const bar = funnel && funnel.parentElement;
@@ -334,6 +395,7 @@
 
   syncBadge();
   enhanceChips();
+  enhanceSort();
   wirePresentation();
   enhanceKeyboard();
 })();

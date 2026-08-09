@@ -253,9 +253,9 @@ test('each card links to its own detail', () => {
   /* The ranking *and the view* ride along, so a card opens what was clicked
      whichever ordering the screen was showing. */
   assert.deepEqual(rows.map((r) => r.go), [
-    '/creatives?view=gallery&sort=spend&cr=1',
-    '/creatives?view=gallery&sort=spend&cr=2',
-    '/creatives?view=gallery&sort=spend&cr=3',
+    '/creatives?view=leaderboard&sort=best&cr=1',
+    '/creatives?view=leaderboard&sort=best&cr=2',
+    '/creatives?view=leaderboard&sort=best&cr=3',
   ]);
 });
 
@@ -299,8 +299,18 @@ const RANKABLE = {
   ],
 };
 
-test('the screen ranks by spend unless told otherwise', () => {
+/* The screen opens on the ranking that answers "what do I do first", not on a
+   column. Nothing in RANKABLE has leads, so every verdict is "not enough data"
+   and Best falls through to its spend tiebreak — what is asserted here is the
+   default, not the tiebreak. */
+test('the screen opens ranked by what to act on first', () => {
   const out = project(RANKABLE);
+  assert.equal(out.sortLabel, 'Best');
+  assert.deepEqual(out.creatives.map((r) => r.title), ['big-spend', 'efficient', 'unmeasured']);
+});
+
+test('an explicit column still ranks by that column', () => {
+  const out = project(RANKABLE, { sort: 'spend' });
   assert.equal(out.sortLabel, 'Spend');
   assert.deepEqual(out.creatives.map((r) => r.title), ['big-spend', 'efficient', 'unmeasured']);
 });
@@ -321,7 +331,7 @@ test('unknown sinks whichever way the column sorts', () => {
 
 test('an unknown sort falls back rather than emptying the screen', () => {
   const out = project(RANKABLE, { sort: 'nonsense' });
-  assert.equal(out.sortLabel, 'Spend');
+  assert.equal(out.sortLabel, 'Best');
   assert.equal(out.creatives.length, 3);
 });
 
@@ -345,29 +355,51 @@ test('the sort control and the view tabs each hold the other', () => {
    same cards rather than a second layout — see the VIEWS comment in
    lib/repository/projections.js. What is testable is that they differ, that the
    tabs point somewhere, and that neither control forgets the other. */
-test('each view ranks the same creatives differently', () => {
-  const order = (view) => project(RANKABLE, { view }).creatives.map((r) => r.title.replace(/^\d+\.\s/, ''));
+/* One ranking control, not two. The leaderboard used to rank by its own fixed
+   rule, so choosing a ranking did nothing in the view the screen opens on — a
+   control that appears broken. Gallery and Leaderboard now honour the same
+   sort; the leaderboard's contribution is the numbering. */
+test('the sort control drives every view except the timeline', () => {
+  const order = (view) => project(FLEET, { view, sort: 'cpl' }).creatives.map((r) => r.title);
 
-  assert.deepEqual(order('gallery'), ['big-spend', 'efficient', 'unmeasured']);
-  /* Nothing here has enough leads to be judged on cost, so every verdict is
-     "not enough data" and the leaderboard falls through to spend. The point is
-     that it is a different comparator, not a different answer here. */
-  assert.equal(project(RANKABLE, { view: 'leaderboard' }).creatives.length, 3);
+  assert.deepEqual(order('gallery'), order('leaderboard'), 'the leaderboard must honour the chosen ranking');
+  assert.notDeepEqual(order('timeline'), order('gallery'), 'a timeline is chronological, not ranked');
 });
 
 test('the leaderboard numbers its rows and the other views do not', () => {
-  assert.match(project(RANKABLE, { view: 'leaderboard' }).creatives[0].title, /^1\. /);
-  assert.ok(!/^1\. /.test(project(RANKABLE).creatives[0].title));
+  assert.deepEqual(project(RANKABLE, { view: 'leaderboard' }).creatives.map((r) => r.rank), ['1', '2', '3']);
+  assert.deepEqual(project(RANKABLE, { view: 'gallery' }).creatives.map((r) => r.rank), ['', '', '']);
 });
 
-test('an unknown view falls back to the gallery rather than emptying the screen', () => {
+/* The rank is a field of its own, not a prefix on the name — a title carrying
+   "3. " is a title every reader of it has to strip again. */
+test('the position never leaks into the creative name', () => {
+  for (const row of project(RANKABLE, { view: 'leaderboard' }).creatives) {
+    assert.doesNotMatch(row.title, /^\d+\.\s/);
+  }
+});
+
+test('an unknown view falls back to the leaderboard rather than emptying the screen', () => {
   const out = project(RANKABLE, { view: 'nonsense' });
-  assert.match(out.creativeSummary, /Gallery/);
+  assert.match(out.creativeSummary, /Leaderboard/);
   assert.equal(out.creatives.length, 3);
 });
 
 test('the heading line describes what is actually on the screen', () => {
-  assert.match(project(RANKABLE, { sort: 'cpm' }).creativeSummary, /^3 creatives · Gallery, ranked by cpm$/);
+  assert.match(project(RANKABLE, { view: 'gallery', sort: 'cpm' }).creativeSummary, /^3 creatives · Gallery, ranked by cpm$/);
+  assert.match(project(RANKABLE).creativeSummary, /Leaderboard, ranked by best — what to act on first/);
+  assert.match(project(RANKABLE, { view: 'timeline' }).creativeSummary, /most recently started first/);
+});
+
+/* A menu of rankings the screen can actually perform — the design draws a caret
+   and no menu, so the options travel to the browser and it builds one. */
+test('every ranking is offered, with the current one marked', () => {
+  const options = project(RANKABLE, { sort: 'cpm' }).sortOptions;
+
+  assert.equal(options[0].label, 'Best', 'the default leads the menu');
+  assert.equal(options.filter((o) => o.active).length, 1);
+  assert.equal(options.find((o) => o.active).key, 'cpm');
+  for (const o of options) assert.match(o.go, /^\/creatives\?view=\w+&sort=\w+$/);
 });
 
 /* ── the scores, and what they tell someone to do ───────────────────────── */
@@ -498,15 +530,16 @@ test('the drawer carries the same verdict and funnel stage as the card', () => {
   assert.equal(panel.winning, card.winning);
 });
 
-/* The leaderboard prefixes a rank to the title; the drawer must not inherit it,
-   and must still find the creative the rank belongs to. */
-test('the drawer finds its creative under a ranked title', () => {
-  const card = project(FLEET, { view: 'leaderboard', cr: '1' }).creatives[0];
-  const panel = PROJECTIONS['overlay-creative-detail'](FLEET, { view: 'leaderboard', cr: '1' }).selCr;
+/* The drawer opens the card that was clicked, in whichever view it was clicked
+   from — the ranking changes which creative sits at position one. */
+test('the drawer follows the view it was opened from', () => {
+  for (const view of ['gallery', 'leaderboard', 'timeline']) {
+    const card = project(FLEET, { view, cr: '1' }).creatives[0];
+    const panel = PROJECTIONS['overlay-creative-detail'](FLEET, { view, cr: '1' }).selCr;
 
-  assert.match(card.title, /^1\. /);
-  assert.equal(panel.title, card.title.replace(/^1\.\s/, ''));
-  assert.equal(panel.fatigue, card.fatigue);
+    assert.equal(panel.title, card.title, `${view} opened the wrong creative`);
+    assert.equal(panel.fatigue, card.fatigue);
+  }
 });
 
 /* Clicking a card under one ranking must not open whatever sat at that

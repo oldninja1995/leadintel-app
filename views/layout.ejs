@@ -65,6 +65,10 @@
 <%- include('app/notifications', { notifications: notifications }) %>
 
 <script type="application/json" id="li-filter-data"><%- JSON.stringify(filterData) %></script>
+<%# A screen may offer rankings the design drew a caret for and no menu. The
+    options travel here so the control can build one at runtime, rather than
+    the markup being written into views/screens/, which the converter owns. %>
+<script type="application/json" id="li-sort-data"><%- JSON.stringify(data.sortOptions || []) %></script>
 <script type="application/json" id="li-notif-count"><%- JSON.stringify({ count: notifications.count }) %></script>
 
 <script src="/assets/actions.js"></script>
