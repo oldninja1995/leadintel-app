@@ -429,6 +429,27 @@ test('the screen defines both of its own scores', () => {
   assert.match(out.verdictLegend, /cost per lead against the account median/);
 });
 
+/* Ranking by stage name would sort Bottom before Top — the funnel upside
+   down. */
+test('the screen can be ranked by funnel stage, top first', () => {
+  const out = project(FLEET, { sort: 'funnel' });
+
+  assert.equal(out.sortLabel, 'Funnel');
+  assert.deepEqual(out.creatives.map((r) => r.dur), [
+    'Top of funnel', 'Middle of funnel', 'Bottom of funnel', 'Bottom of funnel',
+  ]);
+});
+
+test('creatives sharing a funnel stage fall back to spend', () => {
+  const bottom = project(FLEET, { sort: 'funnel' }).creatives.filter((r) => r.dur === 'Bottom of funnel');
+  assert.deepEqual(bottom.map((r) => r.title), ['worn out', 'ordinary b'], 'the bigger spender leads its stage');
+});
+
+test('a creative with no funnel stage sinks rather than filing under Bottom', () => {
+  const out = project({ creatives: [...FLEET.creatives, { ...CREATIVE, adId: 'x', title: 'no objective', objective: null, spend: 99999999 }] }, { sort: 'funnel' });
+  assert.equal(out.creatives.at(-1).title, 'no objective', 'unknown is not the bottom of the funnel, however much it spent');
+});
+
 test('each creative says which part of the funnel it is working in', () => {
   const rows = byTitle();
 
