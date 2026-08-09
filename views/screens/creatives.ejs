@@ -16,7 +16,19 @@
             <span data-li-slot="verdict-legend"><%= verdictLegend %></span>
             <% if (typeof goalNote !== 'undefined' && goalNote) { %><span style="color:#ffcf85;"><%= goalNote %></span><% } %>
           </div>
-          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
+          <% if ((typeof bestByStage !== "undefined") && bestByStage && bestByStage.length > 1) { %>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            <% bestByStage.forEach(function (b) { %>
+              <div class="hv-3" data-action="<%= b.go %>" style="display:flex; align-items:center; gap:7px; background:var(--color-surface); border:1px solid var(--color-neutral-900); border-radius:9px; padding:6px 11px; cursor:pointer; font-size:11px;">
+                <span><%= b.marker %></span>
+                <span style="color:var(--color-neutral-500);">Best <%= b.label %></span>
+                <span style="color:var(--color-neutral-200); font-weight:500;"><%= b.title %></span>
+                <span style="color:var(--color-accent-300); font-variant-numeric:tabular-nums;"><%= b.score %></span>
+              </div>
+            <% }); %>
+          </div>
+          <% } %>
+          <div data-li-slot="grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
             <% (creatives || []).forEach(function (cr) { %>
               <div class="hv-4" data-action="<%= cr.go %>" style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); overflow:hidden; cursor:pointer;">
                 <div style="height:132px; background:<%= cr.grad %>; display:grid; place-items:center; position:relative;">
@@ -28,19 +40,24 @@
                 </div>
                 <div style="padding:12px 14px;">
                   <div style="font-size:12.5px; font-weight:500; color:var(--color-neutral-200);"><%= cr.title %></div>
-                  <div style="font-size:10.5px; color:var(--color-neutral-500); margin-top:2px;">Hook: <%= cr.hook %> · <%= cr.platform %></div>
+                  <div style="font-size:10.5px; color:var(--color-neutral-500); margin-top:2px;" title="<%= cr.deliveryWhy %>"><%= cr.headline %></div>
+                  <div style="font-size:10px; color:var(--color-neutral-600); margin-top:2px;"><%= cr.hook %> · <%= cr.platform %> · <%= cr.spendTotal %> spent</div>
                   <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px; padding-top:9px; border-top:1px solid var(--color-neutral-900);">
-                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">SPEND</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.spend %></div></div>
+                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">COST / INT. LEAD</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.spend %></div></div>
                     <div><div style="font-size:9.5px; color:var(--color-neutral-600);">CPL</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.cpl %></div></div>
-                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">CTR</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.ctr %></div></div>
-                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">CPM</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.bookings %></div></div>
-                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">FREQUENCY</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.rev %></div></div>
-                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">CPC</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums; color:<%= cr.roasColor %>;"><%= cr.roas %></div></div>
+                    <div data-li-slot="ctr"><div style="font-size:9.5px; color:var(--color-neutral-600);">CTR</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.ctr %></div></div>
+                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">COST / BOOKING</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.cpb %></div></div>
+                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">HOOK</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.hookPct %></div></div>
+                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">HOLD</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.holdPct %></div></div>
+                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">INT. LEAD RATE</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.bookings %></div></div>
+                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">BOOKING RATE</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.rev %></div></div>
+                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">ROAS</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums; color:<%= cr.roasColor %>;"><%= cr.roas %></div></div>
                   </div>
                   <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
                     <span style="font-size:9.5px; color:var(--color-neutral-600);">HOLD RATE</span>
                     <div style="flex:1; height:5px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= cr.winning %>; border-radius:99px; background:linear-gradient(90deg, var(--color-accent-700), var(--color-accent-400));"></div></div>
-                    <span style="font-size:11px; font-weight:500; color:var(--color-accent-300); font-variant-numeric:tabular-nums;"><%= cr.winning %></span>
+                    <span data-li-slot="score" style="font-size:11px; font-weight:500; color:var(--color-accent-300); font-variant-numeric:tabular-nums;"><%= cr.bestScore %></span>
+                    <span style="font-size:9.5px; color:<%= cr.confidenceColor %>;" title="Sample size decides how far a score is trusted. A creative with few leads is pulled toward the average of its funnel stage rather than being allowed to win on a handful of events."><%= cr.confidence %></span>
                   </div>
                   <div style="display:flex; align-items:flex-start; gap:8px; margin-top:10px; padding-top:9px; border-top:1px solid var(--color-neutral-900);" title="<%= cr.verdictWhy %>">
                     <span style="flex:none; font-size:10px; font-weight:500; border-radius:5px; padding:3px 8px; background:<%= cr.verdictBg %>; color:<%= cr.verdictColor %>;"><%= cr.verdict %></span>

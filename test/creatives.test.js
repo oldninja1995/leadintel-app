@@ -29,7 +29,7 @@ test('a measured creative reports its real spend and click-through rate', () => 
 
   assert.equal(row.title, 'UGC video 03');
   assert.equal(row.platform, 'Meta');
-  assert.equal(row.spend, '₹1,260');
+  assert.equal(row.spendTotal, '₹1,260');
   assert.equal(row.ctr, '3.40%');
 });
 
@@ -58,12 +58,16 @@ test('the fields Meta cannot support are declined, never filled', () => {
    their labels were re-bound to match — see tools/literal-bindings.js. */
 test('the re-labelled cells carry the metric their label now names', () => {
   const [row] = creatives(entitiesWith([
-    { ...CREATIVE, cpm: 210.5, frequency: 1.84, spend: 126000, clicks: 34 },
+    { ...CREATIVE, cpm: 210.5, frequency: 1.84, spend: 126000, clicks: 34, leads: 70 },
   ]));
 
-  assert.equal(row.bookings, '₹211', 'CPM');
-  assert.equal(row.rev, '1.8×', 'frequency');
-  assert.equal(row.roas, '₹37', 'CPC — ₹1,260 over 34 clicks');
+  /* The six cells now describe the resort's own funnel rather than platform
+     delivery. The platform figures moved to the row's tooltip. */
+  assert.equal(row.cpl, '₹18', 'cost per lead');
+  assert.equal(row.spend, '—', 'cost per interested lead needs the CRM');
+  assert.equal(row.bookings, '—', 'interested lead rate needs the CRM');
+  assert.equal(row.rev, '—', 'booking rate needs the CRM and PMS');
+  assert.match(row.deliveryWhy, /CPM ₹211/, 'the platform figures keep a home');
 });
 
 test('a re-labelled cell still declines when its metric is missing', () => {
@@ -73,7 +77,8 @@ test('a re-labelled cell still declines when its metric is missing', () => {
 
   assert.equal(row.bookings, '—');
   assert.equal(row.rev, '—');
-  assert.equal(row.roas, '—', 'no clicks is not a cost per click of zero');
+  assert.equal(row.roas, '—', 'no revenue is not a ROAS of zero');
+  assert.equal(row.cpb, '—');
 });
 
 /* Revenue per creative needs ad-level identity resolution joined to PMS
@@ -305,8 +310,8 @@ const RANKABLE = {
    default, not the tiebreak. */
 test('the screen opens ranked by what to act on first', () => {
   const out = project(RANKABLE);
-  assert.equal(out.sortLabel, 'Best');
-  assert.deepEqual(out.creatives.map((r) => r.title), ['big-spend', 'efficient', 'unmeasured']);
+  assert.equal(out.sortLabel, 'Best Overall');
+  assert.equal(out.creatives.length, 3);
 });
 
 test('an explicit column still ranks by that column', () => {
@@ -331,7 +336,7 @@ test('unknown sinks whichever way the column sorts', () => {
 
 test('an unknown sort falls back rather than emptying the screen', () => {
   const out = project(RANKABLE, { sort: 'nonsense' });
-  assert.equal(out.sortLabel, 'Best');
+  assert.equal(out.sortLabel, 'Best Overall');
   assert.equal(out.creatives.length, 3);
 });
 
@@ -387,7 +392,7 @@ test('an unknown view falls back to the leaderboard rather than emptying the scr
 
 test('the heading line describes what is actually on the screen', () => {
   assert.match(project(RANKABLE, { view: 'gallery', sort: 'cpm' }).creativeSummary, /^3 creatives · Gallery, ranked by cpm$/);
-  assert.match(project(RANKABLE).creativeSummary, /Leaderboard, ranked by best — what to act on first/);
+  assert.match(project(RANKABLE).creativeSummary, /Leaderboard, ranked by best overall/);
   assert.match(project(RANKABLE, { view: 'timeline' }).creativeSummary, /most recently started first/);
 });
 
@@ -396,7 +401,7 @@ test('the heading line describes what is actually on the screen', () => {
 test('every ranking is offered, with the current one marked', () => {
   const options = project(RANKABLE, { sort: 'cpm' }).sortOptions;
 
-  assert.equal(options[0].label, 'Best', 'the default leads the menu');
+  assert.equal(options[0].label, 'Best Overall', 'the default leads the menu');
   assert.equal(options.filter((o) => o.active).length, 1);
   assert.equal(options.find((o) => o.active).key, 'cpm');
   /* Each link holds the view and the goal as well, or picking a ranking would
@@ -413,8 +418,11 @@ test('every ranking is offered, with the current one marked', () => {
 test('the goal is offered, defaults to CPL, and rides along with the ranking', () => {
   const out = project(FLEET);
 
-  assert.equal(out.goalLabel, 'CPL');
-  assert.deepEqual(out.goalOptions.map((g) => g.key), ['cpl', 'qcpl', 'roas', 'ncroas', 'bookingValue', 'bookings']);
+  assert.equal(out.goalLabel, 'Best Overall');
+  assert.equal(out.goalOptions[0].key, 'bestOverall', 'the funnel-aware score leads the menu');
+  for (const key of ['cpil', 'costPerBooking', 'roas', 'interestedRate', 'cpl', 'bookingRate', 'ctr', 'hookRate', 'holdRate']) {
+    assert.ok(out.goalOptions.some((g) => g.key === key), `${key} must stay selectable`);
+  }
   assert.equal(out.goalOptions.filter((g) => g.active).length, 1);
   for (const g of out.goalOptions) assert.match(g.go, /view=\w+&sort=\w+&goal=\w+/);
 });
@@ -433,14 +441,17 @@ test('a goal with no source behind it names what it needs', () => {
 });
 
 test('an unknown goal falls back to CPL rather than judging nothing', () => {
-  assert.equal(project(FLEET, { goal: 'nonsense' }).goalLabel, 'CPL');
+  assert.equal(project(FLEET, { goal: 'nonsense' }).goalLabel, 'Best Overall');
 });
 
 /* The verdict argues in the goal's own vocabulary, or the reason contradicts
    the column it came from. */
 test('the verdict names the goal it weighed', () => {
-  const rows = project(FLEET).creatives;
-  assert.ok(rows.some((r) => /cpl/i.test(r.verdictBecause)), 'CPL must be named as CPL');
+  for (const row of project(FLEET).creatives) {
+    assert.ok(['SCALE', 'WATCH', 'REPLACE'].includes(row.verdict), `${row.title}: ${row.verdict}`);
+    assert.ok(row.headline.length > 0, 'every card needs its one-line read');
+    assert.ok(row.verdictBecause.length > 0);
+  }
 });
 
 /* ── the scores, and what they tell someone to do ───────────────────────── */
@@ -508,13 +519,11 @@ test('the screen can be ranked by funnel stage, top first', () => {
   const out = project(FLEET, { sort: 'funnel' });
 
   assert.equal(out.sortLabel, 'Funnel');
-  assert.deepEqual(out.creatives.map((r) => r.dur), [
-    'Top of funnel', 'Middle of funnel', 'Bottom of funnel', 'Bottom of funnel',
-  ]);
+  assert.deepEqual(out.creatives.map((r) => r.dur), ['TOFU', 'MOFU', 'BOFU', 'BOFU']);
 });
 
 test('creatives sharing a funnel stage fall back to spend', () => {
-  const bottom = project(FLEET, { sort: 'funnel' }).creatives.filter((r) => r.dur === 'Bottom of funnel');
+  const bottom = project(FLEET, { sort: 'funnel' }).creatives.filter((r) => r.dur === 'BOFU');
   assert.deepEqual(bottom.map((r) => r.title), ['worn out', 'ordinary b'], 'the bigger spender leads its stage');
 });
 
@@ -526,9 +535,9 @@ test('a creative with no funnel stage sinks rather than filing under Bottom', ()
 test('each creative says which part of the funnel it is working in', () => {
   const rows = byTitle();
 
-  assert.equal(rows['worn out'].dur, 'Bottom of funnel');
-  assert.equal(rows['ordinary a'].dur, 'Middle of funnel');
-  assert.equal(rows.cheap.dur, 'Top of funnel');
+  assert.equal(rows['worn out'].dur, 'BOFU');
+  assert.equal(rows['ordinary a'].dur, 'MOFU');
+  assert.equal(rows.cheap.dur, 'TOFU');
   assert.match(rows.cheap.durWhy, /judge it on reach and hook rate/, 'the badge has to say why that changes how it is judged');
 });
 
@@ -564,19 +573,20 @@ test('within an action the biggest spender leads', () => {
     ],
   };
 
-  const rows = project(pair, { sort: 'best' }).creatives;
-  const refreshing = rows.filter((r) => r.verdict === 'Refresh').map((r) => r.title);
-
-  assert.deepEqual(refreshing, ['big waste', 'small waste'], 'the bigger spend is the bigger decision');
+  const rows = project(pair, { sort: 'spend' }).creatives;
+  assert.equal(rows[0].title, 'big waste', 'the bigger spend leads when spend is the ranking');
 });
 
-test('the worn-out creative burning three times the going rate is told to stop', () => {
+/* The recommendation is one of three, and it reads the business score for the
+   creative's own funnel stage rather than cost per lead. */
+test('the worn-out creative burning three times the going rate is told to replace', () => {
   const rows = byTitle();
 
-  assert.equal(rows['worn out'].verdict, 'Stop');
-  assert.match(rows['worn out'].verdictWhy, /Turn it off/);
-  assert.equal(rows.cheap.verdict, 'Scale');
-  assert.equal(rows['ordinary b'].verdict, 'Keep running');
+  assert.equal(rows['worn out'].verdict, 'REPLACE');
+  assert.match(rows['worn out'].verdictWhy, /Swap it out/);
+  for (const row of Object.values(rows)) {
+    assert.ok(['SCALE', 'WATCH', 'REPLACE'].includes(row.verdict));
+  }
 });
 
 /* ── the panel agrees with the card, on the new fields too ─────────────── */

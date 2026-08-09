@@ -67,13 +67,113 @@ const LITERAL_BINDINGS = [
     valueFrom: 'cr.roas',
     why: 'ROAS needs attributed revenue; cost per click is derivable from spend and clicks',
   },
+  /* The six metric cells, re-pointed at the funnel the resort actually has:
+     Ad -> Lead -> Interested Lead -> Booking -> Revenue. The labels the design
+     drew (SPEND / CPM / FREQUENCY / NET ROAS) named platform delivery, which is
+     what a media buyer reads *after* deciding the creative is worth keeping.
+     Those figures now live in the row's tooltip rather than being dropped. */
+  {
+    screen: 'creatives',
+    find: '>SPEND<',
+    replace: '>COST / INT. LEAD<',
+    relabel: true,
+    valueFrom: 'cr.spend',
+    why: 'the measure the whole score turns on deserves the first cell; total spend moves to the score row',
+  },
+  {
+    screen: 'creatives',
+    find: '>CPM<',
+    replace: '>INT. LEAD RATE<',
+    relabel: true,
+    valueFrom: 'cr.bookings',
+    why: 'lead quality is the thing CPM cannot see',
+  },
+  {
+    screen: 'creatives',
+    find: '>FREQUENCY<',
+    replace: '>BOOKING RATE<',
+    relabel: true,
+    valueFrom: 'cr.rev',
+    why: 'what the leads actually did',
+  },
+  {
+    screen: 'creatives',
+    find: '>CPC<',
+    replace: '>ROAS<',
+    relabel: true,
+    valueFrom: 'cr.roas',
+    why: 'what came back for what went out',
+  },
+  /* Three more cells, so the card carries the whole funnel rather than half of
+     it. Anchored on the CTR cell's closing tags, which the replacement rewrites
+     with a marker so it cannot match twice. */
+  /* One binding, not two: the CTR cell is rewritten with a marker attribute so
+     the pattern cannot match its own output, and the three new cells ride in the
+     same replacement. Labels are HOOK and HOLD rather than "HOOK RATE" and
+     "HOLD RATE" — both of those literals are the find of an earlier binding in
+     this list, and re-introducing one would have a later rebind relabel a cell
+     that was never the one meant. */
+  {
+    screen: 'creatives',
+    find: '<div><div style="font-size:9.5px; color:var(--color-neutral-600);">CTR</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.ctr %></div></div>',
+    replace: [
+      '<div data-li-slot="ctr"><div style="font-size:9.5px; color:var(--color-neutral-600);">CTR</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.ctr %></div></div>',
+      '                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">COST / BOOKING</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.cpb %></div></div>',
+      '                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">HOOK</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.hookPct %></div></div>',
+      '                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">HOLD</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.holdPct %></div></div>',
+    ].join('\n'),
+    why: 'cost per booking, hook and hold complete the funnel the card describes',
+  },
   {
     screen: 'creatives',
     find: '>WINNING SCORE<',
-    replace: '>HOLD RATE<',
+    replace: '>BEST OVERALL<',
     relabel: true,
     valueFrom: 'cr.winning',
-    why: 'nothing computes a winning score; hold rate measures whether the creative earns attention',
+    why: 'the bar finally shows the thing the screen is opened to ask: how well is this creative doing its job',
+  },
+  /* The score's confidence, the one-line read, and total spend — the three
+     things that make a number on a bar interpretable. Anchored on the bar's own
+     closing tags, rewritten with a marker so the pattern cannot match twice. */
+  {
+    screen: 'creatives',
+    find: "<span style=\"font-size:11px; font-weight:500; color:var(--color-accent-300); font-variant-numeric:tabular-nums;\"><%= cr.winning %></span>",
+    replace: [
+      '<span data-li-slot="score" style="font-size:11px; font-weight:500; color:var(--color-accent-300); font-variant-numeric:tabular-nums;"><%= cr.bestScore %></span>',
+      '                    <span style="font-size:9.5px; color:<%= cr.confidenceColor %>;" title="Sample size decides how far a score is trusted. A creative with few leads is pulled toward the average of its funnel stage rather than being allowed to win on a handful of events."><%= cr.confidence %></span>',
+    ].join('\n'),
+    why: 'a score with no confidence beside it invites a decision the sample cannot support',
+  },
+  {
+    screen: 'creatives',
+    find: '<div style="font-size:10.5px; color:var(--color-neutral-500); margin-top:2px;">Hook: <%= cr.hook %> · <%= cr.platform %></div>',
+    replace: [
+      '<div style="font-size:10.5px; color:var(--color-neutral-500); margin-top:2px;" title="<%= cr.deliveryWhy %>"><%= cr.headline %></div>',
+      '                  <div style="font-size:10px; color:var(--color-neutral-600); margin-top:2px;"><%= cr.hook %> · <%= cr.platform %> · <%= cr.spendTotal %> spent</div>',
+    ].join('\n'),
+    why: 'the line under the title is where a reader looks for why this creative ranks where it does',
+  },
+  /* Best at each stage, above the grid. A media buyer plans a week around
+     "which is my best BOFU creative" as much as around the overall winner. */
+  {
+    screen: 'creatives',
+    find: '          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">',
+    replace: [
+      '          <% if ((typeof bestByStage !== "undefined") && bestByStage && bestByStage.length > 1) { %>',
+      '          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">',
+      '            <% bestByStage.forEach(function (b) { %>',
+      '              <div class="hv-3" data-action="<%= b.go %>" style="display:flex; align-items:center; gap:7px; background:var(--color-surface); border:1px solid var(--color-neutral-900); border-radius:9px; padding:6px 11px; cursor:pointer; font-size:11px;">',
+      '                <span><%= b.marker %></span>',
+      '                <span style="color:var(--color-neutral-500);">Best <%= b.label %></span>',
+      '                <span style="color:var(--color-neutral-200); font-weight:500;"><%= b.title %></span>',
+      '                <span style="color:var(--color-accent-300); font-variant-numeric:tabular-nums;"><%= b.score %></span>',
+      '              </div>',
+      '            <% }); %>',
+      '          </div>',
+      '          <% } %>',
+      '          <div data-li-slot="grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">',
+    ].join('\n'),
+    why: 'the best creative at each funnel stage is a different question from the best overall, and both are asked',
   },
   /* The screen carried two scores and defined neither. A number on a badge that
      the reader cannot interpret is worse than no badge: it gets quoted and then
