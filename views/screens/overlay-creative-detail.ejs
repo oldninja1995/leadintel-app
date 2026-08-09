@@ -1,7 +1,11 @@
 <div data-action="closeCr" style="position:fixed; inset:0; z-index:90; background:rgba(10,11,18,.55); display:flex; justify-content:flex-end; animation:li-fade .14s ease;">
           <div data-action="stop" style="width:440px; height:100%; background:#191b28; box-shadow:var(--shadow-lg); overflow-y:auto; animation:li-slide-in .2s ease;">
-            <div style="height:180px; background:<%= selCr.grad %>; display:grid; place-items:center; position:relative;">
-              <div style="width:46px; height:46px; border-radius:99px; background:rgba(20,22,31,.7); display:grid; place-items:center;"><i class="ph-fill ph-play" style="font-size:20px; color:var(--color-accent-200);"></i></div>
+            <div style="height:<%= selCr.video ? 260 : 180 %>px; background:<%= selCr.grad %>; display:grid; place-items:center; position:relative;">
+              <% if (selCr.video) { %>
+                <video src="<%= selCr.video %>" poster="<%= selCr.poster %>" controls playsinline preload="metadata" style="width:100%; height:100%; object-fit:contain; background:#000;"></video>
+              <% } else { %>
+                <div style="width:46px; height:46px; border-radius:99px; background:rgba(20,22,31,.7); display:grid; place-items:center;"><i class="ph-fill ph-image" style="font-size:20px; color:var(--color-accent-200);"></i></div>
+              <% } %>
               <i data-action="closeCr" class="ph ph-x" style="position:absolute; top:12px; right:12px; font-size:16px; color:var(--color-neutral-200); cursor:pointer; background:rgba(20,22,31,.7); border-radius:99px; padding:6px;"></i>
               <span style="position:absolute; bottom:10px; left:12px; font-size:10.5px; border-radius:5px; padding:2px 8px; background:rgba(20,22,31,.8); color:var(--color-neutral-300);"><%= selCr.type %> · <%= selCr.dur %> · <%= selCr.platform %></span>
             </div>

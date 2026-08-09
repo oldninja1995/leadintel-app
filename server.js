@@ -901,6 +901,91 @@ app.get('/creatives/:adId/thumbnail', async (req, res) => {
   }
 });
 
+/* The creative itself, playing.
+ *
+ * A still is what an ad looks like paused, and most of this account is video —
+ * so "see the creative" means watching the thing a guest actually saw, with its
+ * hook, its pacing and its cut. The card and the drawer show the still; this is
+ * the source behind it.
+ *
+ * **The same shape as the thumbnail proxy above, for the same reasons.** The
+ * ad id comes from the request and the address does not: the video id is looked
+ * up in the caller's own entities, resolved to a source through the Graph API
+ * with the *server's* stored token, and only then fetched. A route that took a
+ * video URL from the query string would be an open proxy inside the perimeter.
+ *
+ * The token never reaches the browser. Meta's own ad-preview iframe would have
+ * been the easier route and it carries an access token in its src, which is
+ * precisely why it is not used.
+ */
+const VIDEO_HOSTS = /(^|.)(fbcdn.net|facebook.com)$/i;
+
+app.get('/creatives/:adId/video', async (req, res) => {
+  let creative;
+  try {
+    creative = (entitiesFor(req.workspace).creatives || [])
+      .find((c) => c.adId === req.params.adId);
+  } catch (err) {
+    return res.status(503).end();
+  }
+
+  if (!creative || !creative.videoId) return res.status(404).end();
+
+  const credentials = connections.secretsFor(req.workspace, 'meta_ads');
+  if (!credentials || !credentials.accessToken) return res.status(404).end();
+
+  try {
+    /* One hop to learn where the video lives. `source` is a signed, expiring
+       address, which is why it is resolved per request rather than stored. */
+    const lookup = new URL(`https://graph.facebook.com/v25.0/${encodeURIComponent(creative.videoId)}`);
+    lookup.searchParams.set('fields', 'source');
+    lookup.searchParams.set('access_token', String(credentials.accessToken).trim());
+
+    const meta = await fetch(lookup);
+    const payload = await meta.json().catch(() => null);
+    const source = payload && payload.source;
+
+    /* Reading a video's source needs a wider permission than reading its
+       performance. A token without it is a missing video, not a broken page —
+       the drawer keeps showing the still. */
+    if (!source) return res.status(404).end();
+
+    let target;
+    try {
+      target = new URL(source);
+    } catch (err) {
+      return res.status(404).end();
+    }
+    if (target.protocol !== 'https:' || !VIDEO_HOSTS.test(target.hostname)) {
+      return res.status(404).end();
+    }
+
+    /* Range requests forwarded, so a viewer can scrub rather than having to
+       download the whole file before the first frame. */
+    const headers = {};
+    if (req.headers.range) headers.range = req.headers.range;
+
+    const upstream = await fetch(target, { headers, redirect: 'follow' });
+    if (!upstream.ok && upstream.status !== 206) return res.status(502).end();
+
+    const type = upstream.headers.get('content-type') || '';
+    if (!type.startsWith('video/')) return res.status(502).end();
+
+    res.status(upstream.status);
+    res.setHeader('content-type', type);
+    for (const header of ['content-length', 'content-range', 'accept-ranges']) {
+      const v = upstream.headers.get(header);
+      if (v) res.setHeader(header, v);
+    }
+    /* Private, because it is behind a session. A creative's video does not
+       change under its id, so it caches as hard as the still. */
+    res.setHeader('cache-control', 'private, max-age=86400');
+    return res.end(Buffer.from(await upstream.arrayBuffer()));
+  } catch (err) {
+    return res.status(502).end();
+  }
+});
+
 /* Alert rules (Phase 8). Each carries its 90-day fire count and false-positive
    rate, so a noisy threshold stays visible rather than becoming background. */
 app.get('/rules', (req, res) => {

@@ -411,6 +411,40 @@ const LITERAL_BINDINGS = [
     ].join('\n'),
     why: 'a recommendation partly decided by trend and fatigue should show both',
   },
+  /* **The creative, playing.**
+   *
+   * The design draws a 180-pixel header with the still behind it and a play
+   * icon in the middle that has never done anything. Most of this account is
+   * video, and a still is what an ad looks like paused — the hook, the pacing
+   * and the cut are the creative, and none of them survive a freeze frame.
+   *
+   * So where there is a video the header becomes a real player, with the still
+   * as its poster so the panel looks identical until it is played. Where there
+   * is not — an image ad — the design's own markup is kept exactly. */
+  {
+    screen: 'overlay-creative-detail',
+    find: [
+      '<div style="height:180px; background:<%= selCr.grad %>; display:grid; place-items:center; position:relative;">',
+      '              <div style="width:46px; height:46px; border-radius:99px; background:rgba(20,22,31,.7); display:grid; place-items:center;"><i class="ph-fill ph-play" style="font-size:20px; color:var(--color-accent-200);"></i></div>',
+    ].join('\n'),
+    replace: [
+      '<div style="height:<%= selCr.video ? 260 : 180 %>px; background:<%= selCr.grad %>; display:grid; place-items:center; position:relative;">',
+      '              <% if (selCr.video) { %>',
+      '                <video src="<%= selCr.video %>" poster="<%= selCr.poster %>" controls playsinline preload="metadata" style="width:100%; height:100%; object-fit:contain; background:#000;"></video>',
+      '              <% } else { %>',
+      '                <div style="width:46px; height:46px; border-radius:99px; background:rgba(20,22,31,.7); display:grid; place-items:center;"><i class="ph-fill ph-image" style="font-size:20px; color:var(--color-accent-200);"></i></div>',
+      '              <% } %>',
+    ].join('\n'),
+    why: 'a still is what an ad looks like paused, and most of this account is video',
+  },
+  /* The card says whether there is anything to play, so a reader knows the
+     panel is worth opening. */
+  {
+    screen: 'creatives',
+    find: '<div style="width:38px; height:38px; border-radius:99px; background:rgba(20,22,31,.7); display:grid; place-items:center;"><i class="<%= cr.icon %>"',
+    replace: '<div style="width:38px; height:38px; border-radius:99px; background:rgba(20,22,31,<%= cr.video ? .78 : .55 %>); display:grid; place-items:center;" title="<%= cr.video ? "Open to watch this creative" : "Open for the full-size still" %>"><i class="<%= cr.video ? "ph-fill ph-play" : cr.icon %>"',
+    why: 'the play badge should mean there is something to play',
+  },
   {
     screen: 'attribution',
     find: '>₹18.9L<',

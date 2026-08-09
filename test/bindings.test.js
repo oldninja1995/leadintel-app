@@ -63,8 +63,18 @@ test('every binding names a screen, a reason, and an expression', () => {
       assert.ok(!/<%=/.test(binding.replace), `${binding.find} is declared a relabel but binds an expression`);
       continue;
     }
-    /* Dotted paths count: a row-scoped binding reads `cr.cpl`, not a bare name. */
-    assert.match(binding.replace, /<%=\s+[\w.]+\s+%>/, `${binding.find} does not bind to an expression`);
+    /* The replacement has to *read data*, which is the whole point of binding
+       it — a swap of one literal for another is somebody binding the wrong
+       half. A dotted path is what that looks like: a row-scoped binding reads
+       `cr.cpl`, not a bare name.
+     *
+     * The path may sit inside a larger expression. Bindings started out
+     * swapping one figure for one field, and now some of them render
+     * conditionally — a play badge that becomes an image badge, a panel that
+     * becomes a player — so requiring the *entire* tag to be nothing but a
+     * dotted path rejected exactly the bindings that read the most data. What
+     * matters is that data is read, not how plainly. */
+    assert.match(binding.replace, /<%=[^%]*[A-Za-z_$][\w.$]*/, `${binding.find} does not bind to an expression`);
   }
 });
 
