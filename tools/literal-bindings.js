@@ -478,6 +478,27 @@ const LITERAL_BINDINGS = [
     ].join('\n'),
     why: 'a video source needs ads_management; the ad preview renders the same creative on ads_read',
   },
+  /* **A migration, and a warning.**
+   *
+   * The bar was relabelled WINNING SCORE -> HOLD RATE, that shipped, and later
+   * the same binding's `replace` was changed to BEST OVERALL when the bar
+   * started showing the composite score. **Editing a `replace` after it has
+   * been applied does nothing**: the `find` no longer exists in the view, so
+   * the binding matches nothing and says nothing. The screen went on reading
+   * "HOLD RATE 90" beside a hold-rate cell of 0.7% — a label and a value that
+   * flatly contradicted each other, and neither the tests nor the rebind check
+   * noticed, because both were internally consistent.
+   *
+   * So a superseded label needs its own binding from the label it currently
+   * carries. If you change a `replace` above, add one of these. */
+  {
+    screen: 'creatives',
+    find: '>HOLD RATE<',
+    replace: '>BEST OVERALL<',
+    relabel: true,
+    valueFrom: 'cr.bestScore',
+    why: 'the bar shows the composite score, not hold rate — hold rate has its own cell',
+  },
   {
     screen: 'attribution',
     find: '>₹18.9L<',

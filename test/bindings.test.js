@@ -154,3 +154,41 @@ test('the booking node carries the total credited under the model in force', () 
     assert.equal(payload.attrSankeyTotal, `₹${total.toFixed(1)}L`);
   }
 });
+
+/* A label that no longer describes its value is worse than an unbound one.
+ *
+ * The bar was relabelled WINNING SCORE -> HOLD RATE, that shipped, and the same
+ * binding's `replace` was later changed to BEST OVERALL when the bar started
+ * showing the composite score. Editing a `replace` after it has been applied
+ * does nothing — the `find` is already gone — so the screen went on reading
+ * "HOLD RATE 90" beside a hold-rate cell of 0.7%. Both halves were internally
+ * consistent, so nothing caught it.
+ *
+ * This asserts the *rendered views* carry no label a binding has superseded. */
+test('no view still carries a label a later binding replaced', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const dir = path.join(__dirname, '..', 'views', 'screens');
+
+  /* Every label any binding replaces something *with*, and every label some
+     binding replaces *away from*. A label in both sets is a rename in flight. */
+  const introduced = new Set();
+  const superseded = new Set();
+  for (const b of LITERAL_BINDINGS) {
+    const asLabel = /^>[^<]+<$/;
+    if (asLabel.test(b.replace)) introduced.add(`${b.screen}${b.replace}`);
+    if (asLabel.test(b.find)) superseded.add(`${b.screen}${b.find}`);
+  }
+
+  for (const key of superseded) {
+    const screen = key.slice(0, key.indexOf('>'));
+    const label = key.slice(key.indexOf('>'));
+    const file = path.join(dir, `${screen}.ejs`);
+    if (!fs.existsSync(file)) continue;
+
+    assert.ok(
+      !fs.readFileSync(file, 'utf8').includes(label),
+      `${screen}.ejs still shows ${label}, which a binding replaces — run npm run rebind, or add a migration binding from the label it currently carries`,
+    );
+  }
+});
