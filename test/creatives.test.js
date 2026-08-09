@@ -677,3 +677,29 @@ test('an empty or malformed asset feed falls through safely', () => {
   assert.equal(still({ thumbnail_url: 'tiny.jpg', asset_feed_spec: {} }), 'tiny.jpg');
   assert.equal(still({ thumbnail_url: 'tiny.jpg', object_story_spec: {} }), 'tiny.jpg');
 });
+
+/* The proxy address is the same for an ad for ever, and it is served with a day
+ * of browser caching — so when the stored image changes underneath it, every
+ * reader keeps the old one until the cache expires. This account's stills went
+ * from Meta's 64-pixel preview to the full asset and the screen went on showing
+ * the smudge, which reads exactly like the fix not having worked. */
+test('the thumbnail address changes when the image behind it does', () => {
+  const grad = (thumbnailUrl) => creatives(entitiesWith([{ ...CREATIVE, thumbnailUrl }]))[0].grad;
+
+  const tiny = grad('https://scontent.xx.fbcdn.net/tiny.jpg');
+  const full = grad('https://scontent.xx.fbcdn.net/full.jpg');
+
+  assert.notEqual(tiny, full, 'a new image must not be served from the old cache entry');
+  assert.match(tiny, /\/thumbnail\?v=\w+/);
+  assert.equal(grad('https://scontent.xx.fbcdn.net/full.jpg'), full, 'and the same image keeps its cache');
+});
+
+/* The token stands for the image, not the ad — two ads on one asset should
+   share a cache entry rather than fetching it twice. */
+test('the version token follows the image, not the ad', () => {
+  const one = creatives(entitiesWith([{ ...CREATIVE, adId: 'a', thumbnailUrl: 'https://x.fbcdn.net/same.jpg' }]))[0];
+  const two = creatives(entitiesWith([{ ...CREATIVE, adId: 'b', thumbnailUrl: 'https://x.fbcdn.net/same.jpg' }]))[0];
+
+  const v = (g) => g.match(/v=(\w+)/)[1];
+  assert.equal(v(one.grad), v(two.grad));
+});
