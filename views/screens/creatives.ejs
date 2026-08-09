@@ -1,14 +1,18 @@
 <div style="animation:li-fade .25s ease;">
           <div style="display:flex; align-items:center; gap:12px; margin-bottom:14px;">
             <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:19px;">Creative Intelligence</h1>
-            <span style="font-size:11.5px; color:var(--color-neutral-600);">24 active creatives · sorted by revenue</span>
+            <span style="font-size:11.5px; color:var(--color-neutral-600);"><%= creativeSummary %></span>
             <div style="flex:1;"></div>
             <div style="display:flex; border:1px solid var(--color-neutral-800); border-radius:7px; overflow:hidden; font-size:11.5px;">
-              <span style="padding:5px 12px; background:var(--color-accent-900); color:var(--color-accent-300);">Gallery</span>
-              <span class="hv-3" style="padding:5px 12px; color:var(--color-neutral-500); cursor:pointer; border-left:1px solid var(--color-neutral-900);">Leaderboard</span>
-              <span class="hv-3" style="padding:5px 12px; color:var(--color-neutral-500); cursor:pointer; border-left:1px solid var(--color-neutral-900);">Timeline</span>
+              <% (viewTabs || []).forEach(function (tab, i) { %>
+                <span class="hv-3" data-action="<%= tab.go %>" title="<%= tab.title %>" style="padding:5px 12px; cursor:pointer; background:<%= tab.bg %>; color:<%= tab.color %>; <% if (i) { %>border-left:1px solid var(--color-neutral-900);<% } %>"><%= tab.label %></span>
+              <% }); %>
             </div>
             <div class="hv-3" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-neutral-500); border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; cursor:pointer;" data-action="<%= sortNext %>">Sort: <%= sortLabel %><i class="ph ph-caret-down" style="font-size:11px;"></i></div>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px 18px; margin:-4px 0 14px; font-size:10.5px; color:var(--color-neutral-600); line-height:1.5;">
+            <span><%= fatigueLegend %></span>
+            <span><%= verdictLegend %></span>
           </div>
           <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
             <% (creatives || []).forEach(function (cr) { %>
@@ -16,8 +20,8 @@
                 <div style="height:132px; background:<%= cr.grad %>; display:grid; place-items:center; position:relative;">
                   <div style="width:38px; height:38px; border-radius:99px; background:rgba(20,22,31,.7); display:grid; place-items:center;"><i class="<%= cr.icon %>" style="font-size:18px; color:var(--color-accent-200);"></i></div>
                   <span style="position:absolute; top:8px; left:8px; font-size:10px; border-radius:5px; padding:2px 7px; background:rgba(20,22,31,.75); color:var(--color-neutral-300);"><%= cr.type %></span>
-                  <span style="position:absolute; top:8px; right:8px; font-size:10px; border-radius:5px; padding:2px 7px; background:<%= cr.fatigueBg %>; color:<%= cr.fatigueColor %>;">Fatigue <%= cr.fatigue %></span>
-                  <span style="position:absolute; bottom:8px; right:8px; font-size:10px; border-radius:5px; padding:2px 7px; background:rgba(20,22,31,.75); color:var(--color-neutral-300);"><%= cr.dur %></span>
+                  <span style="position:absolute; top:8px; right:8px; font-size:10px; border-radius:5px; padding:2px 7px; background:<%= cr.fatigueBg %>; color:<%= cr.fatigueColor %>; cursor:help;" title="<%= cr.fatigueWhy %>">Fatigue <%= cr.fatigue %> · <%= cr.fatigueBand %></span>
+                  <span style="position:absolute; bottom:8px; right:8px; font-size:10px; border-radius:5px; padding:2px 7px; background:rgba(20,22,31,.75); color:var(--color-neutral-300); cursor:help;" title="<%= cr.durWhy %>"><%= cr.dur %></span>
                 </div>
                 <div style="padding:12px 14px;">
                   <div style="font-size:12.5px; font-weight:500; color:var(--color-neutral-200);"><%= cr.title %></div>
@@ -34,6 +38,10 @@
                     <span style="font-size:9.5px; color:var(--color-neutral-600);">HOLD RATE</span>
                     <div style="flex:1; height:5px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= cr.winning %>; border-radius:99px; background:linear-gradient(90deg, var(--color-accent-700), var(--color-accent-400));"></div></div>
                     <span style="font-size:11px; font-weight:500; color:var(--color-accent-300); font-variant-numeric:tabular-nums;"><%= cr.winning %></span>
+                  </div>
+                  <div style="display:flex; align-items:flex-start; gap:8px; margin-top:10px; padding-top:9px; border-top:1px solid var(--color-neutral-900);" title="<%= cr.verdictWhy %>">
+                    <span style="flex:none; font-size:10px; font-weight:500; border-radius:5px; padding:3px 8px; background:<%= cr.verdictBg %>; color:<%= cr.verdictColor %>;"><%= cr.verdict %></span>
+                    <span style="font-size:10.5px; color:var(--color-neutral-500); line-height:1.35;"><%= cr.verdictInstruction %> — <%= cr.verdictBecause %></span>
                   </div>
                 </div>
               </div>

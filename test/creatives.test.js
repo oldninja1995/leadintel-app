@@ -250,8 +250,13 @@ const THREE = {
    whichever creative you clicked, you got the first one's numbers. */
 test('each card links to its own detail', () => {
   const rows = creatives(THREE);
-  /* The ranking rides along, so a card opens what was clicked. */
-  assert.deepEqual(rows.map((r) => r.go), ['/creatives?sort=spend&cr=1', '/creatives?sort=spend&cr=2', '/creatives?sort=spend&cr=3']);
+  /* The ranking *and the view* ride along, so a card opens what was clicked
+     whichever ordering the screen was showing. */
+  assert.deepEqual(rows.map((r) => r.go), [
+    '/creatives?view=gallery&sort=spend&cr=1',
+    '/creatives?view=gallery&sort=spend&cr=2',
+    '/creatives?view=gallery&sort=spend&cr=3',
+  ]);
 });
 
 test('the panel shows the creative that was clicked', () => {
@@ -321,7 +326,166 @@ test('an unknown sort falls back rather than emptying the screen', () => {
 });
 
 test('the control offers a next ranking to move to', () => {
-  assert.match(project(RANKABLE).sortNext, /^\/creatives\?sort=\w+$/);
+  assert.match(project(RANKABLE).sortNext, /^\/creatives\?view=\w+&sort=\w+$/);
+});
+
+/* Switching view must not silently reset the ranking, and switching ranking
+   must not throw the reader back to Gallery. */
+test('the sort control and the view tabs each hold the other', () => {
+  const out = project(RANKABLE, { view: 'leaderboard', sort: 'cpm' });
+
+  assert.match(out.sortNext, /view=leaderboard/, 'the next sort stays in the view');
+  for (const tab of out.viewTabs) assert.match(tab.go, /sort=cpm/, `${tab.label} dropped the ranking`);
+});
+
+/* ── the three views ────────────────────────────────────────────────────── */
+
+/* The design draws Gallery, Leaderboard and Timeline as three inert spans and
+   gives none of them any markup of its own, so each is an *ordering* over the
+   same cards rather than a second layout — see the VIEWS comment in
+   lib/repository/projections.js. What is testable is that they differ, that the
+   tabs point somewhere, and that neither control forgets the other. */
+test('each view ranks the same creatives differently', () => {
+  const order = (view) => project(RANKABLE, { view }).creatives.map((r) => r.title.replace(/^\d+\.\s/, ''));
+
+  assert.deepEqual(order('gallery'), ['big-spend', 'efficient', 'unmeasured']);
+  /* Nothing here has enough leads to be judged on cost, so every verdict is
+     "not enough data" and the leaderboard falls through to spend. The point is
+     that it is a different comparator, not a different answer here. */
+  assert.equal(project(RANKABLE, { view: 'leaderboard' }).creatives.length, 3);
+});
+
+test('the leaderboard numbers its rows and the other views do not', () => {
+  assert.match(project(RANKABLE, { view: 'leaderboard' }).creatives[0].title, /^1\. /);
+  assert.ok(!/^1\. /.test(project(RANKABLE).creatives[0].title));
+});
+
+test('an unknown view falls back to the gallery rather than emptying the screen', () => {
+  const out = project(RANKABLE, { view: 'nonsense' });
+  assert.match(out.creativeSummary, /Gallery/);
+  assert.equal(out.creatives.length, 3);
+});
+
+test('the heading line describes what is actually on the screen', () => {
+  assert.match(project(RANKABLE, { sort: 'cpm' }).creativeSummary, /^3 creatives · Gallery, ranked by cpm$/);
+});
+
+/* ── the scores, and what they tell someone to do ───────────────────────── */
+
+/* Thirty days of a creative wearing out: frequency over 4, click-through
+   falling and CPM rising together, which is what all three sources describe. */
+const worn30 = Array.from({ length: 30 }, (_, i) => {
+  const late = i >= 23;
+  return {
+    date: `2026-07-${String(i + 8).padStart(2, '0')}`,
+    impressions: 9000,
+    clicks: Math.round(9000 * (late ? 0.0139 : 0.0188)),
+    spend: 300000,
+    frequency: late ? 4.3 : 3.4,
+    cpm: late ? 327 : 268,
+  };
+});
+
+/* The same thirty days without the wear: nothing crosses a threshold, so it
+   scores zero *and has the history to mean it* — which is the difference
+   between "healthy" and "no reading". */
+const steady30 = worn30.map((d) => ({ ...d, clicks: 169, frequency: 1.6, cpm: 268 }));
+
+const FLEET = {
+  creatives: [
+    { ...CREATIVE, adId: 'w', title: 'worn out', objective: 'OUTCOME_LEADS', spend: 900000, leads: 9, impressions: 270000, clicks: 4900, series: worn30 },
+    { ...CREATIVE, adId: 'a', title: 'ordinary a', objective: 'OUTCOME_TRAFFIC', spend: 300000, leads: 12, impressions: 90000, clicks: 2600 },
+    { ...CREATIVE, adId: 'b', title: 'ordinary b', objective: 'OUTCOME_SALES', spend: 280000, leads: 11, impressions: 88000, clicks: 2400 },
+    { ...CREATIVE, adId: 'c', title: 'cheap', objective: 'OUTCOME_AWARENESS', spend: 200000, leads: 22, impressions: 80000, clicks: 2200, series: steady30 },
+  ],
+};
+
+const byTitle = (view) => Object.fromEntries(
+  project(FLEET, view).creatives.map((r) => [r.title.replace(/^\d+\.\s/, ''), r]),
+);
+
+/* The complaint this answers: a badge reading "42" that nothing on the page
+   defines. */
+test('the fatigue badge names its band and carries its own definition', () => {
+  const rows = byTitle();
+
+  assert.equal(rows['worn out'].fatigueBand, 'Replace');
+  assert.match(rows['worn out'].fatigueWhy, /100\/100 — Replace/);
+  assert.match(rows['worn out'].fatigueWhy, /frequency/i, 'the tooltip must say what the score reads');
+  assert.match(rows['worn out'].fatigueWhy, /Last 7 days against the 23 before them/);
+});
+
+/* Unknown is never healthy — and it is never "Healthy" in words either. */
+test('a creative with too little history says so rather than scoring zero', () => {
+  const row = byTitle()['ordinary a'];
+  assert.equal(row.fatigue, '—');
+  assert.equal(row.fatigueBand, 'No reading');
+  assert.doesNotMatch(row.fatigueWhy, /Healthy/);
+});
+
+test('the screen defines both of its own scores', () => {
+  const out = project(FLEET);
+  assert.match(out.fatigueLegend, /0–19 healthy · 20–39 watch · 40–69 act soon · 70\+ replace/);
+  assert.match(out.verdictLegend, /cost per lead against the account median/);
+});
+
+test('each creative says which part of the funnel it is working in', () => {
+  const rows = byTitle();
+
+  assert.equal(rows['worn out'].dur, 'Bottom of funnel');
+  assert.equal(rows['ordinary a'].dur, 'Middle of funnel');
+  assert.equal(rows.cheap.dur, 'Top of funnel');
+  assert.match(rows.cheap.durWhy, /bought for reach/, 'the badge has to say why that changes how it is judged');
+});
+
+/* Read from the objective rather than inferred, so an objective outside Meta's
+   two taxonomies is declined instead of filed under a guess. */
+test('an unmapped objective declines a funnel stage rather than guessing one', () => {
+  const [row] = creatives(entitiesWith([{ ...CREATIVE, objective: 'SOMETHING_NEW' }]));
+  assert.equal(row.dur, '—');
+  assert.match(row.durWhy, /declined rather than guessed/);
+});
+
+/* The half that was missing: a score told the reader something was wrong and
+   left them to work out what to do about it. */
+test('every card carries an instruction, and the instruction carries its reasons', () => {
+  for (const row of project(FLEET).creatives) {
+    assert.ok(row.verdict, `${row.title} has no verdict`);
+    assert.ok(row.verdictBecause, `${row.title} gives no reason`);
+    assert.ok(row.verdictColor && row.verdictBg);
+  }
+});
+
+test('the worn-out creative burning three times the going rate is told to stop', () => {
+  const rows = byTitle();
+
+  assert.equal(rows['worn out'].verdict, 'Stop');
+  assert.match(rows['worn out'].verdictWhy, /Turn it off/);
+  assert.equal(rows.cheap.verdict, 'Scale');
+  assert.equal(rows['ordinary b'].verdict, 'Keep running');
+});
+
+/* ── the panel agrees with the card, on the new fields too ─────────────── */
+
+test('the drawer carries the same verdict and funnel stage as the card', () => {
+  const card = project(FLEET, { cr: '1' }).creatives[0];
+  const panel = PROJECTIONS['overlay-creative-detail'](FLEET, { cr: '1' }).selCr;
+
+  assert.equal(panel.verdict, card.verdict);
+  assert.equal(panel.fatigueBand, card.fatigueBand);
+  assert.equal(panel.funnel, card.dur);
+  assert.equal(panel.winning, card.winning);
+});
+
+/* The leaderboard prefixes a rank to the title; the drawer must not inherit it,
+   and must still find the creative the rank belongs to. */
+test('the drawer finds its creative under a ranked title', () => {
+  const card = project(FLEET, { view: 'leaderboard', cr: '1' }).creatives[0];
+  const panel = PROJECTIONS['overlay-creative-detail'](FLEET, { view: 'leaderboard', cr: '1' }).selCr;
+
+  assert.match(card.title, /^1\. /);
+  assert.equal(panel.title, card.title.replace(/^1\.\s/, ''));
+  assert.equal(panel.fatigue, card.fatigue);
 });
 
 /* Clicking a card under one ranking must not open whatever sat at that

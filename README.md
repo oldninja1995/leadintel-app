@@ -404,6 +404,41 @@ suppresses the recommendation** inside the layer, showing the gap instead.
 no API key, no reviewed prompt, no evaluation that generated prose would meet the six-step
 contract. It would have to pass the same provenance checks as the deterministic one.
 
+## Creative scores
+
+Creative Intelligence carries two numbers that are **this product's own, not Meta's** —
+Meta publishes no fatigue metric, and its nearest equivalent ranks an ad against competing
+ads rather than against its own history. Both are defined on the screen next to the cards
+that show them, because a score nobody can interpret gets quoted in a meeting and acted on
+anyway.
+
+**Fatigue** (`lib/creative-fatigue.js`) is 0–100, a creative against *itself*: frequency,
+click-through decay over the last 7 days against everything before them, and CPM rise over
+the same comparison. Each signal is capped, so a creative is called worn out because several
+things agree. Under 14 days of usable history it scores **nothing at all** — unknown is
+never healthy, and a green zero would be a confident wrong answer. Thresholds are ad-ops
+consensus with the sources named in the file, not a vendor specification.
+
+**Action** (`lib/creative-verdict.js`) is the instruction — Scale, Keep running, Refresh,
+Stop, or Not enough data — and it is what the screen was missing: fatigue said something was
+wrong and left the reader to decide what to do about it. It weighs fatigue against cost per
+lead **compared to the account's median**, because ₹2,000 a lead is cheap for a suite and
+dear for a day pass, and the only honest reference is what the rest of the account is paying.
+Money beats tiredness (an ad not paying for itself stops whether or not it is fresh) and
+tiredness beats silence. Every verdict carries the numbers that produced it.
+
+Under three leads there is no cost per lead, under three peers there is no median, and either
+gap reaches *Not enough data* rather than any of the four confident answers.
+
+**Funnel stage** comes from the campaign objective — what the advertiser bought — never
+inferred from frequency or audience size. An objective outside Meta's two taxonomies is
+declined rather than filed under a guess: a creative in the wrong part of the funnel is worse
+than one in none.
+
+The three views the design draws — Gallery, Leaderboard, Timeline — **re-rank the same
+cards**; the design gives the other two a label each and no markup, and inventing a table and
+a Gantt would mean hand-writing layouts into generated views.
+
 ## Running it for real
 
 ```
