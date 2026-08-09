@@ -416,3 +416,58 @@ test('every kind failing is still an error', async () => {
     /every kind failed/,
   );
 });
+
+/* The refusal that cost this account every creative it had.
+ *
+ * The insights edges say "Please reduce the amount of data you're asking for".
+ * The ads edge — the one that fetches the creative image — does not: it answers
+ * an over-heavy request with the generic "An unknown error occurred" under code
+ * 1/99. Reading only the wording left that unrecognised, so it was never
+ * retried smaller, and the account synced every day of spend with no creatives
+ * at all. On screen that reads as an empty Creative Intelligence rather than as
+ * one refused call. */
+test('Meta\'s other way of saying "too much" is recognised', () => {
+  const structured = new Error('Meta Ads: An unknown error occurred — code 1/99');
+  structured.code = 1;
+  structured.subcode = 99;
+
+  assert.equal(meta.isTooMuchData(structured), true, 'code 1/99 is a size refusal');
+  assert.equal(meta.isTooMuchData(new Error('Meta Ads: An unknown error occurred — code 1/99')), true);
+  assert.equal(meta.isTooMuchData(new Error("Please reduce the amount of data you're asking for")), true);
+  /* A throttle is not a size problem and must not be retried smaller. */
+  assert.equal(meta.isTooMuchData(new Error('User request limit reached')), false);
+});
+
+test('a refused error carries its code, not only its wording', () => {
+  assert.throws(
+    () => meta.checkForError({ error: { message: 'An unknown error occurred', code: 1, error_subcode: 99 } }, { ok: false }),
+    (err) => err.code === 1 && Number(err.subcode) === 99,
+  );
+});
+
+/* The ads edge fetches an object per ad rather than a row of numbers. */
+test('the creative page starts smaller than the insights levels', () => {
+  assert.ok(meta.PAGE_FOR.creative < meta.PAGE_FOR.ad_day);
+});
+
+test('a creative pull refused with code 1/99 retries smaller and succeeds', async () => {
+  const limits = [];
+  let refusals = 1;
+  const fetchImpl = async (url) => {
+    limits.push(Number(new URL(url).searchParams.get('limit')));
+    if (refusals-- > 0) {
+      return {
+        ok: false,
+        status: 400,
+        json: async () => ({ error: { message: 'An unknown error occurred', code: 1, error_subcode: 99 } }),
+      };
+    }
+    return { ok: true, status: 200, json: async () => page([{ id: '99201', name: 'UGC video 03' }]) };
+  };
+
+  const rows = await httpTransport({ credentials: CREDS, fetchImpl })
+    .fetch({ source: META, kind: 'creative', window: null });
+
+  assert.equal(rows.length, 1, 'the creatives must arrive after the retry');
+  assert.ok(limits[1] < limits[0], `the retry must ask for less — got ${limits.join(' then ')}`);
+});
