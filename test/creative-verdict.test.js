@@ -102,6 +102,36 @@ test('cheap with no fatigue reading keeps running rather than scaling', () => {
   assert.equal(only(row(120000, 30, null)).action, 'keep');
 });
 
+/* ── a value goal is the same test read the other way ───────────────────── */
+
+/* For CPL, above the median is bad. For ROAS, above the median is good. Rather
+   than duplicate every threshold with its mirror image, a value goal's ratio is
+   inverted — so the rules never have to ask which kind of goal they are on. */
+const ROAS = { label: 'ROAS', direction: 'value', minEvents: 3 };
+
+const roasRow = (value, events, w = null) => ({ goalValue: value, events, worn: w });
+
+/* Median ROAS of the six below is 4.0. */
+const ROAS_PEERS = [roasRow(2, 20), roasRow(3, 20), roasRow(4, 20), roasRow(5, 20), roasRow(8, 20)];
+
+const onRoas = (subject) => verdicts.decide([subject, ...ROAS_PEERS], ROAS)[0];
+
+test('a value goal stops the creative returning far too little, not too much', () => {
+  /* 1.5x worse than a median of 4.0 is 2.67 and below. */
+  assert.equal(onRoas(roasRow(1.2, 12, worn('healthy', 0))).action, 'stop');
+  /* The best ROAS on the screen must never be mistaken for the worst. */
+  assert.notEqual(onRoas(roasRow(20, 12, worn('healthy', 0))).action, 'stop');
+});
+
+test('a value goal scales the creative returning most', () => {
+  assert.equal(onRoas(roasRow(12, 30, worn('healthy', 0))).action, 'scale');
+});
+
+test('a value goal argues in its own direction', () => {
+  const v = onRoas(roasRow(1.2, 12, worn('healthy', 0)));
+  assert.match(v.because[0], /roas \d+% below the account median/i, 'a low ROAS is below, not above');
+});
+
 /* ── the refusals ───────────────────────────────────────────────────────── */
 
 test('too few leads is not a cost per lead', () => {
@@ -113,7 +143,7 @@ test('too few leads is not a cost per lead', () => {
 test('no history and no leads is said plainly, not dressed as approval', () => {
   const v = only(row(null, 0, null));
   assert.equal(v.action, 'unknown');
-  assert.match(v.because.join(' '), /no leads yet/);
+  assert.match(v.because.join(' '), /nothing toward cost per lead yet/);
   assert.match(v.because.join(' '), /14 days/);
 });
 

@@ -190,15 +190,15 @@
    * menu opens; without it the caret cycles as before. Neither state is a dead
    * control.
    */
-  function enhanceSort() {
-    const options = json('li-sort-data', []);
+  function enhanceSort(dataId, prefix) {
+    const options = json(dataId, []);
     if (!options.length) return;
 
     /* Found by its caret and its own label rather than by a class the converter
        would have to know about — the same way presentation mode finds its
        three controls. */
     const control = Array.from(document.querySelectorAll('[data-action]')).find(
-      (el) => el.querySelector('.ph-caret-down') && /^Sort:/.test(el.textContent.trim()),
+      (el) => el.querySelector('.ph-caret-down') && el.textContent.trim().indexOf(prefix) === 0,
     );
     if (!control) return;
 
@@ -395,7 +395,8 @@
 
   syncBadge();
   enhanceChips();
-  enhanceSort();
+  enhanceSort('li-sort-data', 'Sort:');
+  enhanceSort('li-goal-data', 'Judge by:');
   wirePresentation();
   enhanceKeyboard();
 })();

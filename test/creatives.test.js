@@ -399,7 +399,48 @@ test('every ranking is offered, with the current one marked', () => {
   assert.equal(options[0].label, 'Best', 'the default leads the menu');
   assert.equal(options.filter((o) => o.active).length, 1);
   assert.equal(options.find((o) => o.active).key, 'cpm');
-  for (const o of options) assert.match(o.go, /^\/creatives\?view=\w+&sort=\w+$/);
+  /* Each link holds the view and the goal as well, or picking a ranking would
+     silently reset what the business is being judged on. */
+  for (const o of options) assert.match(o.go, /^\/creatives\?view=\w+&sort=\w+&goal=\w+$/);
+});
+
+/* ── what "best" means, per business ────────────────────────────────────── */
+
+/* A resort selling rooms is not judged the way a lead-gen account is, and this
+   account buys against *qualified* lead CPL rather than the platform-reported
+   kind — an unqualified lead flatters the ad and costs the sales team an
+   afternoon. */
+test('the goal is offered, defaults to CPL, and rides along with the ranking', () => {
+  const out = project(FLEET);
+
+  assert.equal(out.goalLabel, 'CPL');
+  assert.deepEqual(out.goalOptions.map((g) => g.key), ['cpl', 'qcpl', 'roas', 'ncroas', 'bookingValue', 'bookings']);
+  assert.equal(out.goalOptions.filter((g) => g.active).length, 1);
+  for (const g of out.goalOptions) assert.match(g.go, /view=\w+&sort=\w+&goal=\w+/);
+});
+
+/* A goal whose sources nobody connected must say so. An empty column under a
+   control that appears to work reads as an account that earned nothing. */
+test('a goal with no source behind it names what it needs', () => {
+  assert.equal(project(FLEET).goalNote, '', 'CPL needs nothing beyond the ad platform');
+
+  for (const goal of ['roas', 'ncroas', 'bookingValue', 'bookings']) {
+    const note = project(FLEET, { goal }).goalNote;
+    assert.match(note, /property management system/, `${goal} must say what it needs`);
+    assert.match(note, /\/connections/, 'and where to go about it');
+  }
+  assert.match(project(FLEET, { goal: 'qcpl' }).goalNote, /the CRM/);
+});
+
+test('an unknown goal falls back to CPL rather than judging nothing', () => {
+  assert.equal(project(FLEET, { goal: 'nonsense' }).goalLabel, 'CPL');
+});
+
+/* The verdict argues in the goal's own vocabulary, or the reason contradicts
+   the column it came from. */
+test('the verdict names the goal it weighed', () => {
+  const rows = project(FLEET).creatives;
+  assert.ok(rows.some((r) => /cpl/i.test(r.verdictBecause)), 'CPL must be named as CPL');
 });
 
 /* ── the scores, and what they tell someone to do ───────────────────────── */

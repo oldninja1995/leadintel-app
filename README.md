@@ -428,6 +428,29 @@ the rate would drag a mean up until everything else looked efficient beside it),
 Scale at **0.75×** or below with fatigue healthy. Every verdict carries the numbers that
 produced it.
 
+**What "best" means is a choice** (`lib/creative-goals.js`), because every business buys
+against something different. `?goal=` picks it; it drives both the ranking and what the
+verdict weighs, and the reason text argues in the goal's own vocabulary.
+
+| Goal | Direction | Needs |
+| --- | --- | --- |
+| CPL | lower better | Meta only — **works today**, the default |
+| Qualified lead CPL | lower better | the CRM (lead `ad_id` + stage) |
+| ROAS | higher better | CRM + PMS |
+| New-customer ROAS | higher better | CRM + PMS |
+| Booking value | higher better | CRM + PMS |
+| Bookings | higher better | CRM + PMS |
+
+A cost goal and a value goal are the same test read in opposite directions, so a value goal's
+ratio is inverted once and the rules never ask which kind they are on. **A goal with no source
+behind it names what it needs** rather than rendering an empty column — a dashed column under
+a working control reads as an account that earned nothing.
+
+Revenue reaches a creative through two hops — `creative.adId ← lead.adId … lead.id ←
+booking.leadId` — which is the closed loop the Analytics Engine page specifies. New-customer
+ROAS splits on first *stay* by phone, not first booking: two bookings made in one week for
+stays a year apart are one new customer and one repeat.
+
 **Fatigue and the verdict are separate judgements.** A creative with no fatigue reading can
 still be judged on cost, so `Fatigue —` beside a real instruction is correct, not a bug.
 

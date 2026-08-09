@@ -161,6 +161,40 @@ const LITERAL_BINDINGS = [
     ].join('\n'),
     why: 'the design draws the three views and wires none of them; each re-ranks the same cards',
   },
+  /* What the screen judges by.
+   *
+   * A resort selling rooms is not judged the way a lead-gen account is, and
+   * this account buys against *qualified* lead CPL rather than the
+   * platform-reported kind — so the measure is a choice, and the choice needs
+   * somewhere to live. The design draws one ranking control and no goal
+   * control, so this adds a sibling to it, styled the same and enhanced by the
+   * same code (`enhanceSort('li-goal-data', 'Judge by:')`).
+   *
+   * Anchored on the sort control's own opening tag, which the replacement
+   * rewrites with a marker attribute so the pattern cannot match twice — this
+   * binding adds markup, and an add that still matches its own output stacks
+   * another copy on every rebind. */
+  {
+    screen: 'creatives',
+    find: '<div class="hv-3" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-neutral-500); border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; cursor:pointer;" data-action="<%= sortNext %>">Sort:',
+    replace: [
+      '<div class="hv-3" data-li-slot="goal" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-neutral-500); border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; cursor:pointer;" title="What this screen judges a creative on. Different businesses buy against different measures.">Judge by: <%= goalLabel %><i class="ph ph-caret-down" style="font-size:11px;"></i></div>',
+      '            <div class="hv-3" data-li-slot="sort" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-neutral-500); border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; cursor:pointer;" data-action="<%= sortNext %>">Sort:',
+    ].join('\n'),
+    why: 'the measure a creative is judged on is a property of the business, and the design draws no control for it',
+  },
+  /* Said out loud when a goal has no source behind it. An empty column under a
+     control that appears to work reads as an account that earned nothing, which
+     is the failure this screen has had to undo more than once. */
+  {
+    screen: 'creatives',
+    find: '<span><%= verdictLegend %></span>',
+    replace: [
+      '<span data-li-slot="verdict-legend"><%= verdictLegend %></span>',
+      '            <% if (typeof goalNote !== \'undefined\' && goalNote) { %><span style="color:#ffcf85;"><%= goalNote %></span><% } %>',
+    ].join('\n'),
+    why: 'a goal nobody has connected a source for must say so rather than showing an empty column',
+  },
   /* What the two scores on the cards mean, on the page rather than in a
      document nobody opens. Injected between the header row and the card grid,
      which is the only gap the design leaves.
