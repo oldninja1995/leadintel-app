@@ -988,6 +988,22 @@ app.get('/creatives/:adId/preview', async (req, res) => {
     /* Never cached: the token in it expires, and a stale redirect renders as an
        empty frame with no explanation. */
     res.setHeader('cache-control', 'no-store');
+
+    /* **This one route has to be framable, and only by us.**
+     *
+     * Every response carries `X-Frame-Options: DENY` and `frame-ancestors
+     * 'none'` from lib/http/hardening.js, which is right for every screen in
+     * the app and wrong for the one endpoint whose entire purpose is to be
+     * loaded inside a frame on our own page. The browser refuses it and reports
+     * "refused to connect" — naming our own host, which reads like the site
+     * being down rather than a header doing its job.
+     *
+     * So it is relaxed here to `'self'`, on this response only. The page may
+     * frame it; nobody else's page may. Nothing about the app-wide default
+     * changes. */
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
+
     return res.redirect(302, parsed.toString());
   } catch (err) {
     return res.status(502).end();

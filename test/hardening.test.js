@@ -224,3 +224,24 @@ test('the drill is exported so a restore can be proven, not assumed', () => {
   assert.equal(typeof backup.create, 'function');
   assert.equal(typeof backup.restore, 'function');
 });
+
+/* The one route that must be framable, and only by us.
+ *
+ * Every response carries `X-Frame-Options: DENY` and `frame-ancestors 'none'`,
+ * which is right for every screen and wrong for the endpoint whose whole
+ * purpose is to be loaded inside a frame on our own page. The browser refuses
+ * it and reports "refused to connect" naming our own host, which reads like the
+ * site being down rather than a header working correctly. */
+test('the ad preview relaxes framing to self, and nothing else does', () => {
+  const source = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'server.js'), 'utf8');
+
+  const route = source.slice(source.indexOf("app.get('/creatives/:adId/preview'"));
+  const body = route.slice(0, route.indexOf('\napp.'));
+
+  assert.match(body, /X-Frame-Options', 'SAMEORIGIN'/, 'the preview must be framable by our own page');
+  assert.match(body, /frame-ancestors 'self'/);
+
+  /* And the default stays shut for everything else. */
+  assert.match(hardening.headers({})['X-Frame-Options'], /DENY/);
+  assert.match(hardening.headers({})['Content-Security-Policy'], /frame-ancestors 'none'/);
+});
