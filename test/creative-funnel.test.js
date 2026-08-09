@@ -163,3 +163,38 @@ test('the tooltip names the signal that answered and what the stage is for', () 
   assert.match(funnel.meaning(byTargeting), /judge it on cost per lead/);
   assert.match(funnel.meaning(on({ targeting: { customAudienceIds: [] } })), /judge it on reach and hook rate/);
 });
+
+/* ── the single-objective account ───────────────────────────────────────── */
+
+/* The failure this whole file was rewritten to avoid, in its last hiding
+   place: an account that runs its entire funnel under one OUTCOME_LEADS. The
+   objective then does not classify anything, it labels everything — and a
+   constant wearing the appearance of a measurement is worse than a dash. */
+test('an objective every creative shares stops being a signal', () => {
+  const uniform = [
+    { objective: 'OUTCOME_LEADS' }, { objective: 'OUTCOME_LEADS' }, { objective: 'OUTCOME_LEADS' },
+  ];
+  assert.equal(funnel.objectiveVaries(uniform), false);
+
+  const declined = funnel.stageFor({ adsetName: 'Cities | TN', objective: 'OUTCOME_LEADS' }, {}, { objectiveVaries: false });
+  assert.equal(declined, null, 'cold city traffic must not be filed under Bottom');
+});
+
+test('an account running several objectives still reads them', () => {
+  const varied = [{ objective: 'OUTCOME_LEADS' }, { objective: 'OUTCOME_AWARENESS' }];
+  assert.equal(funnel.objectiveVaries(varied), true);
+
+  const read = funnel.stageFor({ objective: 'OUTCOME_AWARENESS' }, {}, { objectiveVaries: true });
+  assert.equal(read.stage, 'Top');
+});
+
+/* The stronger signals are unaffected — they never needed the objective. */
+test('targeting and the name still answer on a single-objective account', () => {
+  const opts = { objectiveVaries: false };
+
+  assert.equal(funnel.stageFor({ adsetName: 'Broad | Kerala', objective: 'OUTCOME_LEADS' }, {}, opts).stage, 'Top');
+  assert.equal(funnel.stageFor({ adsetName: 'All 60 Days KL', objective: 'OUTCOME_LEADS' }, {}, opts).stage, 'Middle');
+  assert.equal(funnel.stageFor({ adsetName: '30 Days 75% Watchers', objective: 'OUTCOME_LEADS' }, {}, opts).stage, 'Bottom');
+  /* And with the targeting fetched, the city ad sets resolve properly. */
+  assert.equal(funnel.stageFor({ adsetName: 'Cities | TN', targeting: { customAudienceIds: [] } }, {}, opts).stage, 'Top');
+});

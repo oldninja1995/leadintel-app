@@ -382,3 +382,37 @@ test('a refusal names the kind that caused it', async () => {
     /asking for ad_day/
   );
 });
+
+/* Meta's customaudiences edge needs a wider permission than the insights edges
+   do, so a token scoped to read performance can fetch every day of spend and
+   still be refused the audience list. Under the old bare loop that refusal
+   threw the entire pull away, and the account showed a stale store while the
+   log filled with one permission error. */
+test('one refused kind does not lose the others', async () => {
+  const partly = async (url) => {
+    if (url.includes('/customaudiences?')) {
+      return { ok: false, status: 403, json: async () => ({ error: { message: 'Insufficient permission', code: 200 } }) };
+    }
+    return accountStub()(url);
+  };
+
+  const pulled = await connectors.get('meta_ads')
+    .pull(null, httpTransport({ credentials: CREDS, fetchImpl: partly }));
+
+  const kinds = new Set(pulled.map((r) => r.kind));
+  assert.ok(kinds.has('ad_day'), 'the spend must survive a refused audience list');
+  assert.ok(kinds.has('adset'), 'and so must the targeting');
+  assert.ok(!kinds.has('audience'));
+  assert.equal(pulled.failures.length, 1);
+  assert.match(pulled.failures[0].reason, /permission/i);
+});
+
+/* A token that reads nothing is not a quiet account. */
+test('every kind failing is still an error', async () => {
+  const refuse = async () => ({ ok: false, status: 401, json: async () => ({ error: { message: 'Session has expired' } }) });
+
+  await assert.rejects(
+    () => connectors.get('meta_ads').pull(null, httpTransport({ credentials: CREDS, fetchImpl: refuse })),
+    /every kind failed/,
+  );
+});
