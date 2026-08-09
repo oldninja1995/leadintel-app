@@ -920,6 +920,80 @@ app.get('/creatives/:adId/thumbnail', async (req, res) => {
  */
 const VIDEO_HOSTS = /(^|.)(fbcdn.net|facebook.com)$/i;
 
+/* The ad as a guest saw it — video playing, copy, call to action, the lot.
+ *
+ * **This is the one that works on `ads_read`.** Reading a video's own source
+ * needs `ads_management`, which this account's token does not have, so the
+ * `/video` route below returns 404 for it. Meta's preview endpoint has no such
+ * requirement and renders the whole ad rather than the asset.
+ *
+ * The preview URL is fetched per request and redirected to, never stored: it
+ * carries a short-lived token and expires. That token is a *preview* token —
+ * the account's access token stays on the server, which is what made framing
+ * this acceptable at all. See PREVIEW_HOSTS in lib/http/hardening.js.
+ *
+ * The iframe on the page points at *this* route, so the browser never sees a
+ * Meta URL until it follows the redirect, and nothing in the page markup has to
+ * hold a credential.
+ */
+const PREVIEW_FORMATS = new Set([
+  'MOBILE_FEED_STANDARD', 'DESKTOP_FEED_STANDARD', 'INSTAGRAM_STANDARD',
+  'INSTAGRAM_STORY', 'INSTAGRAM_REELS',
+]);
+
+app.get('/creatives/:adId/preview', async (req, res) => {
+  let creative;
+  try {
+    creative = (entitiesFor(req.workspace).creatives || [])
+      .find((c) => c.adId === req.params.adId);
+  } catch (err) {
+    return res.status(503).end();
+  }
+  if (!creative) return res.status(404).end();
+
+  const credentials = connections.secretsFor(req.workspace, 'meta_ads');
+  if (!credentials || !credentials.accessToken) return res.status(404).end();
+
+  const format = PREVIEW_FORMATS.has(req.query.format) ? req.query.format : 'MOBILE_FEED_STANDARD';
+
+  try {
+    const url = new URL(`https://graph.facebook.com/v25.0/${encodeURIComponent(creative.adId)}/previews`);
+    url.searchParams.set('ad_format', format);
+    url.searchParams.set('access_token', String(credentials.accessToken).trim());
+
+    const upstream = await fetch(url);
+    const payload = await upstream.json().catch(() => null);
+    const body = payload && payload.data && payload.data[0] && payload.data[0].body;
+    if (!body) return res.status(404).end();
+
+    /* Meta answers with an `<iframe src="...">` rather than a URL, so the
+       address is read out of it. Entities are decoded because the src arrives
+       HTML-escaped inside that markup. */
+    const match = /src="([^"]+)"/.exec(body);
+    if (!match) return res.status(404).end();
+    const target = match[1].replace(/&amp;/g, '&');
+
+    let parsed;
+    try {
+      parsed = new URL(target);
+    } catch (err) {
+      return res.status(404).end();
+    }
+    /* Only the hosts the policy frames. A preview address from anywhere else is
+       not a preview. */
+    if (parsed.protocol !== 'https:' || !/(^|.)facebook.com$/i.test(parsed.hostname)) {
+      return res.status(404).end();
+    }
+
+    /* Never cached: the token in it expires, and a stale redirect renders as an
+       empty frame with no explanation. */
+    res.setHeader('cache-control', 'no-store');
+    return res.redirect(302, parsed.toString());
+  } catch (err) {
+    return res.status(502).end();
+  }
+});
+
 app.get('/creatives/:adId/video', async (req, res) => {
   let creative;
   try {

@@ -428,9 +428,9 @@ const LITERAL_BINDINGS = [
       '              <div style="width:46px; height:46px; border-radius:99px; background:rgba(20,22,31,.7); display:grid; place-items:center;"><i class="ph-fill ph-play" style="font-size:20px; color:var(--color-accent-200);"></i></div>',
     ].join('\n'),
     replace: [
-      '<div style="height:<%= selCr.video ? 260 : 180 %>px; background:<%= selCr.grad %>; display:grid; place-items:center; position:relative;">',
-      '              <% if (selCr.video) { %>',
-      '                <video src="<%= selCr.video %>" poster="<%= selCr.poster %>" controls playsinline preload="metadata" style="width:100%; height:100%; object-fit:contain; background:#000;"></video>',
+      '<div style="height:<%= selCr.preview ? 470 : 180 %>px; background:#000; display:grid; place-items:center; position:relative;">',
+      '              <% if (selCr.preview) { %>',
+      '                <iframe src="<%= selCr.preview %>" title="The ad as it ran" style="width:100%; height:100%; border:0;" allow="autoplay; encrypted-media" loading="lazy"></iframe>',
       '              <% } else { %>',
       '                <div style="width:46px; height:46px; border-radius:99px; background:rgba(20,22,31,.7); display:grid; place-items:center;"><i class="ph-fill ph-image" style="font-size:20px; color:var(--color-accent-200);"></i></div>',
       '              <% } %>',
@@ -444,6 +444,39 @@ const LITERAL_BINDINGS = [
     find: '<div style="width:38px; height:38px; border-radius:99px; background:rgba(20,22,31,.7); display:grid; place-items:center;"><i class="<%= cr.icon %>"',
     replace: '<div style="width:38px; height:38px; border-radius:99px; background:rgba(20,22,31,<%= cr.video ? .78 : .55 %>); display:grid; place-items:center;" title="<%= cr.video ? "Open to watch this creative" : "Open for the full-size still" %>"><i class="<%= cr.video ? "ph-fill ph-play" : cr.icon %>"',
     why: 'the play badge should mean there is something to play',
+  },
+  /* **Frame the ad, not the asset.**
+   *
+   * The player added a moment ago streams the video's own source, and this
+   * account's token cannot read one: `/{video_id}?fields=source` needs
+   * `ads_management` and the token has `ads_read`. Confirmed rather than
+   * assumed — asking Meta for `permalink_url` and `picture` on its ad videos
+   * returned neither.
+   *
+   * Meta's *preview* endpoint has no such requirement. It renders the whole ad
+   * as a guest saw it — video playing, copy, call to action — and it works on
+   * the permissions this account already has, so it is what the drawer shows.
+   * The player stays in the codebase behind `selCr.video` and starts working
+   * the day the scope is widened.
+   *
+   * Framing is safe here specifically because the URL the browser follows
+   * carries a short-lived *preview* token rather than the access token; that
+   * was checked before the CSP was opened to two Facebook hosts. */
+  {
+    screen: 'overlay-creative-detail',
+    find: [
+      '<div style="height:<%= selCr.video ? 260 : 180 %>px; background:<%= selCr.grad %>; display:grid; place-items:center; position:relative;">',
+      '              <% if (selCr.video) { %>',
+      '                <video src="<%= selCr.video %>" poster="<%= selCr.poster %>" controls playsinline preload="metadata" style="width:100%; height:100%; object-fit:contain; background:#000;"></video>',
+      '              <% } else { %>',
+    ].join('\n'),
+    replace: [
+      '<div style="height:<%= selCr.preview ? 470 : 180 %>px; background:#000; display:grid; place-items:center; position:relative;">',
+      '              <% if (selCr.preview) { %>',
+      '                <iframe src="<%= selCr.preview %>" title="The ad as it ran" style="width:100%; height:100%; border:0;" allow="autoplay; encrypted-media" loading="lazy"></iframe>',
+      '              <% } else { %>',
+    ].join('\n'),
+    why: 'a video source needs ads_management; the ad preview renders the same creative on ads_read',
   },
   {
     screen: 'attribution',
