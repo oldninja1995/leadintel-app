@@ -630,3 +630,50 @@ test('a card carries the ranking it was clicked under', () => {
   const panel = PROJECTIONS['overlay-creative-detail'](RANKABLE, { sort: 'cpm', cr: '1' }).selCr;
   assert.equal(panel.title, 'efficient', 'the panel must rank the same way the screen did');
 });
+
+/* ── the creative still ─────────────────────────────────────────────────── */
+
+/* `thumbnail_url` is a 64x64 preview — about 1.7 KB — and 64 pixels stretched
+ * across a card is a smudge, which reads as an image that failed rather than
+ * one that loaded. `image_url` is the full asset and is right for an image ad,
+ * but a *video* ad frequently has none, and on a video-heavy account that means
+ * nearly every card falls back to the postage stamp. The full still for a video
+ * sits inside the story spec, or inside the asset feed for an Advantage+
+ * creative. */
+test('the largest available still is preferred over the postage stamp', () => {
+  const still = (creative) => canonical.MAPPERS.meta_ads.creative({ creative }).thumbnailUrl.value;
+
+  assert.equal(still({ image_url: 'full.jpg', thumbnail_url: 'tiny.jpg' }), 'full.jpg');
+  assert.equal(
+    still({ thumbnail_url: 'tiny.jpg', object_story_spec: { video_data: { image_url: 'video-still.jpg' } } }),
+    'video-still.jpg',
+    'a video ad often has no image_url — its still is in the story spec',
+  );
+  assert.equal(
+    still({ thumbnail_url: 'tiny.jpg', object_story_spec: { link_data: { picture: 'link.jpg' } } }),
+    'link.jpg',
+  );
+  assert.equal(
+    still({ thumbnail_url: 'tiny.jpg', asset_feed_spec: { images: [{ url: 'feed.jpg' }] } }),
+    'feed.jpg',
+    'Advantage+ creatives carry their assets in the feed spec',
+  );
+});
+
+/* Last, not never: a creative with nothing better still shows something. */
+test('the thumbnail is the fallback, and absence is still null', () => {
+  const still = (creative) => canonical.MAPPERS.meta_ads.creative({ creative }).thumbnailUrl.value;
+
+  assert.equal(still({ thumbnail_url: 'tiny.jpg' }), 'tiny.jpg');
+  assert.equal(still({}), null, 'no still is null, never an empty string');
+  assert.equal(canonical.MAPPERS.meta_ads.creative({}).thumbnailUrl.value, null);
+});
+
+/* An empty asset feed must not throw on the way to the fallback. */
+test('an empty or malformed asset feed falls through safely', () => {
+  const still = (creative) => canonical.MAPPERS.meta_ads.creative({ creative }).thumbnailUrl.value;
+
+  assert.equal(still({ thumbnail_url: 'tiny.jpg', asset_feed_spec: { images: [] } }), 'tiny.jpg');
+  assert.equal(still({ thumbnail_url: 'tiny.jpg', asset_feed_spec: {} }), 'tiny.jpg');
+  assert.equal(still({ thumbnail_url: 'tiny.jpg', object_story_spec: {} }), 'tiny.jpg');
+});
