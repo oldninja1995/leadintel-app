@@ -132,7 +132,7 @@ test('a thumbnail is delivered through the proxy, not from Meta directly', () =>
     { ...CREATIVE, thumbnailUrl: 'https://scontent.xx.fbcdn.net/v/t45.png?_nc_cat=1' },
   ]));
 
-  assert.match(row.grad, /url\('\/creatives\/99201\/thumbnail'\)/);
+  assert.match(row.grad, /url\('\/creatives\/99201\/thumbnail\?v=\w+'\)/);
   assert.ok(!row.grad.includes('fbcdn.net'), 'the CDN address must not reach the browser');
 });
 
