@@ -488,7 +488,7 @@ test('each creative says which part of the funnel it is working in', () => {
   assert.equal(rows['worn out'].dur, 'Bottom of funnel');
   assert.equal(rows['ordinary a'].dur, 'Middle of funnel');
   assert.equal(rows.cheap.dur, 'Top of funnel');
-  assert.match(rows.cheap.durWhy, /bought for reach/, 'the badge has to say why that changes how it is judged');
+  assert.match(rows.cheap.durWhy, /judge it on reach and hook rate/, 'the badge has to say why that changes how it is judged');
 });
 
 /* Read from the objective rather than inferred, so an objective outside Meta's
@@ -496,7 +496,7 @@ test('each creative says which part of the funnel it is working in', () => {
 test('an unmapped objective declines a funnel stage rather than guessing one', () => {
   const [row] = creatives(entitiesWith([{ ...CREATIVE, objective: 'SOMETHING_NEW' }]));
   assert.equal(row.dur, '—');
-  assert.match(row.durWhy, /declined rather than guessed/);
+  assert.match(row.durWhy, /Declined rather than guessed/);
 });
 
 /* The half that was missing: a score told the reader something was wrong and

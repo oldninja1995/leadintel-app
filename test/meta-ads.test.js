@@ -268,7 +268,14 @@ test('the three sources with no request shape are still absent', () => {
    to answer per endpoint the way Meta does. */
 function accountStub() {
   return async (url) => {
-    const body = url.includes('/ads?')
+    const body = url.includes('/adsets?')
+      ? page([{
+        id: '88101', name: 'HM · Lookalike 1%', campaign_id: '23851',
+        targeting: { custom_audiences: [{ id: '77001' }] },
+      }])
+      : url.includes('/customaudiences?')
+      ? page([{ id: '77001', name: 'All 60 Days KL', subtype: 'ENGAGEMENT', retention_days: 60 }])
+      : url.includes('/ads?')
       ? page([{ id: '99201', name: 'UGC video 03', status: 'ACTIVE', creative: { id: 'CR-9021' } }])
       : page([{
         campaign_id: '23851', adset_id: '88101', ad_id: '99201',
@@ -290,6 +297,11 @@ test('a live row keys the same way a fixture row does', async () => {
   assert.equal(byKind.ad_day, '99201:2026-07-14');
   /* Keyed by the ad, because that is the unit a creative is measured in. */
   assert.equal(byKind.creative, '99201');
+  /* Configuration, keyed with no day in it: re-pulling replaces the row rather
+     than adding a second one for today. An ad set's targeting is its current
+     state, not a series. */
+  assert.equal(byKind.adset, '88101');
+  assert.equal(byKind.audience, '77001');
 });
 
 test('a pull covers every kind the source declares', async () => {

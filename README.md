@@ -430,10 +430,22 @@ tiredness beats silence. Every verdict carries the numbers that produced it.
 Under three leads there is no cost per lead, under three peers there is no median, and either
 gap reaches *Not enough data* rather than any of the four confident answers.
 
-**Funnel stage** comes from the campaign objective — what the advertiser bought — never
-inferred from frequency or audience size. An objective outside Meta's two taxonomies is
-declined rather than filed under a guess: a creative in the wrong part of the funnel is worse
-than one in none.
+**Funnel stage** (`lib/creative-funnel.js`) is read from the **ad set's targeting**, on
+audience recency: no custom audience is *Top* (cold), an audience with a retention window
+over 30 days is *Middle* (warm), 30 days or under is *Bottom* (hot). An ad set on several
+audiences takes the shortest window — the hottest audience decides how it behaves.
+
+It read the campaign objective first, which was wrong for the commonest case: an account can
+run its entire funnel under one `OUTCOME_LEADS` objective, and most lead-gen accounts do, so
+every creative read "Bottom of funnel" and the badge said nothing. Targeting is not a looser
+signal — it is a *fact about how the ad set was built*, unlike frequency or audience size,
+which are performance readings and would be an inference wearing a label.
+
+Three signals in order, and **the tooltip says which one answered**, because a stage read
+from a retention window and one read from an ad set's name are not claims of equal strength:
+targeting → ad set name (`Broad | Kerala`, `All 60 Days KL`, `30 Days 75% Watchers` all say
+it outright) → campaign objective. Nothing readable is declined: a creative in the wrong part
+of the funnel is worse than one in none.
 
 The three views the design draws — Gallery, Leaderboard, Timeline — **re-rank the same
 cards**; the design gives the other two a label each and no markup, and inventing a table and

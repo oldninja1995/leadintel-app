@@ -18,6 +18,19 @@
   ],
 
   "creative": [
-    { "creative_id": "CR-9021", "ad_id": "99201", "title": "UGC video 03 — honeymoon walkthrough", "type": "video", "updated_at": "2026-07-14T09:12:00+00:00" }
+    { "creative_id": "CR-9021", "ad_id": "99201", "adset_id": "88101", "title": "UGC video 03 — honeymoon walkthrough", "type": "video", "updated_at": "2026-07-14T09:12:00+00:00" }
+  ],
+
+  "_targeting_note": "Ad set configuration, not measurement. These exist so the funnel classifier has all three of its cases to work on: 88101 targets a 60-day engagement audience (warm, Middle), 88102 a 14-day one (hot, Bottom), and 88103 nobody in particular (cold, Top). See lib/creative-funnel.js.",
+
+  "adset": [
+    { "id": "88101", "name": "HM · Lookalike 1%", "campaign_id": "23851", "targeting": { "custom_audiences": [{ "id": "77001", "name": "All 60 Days KL" }], "geo_locations": { "countries": ["IN"] } } },
+    { "id": "88102", "name": "HM · Retargeting 30d", "campaign_id": "23851", "targeting": { "custom_audiences": [{ "id": "77002", "name": "14 Day Site Visitors" }] } },
+    { "id": "88103", "name": "Broad | Kerala", "campaign_id": "23852", "targeting": { "geo_locations": { "regions": [{ "key": "1234", "name": "Kerala" }] } } }
+  ],
+
+  "audience": [
+    { "id": "77001", "name": "All 60 Days KL", "subtype": "ENGAGEMENT", "retention_days": 60, "approximate_count_lower_bound": 184000 },
+    { "id": "77002", "name": "14 Day Site Visitors", "subtype": "WEBSITE", "retention_days": 14, "approximate_count_lower_bound": 9100 }
   ]
 }
