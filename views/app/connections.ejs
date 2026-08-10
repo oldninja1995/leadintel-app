@@ -254,6 +254,45 @@ const openSource = canManage
             </div>
           <% } %>
 
+          <%
+          /* The account picker. Shown only for the source it was fetched for,
+             and only when there is something to choose — a ten-digit id typed
+             from memory is the one field here with no feedback until a sync
+             fails fifteen minutes later. */
+          %>
+          <% if (canManage && accounts && accounts.source === c.source) { %>
+            <div class="li-conn-sync">
+              <h4>Accounts this credential can reach</h4>
+              <% if (!accounts.list.length) { %>
+                <p>None. The credential authenticates but no account is linked to it.</p>
+              <% } else { %>
+                <form method="post" action="/connections/<%= c.source %>">
+                  <% accounts.list.forEach(function (a) { %>
+                    <label style="display:flex; align-items:center; gap:9px; padding:6px 0; font-size:12.5px; color:var(--color-neutral-300); cursor:pointer;">
+                      <input type="radio" name="customerId" value="<%= a.id %>">
+                      <span style="font-family:ui-monospace,monospace;"><%= a.id %></span>
+                      <% if (a.name) { %><span style="color:var(--color-neutral-500);"><%= a.name %></span><% } %>
+                      <% if (a.manager) { %><span style="font-size:10px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:1px 6px; color:var(--color-neutral-600);">MANAGER</span><% } %>
+                      <% if (a.currency) { %><span style="font-size:10px; color:var(--color-neutral-700);"><%= a.currency %></span><% } %>
+                    </label>
+                  <% }); %>
+                  <%
+                  /* Names come from a second call per account, and that one is
+                     refused by a Test-level developer token while the list
+                     itself is allowed. Saying so beats an unexplained column of
+                     bare numbers. */
+                  %>
+                  <% if (!accounts.list.some(function (a) { return a.name; })) { %>
+                    <p style="margin-top:6px;">Names could not be read — that call needs a developer token with Basic access. The ids are still correct.</p>
+                  <% } %>
+                  <div class="li-conn-actions">
+                    <button type="submit"><i class="ph ph-check"></i>Use this account</button>
+                  </div>
+                </form>
+              <% } %>
+            </div>
+          <% } %>
+
           <% if (canManage) { %>
             <form method="post" action="/connections/<%= c.source %>" class="li-conn-form">
               <div class="li-conn-grid">
@@ -288,6 +327,9 @@ const openSource = canManage
                 </button>
                 <% if (c.configured) { %>
                   <button type="submit" formaction="/connections/<%= c.source %>/test" class="li-conn-secondary"><i class="ph ph-pulse"></i>Test</button>
+                  <% if (c.source === 'google_ads') { %>
+                    <button type="submit" formaction="/connections/<%= c.source %>/accounts" class="li-conn-secondary" title="Ask Google which accounts these credentials can reach"><i class="ph ph-list-magnifying-glass"></i>List accounts</button>
+                  <% } %>
                   <button type="submit" formaction="/connections/<%= c.source %>/remove" class="li-conn-danger"><i class="ph ph-plugs"></i>Disconnect</button>
                 <% } %>
                 <div style="flex:1;"></div>

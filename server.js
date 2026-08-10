@@ -15,6 +15,9 @@ const schema = require('./lib/schema');
 const ingest = require('./lib/ingest');
 const { SyncRunner } = require('./lib/ingest/runner');
 const httpConnectors = require('./lib/ingest/http');
+/* Directly, for the account picker — that call is a Connections-screen concern
+   rather than part of any sync. */
+const googleAds = require('./lib/ingest/http/google-ads');
 const filters = require('./lib/filters');
 /* The design's own segmented-control colours, so a chip the server builds is
    drawn exactly like the chips the converter emitted. */
@@ -764,7 +767,7 @@ app.post('/schedules/run', express.json(), gatekeeper.gate('schedule.run'), (req
    connector read fixtures. Owner only: a credential can read a whole external
    system. */
 async function renderConnections(req, res, {
-  error = null, saved = null, mintedToken = null, errorSource = null,
+  error = null, saved = null, mintedToken = null, errorSource = null, accounts = null,
 } = {}) {
   const screen = (await repo.screens()).find((s) => s.slug === 'connections');
 
@@ -812,6 +815,8 @@ async function renderConnections(req, res, {
       /* Shown once, immediately after minting, and never retrievable again. */
       mintedToken,
       errorSource,
+      /* The account list, only for the source it was fetched for. */
+      accounts,
       workspaceName: auth.identity.workspace(req.workspace).name,
       canManage: auth.permissions.can(req.user, 'connection.manage'),
       secretSet: Boolean(process.env.LEADINTEL_SECRET),
@@ -855,6 +860,46 @@ app.post('/connections/:source',
       /* The message names the field and what the value looked like — never the
          value itself, which must not travel in a URL. */
       return res.redirect(`/connections?source=${encodeURIComponent(source)}&error=${encodeURIComponent(err.message)}`);
+    }
+  });
+
+/* Which accounts a stored credential can reach.
+ *
+ * The customer id is the one field on this screen with no feedback: a wrong
+ * ten-digit number authenticates perfectly and then fails on every pull, which
+ * reads as a broken connector rather than a typo. Google will say which
+ * accounts the credential can see, so the screen asks it and offers the answer.
+ *
+ * Behind a button rather than fetched on render: it is a network round trip per
+ * account, and a page that silently calls a vendor on every load is a page that
+ * gets slow for reasons nobody can see. */
+app.post('/connections/:source/accounts',
+  express.urlencoded({ extended: false }), express.json(),
+  gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'list-accounts' })),
+  async (req, res, next) => {
+    const source = req.params.source;
+    if (source !== 'google_ads') {
+      return renderConnections(req, res, { error: `${source} does not publish an account list.` }).catch(next);
+    }
+
+    const credentials = connections.secretsFor(req.workspace, source);
+    if (!credentials) {
+      return renderConnections(req, res, {
+        error: 'Save the OAuth credentials first — the account list is fetched with them.',
+        errorSource: source,
+      }).catch(next);
+    }
+
+    try {
+      const accounts = await googleAds.accessibleCustomers(credentials);
+      return renderConnections(req, res, {
+        accounts: { source, list: accounts },
+        saved: accounts.length
+          ? `${accounts.length} account${accounts.length === 1 ? '' : 's'} reachable with this credential.`
+          : 'These credentials can reach no accounts at all.',
+      }).catch(next);
+    } catch (err) {
+      return renderConnections(req, res, { error: err.message, errorSource: source }).catch(next);
     }
   });
 
