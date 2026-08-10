@@ -10,6 +10,12 @@ module.exports = {
   up: UP,
   aiBtnBg: 'transparent',
 
+  /* The date range is request state, not content: which chip is selected comes
+     from the URL, and each chip needs a destination that keeps the rest of the
+     query. So the server builds these — see `periodChips` in server.js — and
+     what stands here is the shape, and what a reader with no selection sees.
+     Left in place rather than deleted because the static driver is a whole
+     driver, and `_shell` has to answer without a request behind it. */
   ranges: [
     { label: 'Today', ...seg(false) },
     { label: '7d', ...seg(false) },

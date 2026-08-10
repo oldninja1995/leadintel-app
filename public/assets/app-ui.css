@@ -247,6 +247,33 @@
 .li-conn-status--idle .li-conn-dot { background: var(--c-warn); }
 .li-conn-card--idle { border-left: 2px solid var(--c-warn); }
 
+/* Stored and trying, and failing every time. Read as an incident rather than a
+   setup step: nothing here needs configuring, something here is broken. */
+.li-conn-status--failing { color: var(--c-down); border-color: color-mix(in srgb, var(--c-down) 40%, transparent); }
+.li-conn-status--failing .li-conn-dot { background: var(--c-down); }
+.li-conn-card--failing { border-left: 2px solid var(--c-down); }
+.li-conn-card--on { border-left: 2px solid var(--c-up); }
+
+/* What the pipeline has actually done with this credential. Same frame as the
+   intake block below it — both answer "is anything arriving", one for pushes
+   and one for polls, and they should not look like different kinds of fact. */
+.li-conn-sync { margin: 0 0 12px; padding: 12px 14px; border: 1px solid var(--color-neutral-800); border-radius: 8px; background: var(--color-neutral-950); }
+.li-conn-sync--failing { border-color: color-mix(in srgb, var(--c-down) 35%, transparent); }
+.li-conn-sync h4 { margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--color-neutral-400); }
+.li-conn-sync p { margin: 0; font-size: 12.5px; color: var(--color-neutral-400); line-height: 1.6; }
+.li-conn-sync .li-ok { color: var(--c-up); font-weight: 500; }
+.li-conn-sync .li-bad { color: var(--c-down); font-weight: 500; }
+
+/* The vendor's own words, kept apart from our summary of them and set in mono,
+   because it is a message to be pasted into a search or a support ticket. */
+.li-conn-sync-err { margin-top: 8px !important; padding-top: 8px; border-top: 1px solid var(--color-neutral-900); }
+.li-conn-sync-err strong { color: var(--c-down); font-weight: 500; }
+.li-conn-sync-err span {
+  display: block; margin-top: 5px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px;
+  color: var(--color-neutral-500); line-height: 1.55; word-break: break-word;
+}
+
 /* The intake block: URL to give the source, and what it has actually sent. */
 .li-conn-hook { margin: 12px 0 0; padding: 12px 14px; border: 1px solid var(--color-neutral-800); border-radius: 8px; background: var(--color-neutral-950); }
 .li-conn-hook h4 { margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--color-neutral-400); }

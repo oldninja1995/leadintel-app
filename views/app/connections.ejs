@@ -13,15 +13,27 @@
  * No stored secret is rendered back, not even masked: a mask still leaks
  * length. Each field says only whether it is set. See lib/connections.js. */
 
-const connected = connections.filter(function (c) { return c.configured && c.readable; });
+/* Counted by what is arriving, not by what is stored. The tally used to read
+   "connected" off stored credentials, so a source that had failed every sync
+   for a day still counted towards it. */
+const receiving = connections.filter(function (c) { return c.state === 'on'; });
 const broken = connections.filter(function (c) { return c.configured && !c.readable; });
+const failing = connections.filter(function (c) { return c.state === 'failing'; });
 
 /* Exactly one card starts open, and only when there is something to do:
    whichever source most needs attention. Opening every unconnected one is the
    wall of five forms this screen collapses to avoid — and on a fresh install
    that is all of them, which is precisely when it is worst. */
-const needsAttention = connections.find(function (c) { return c.configured && !c.readable; })
+const needsAttention = broken[0] || failing[0]
   || connections.find(function (c) { return !c.configured; });
+
+/* Seconds, as somebody reading a status line would say it. */
+function lag(seconds) {
+  if (seconds < 90) return seconds + 's';
+  if (seconds < 5400) return Math.round(seconds / 60) + ' min';
+  if (seconds < 172800) return Math.round(seconds / 3600) + 'h';
+  return Math.round(seconds / 86400) + 'd';
+}
 
 /* A refused paste opens the card it was refused on, whatever else needs
    attention — a message about a field the reader cannot see is a message they
@@ -41,8 +53,8 @@ const openSource = canManage
       </p>
     </div>
     <div class="li-conn-tally">
-      <span class="li-conn-tally-n"><%= connected.length %><em>/<%= connections.length %></em></span>
-      <span class="li-conn-tally-l">connected</span>
+      <span class="li-conn-tally-n"><%= receiving.length %><em>/<%= connections.length %></em></span>
+      <span class="li-conn-tally-l">receiving</span>
     </div>
   </header>
 
@@ -60,6 +72,19 @@ const openSource = canManage
       <code>LEADINTEL_SECRET</code> has changed since they were saved. Re-enter them below.</span>
     </p>
   <% } %>
+  <%
+  /* A source that has been failing since yesterday was visible only as JSON at
+     /ingest/status. Said at the top, because the screens downstream carry on
+     drawing whatever arrived last and look no different. */
+  %>
+  <% if (failing.length) { %>
+    <p class="li-conn-notice li-conn-notice--warn">
+      <i class="ph ph-warning-octagon"></i>
+      <span><strong><%= failing.length %> connected source<%= failing.length === 1 ? ' is' : 's are' %> failing to sync.</strong>
+      The credential is stored, but the pipeline's attempts are not getting through — the reason is on the card
+      below. Every other screen carries on showing the last data that arrived, and looks no different.</span>
+    </p>
+  <% } %>
   <% if (!canManage) { %>
     <p class="li-conn-notice"><i class="ph ph-lock-simple"></i><span>Only an Owner can add or change a credential. You can see which sources are connected.</span></p>
   <% } %>
@@ -73,18 +98,11 @@ const openSource = canManage
   <div class="li-conn-list">
     <% connections.forEach(function (c) { %>
       <%
-      /* Four states, not two. "Configured" used to render as "connected",
-         which is how a stored credential that has never carried a single
-         record could sit on this screen looking finished. A source is only
-         green once something has actually arrived from it. */
-      const receiving = c.webhook && c.webhook.records > 0;
-      const state = !c.configured && !(c.webhook && c.webhook.minted) ? 'off'
-        : (c.configured && !c.readable) ? 'broken'
-        : receiving ? 'on' : 'idle';
-      const label = state === 'on' ? 'receiving'
-        : state === 'broken' ? 'unreadable'
-        : state === 'idle' ? 'stored, no data yet'
-        : 'not connected';
+      /* Five states, and the rule for them is in lib/connections.js — see
+         `stateOf` for why. It used to be decided here from webhook deliveries
+         alone, which could only ever be right for the two sources that push. */
+      const state = c.state;
+      const label = c.label;
       const open = c.source === openSource;
       %>
       <details class="li-conn-card li-conn-card--<%= state %>" <%= open ? 'open' : '' %>>
@@ -108,12 +126,75 @@ const openSource = canManage
             <p class="li-conn-meta">
               Set <%= new Date(c.configuredAt).toISOString().slice(0, 10) %><%= c.configuredBy ? ' by ' + c.configuredBy : '' %>.
               <% if (c.lastTest) { %>
-                Last test <strong class="<%= c.lastTest.ok ? 'li-ok' : 'li-bad' %>"><%= c.lastTest.ok ? 'succeeded' : 'failed' %></strong>
+                <%
+                /* The date was being dropped, which left "Last test succeeded"
+                   standing for a result that could be three months old — read
+                   as current by anyone deciding whether to trust the source. */
+                %>
+                Last test <%= new Date(c.lastTest.at).toISOString().slice(0, 10) %>
+                <strong class="<%= c.lastTest.ok ? 'li-ok' : 'li-bad' %>"><%= c.lastTest.ok ? 'succeeded' : 'failed' %></strong>
                 — <%= c.lastTest.detail || '' %>
               <% } else { %>
                 Never tested.
               <% } %>
             </p>
+          <% } %>
+
+          <%
+          /* The pipeline's own account of this source. A test is a thing
+             somebody pressed once; this is every scheduled attempt since, which
+             is what decides whether the numbers on the other screens are
+             current. Absent for a workspace the sync loop does not serve. */
+          %>
+          <% if (c.sync && (c.configured || (c.webhook && c.webhook.minted))) { %>
+            <div class="li-conn-sync li-conn-sync--<%= state %>">
+              <h4>Sync</h4>
+              <p>
+                <% if (!c.sync.lastSuccessAt) { %>
+                  <strong class="li-bad">No sync has ever succeeded.</strong>
+                <% } else { %>
+                  Last succeeded <%= new Date(c.sync.lastSuccessAt).toISOString().slice(0, 16).replace('T', ' ') %> UTC<%
+                    %><% if (c.sync.lagSeconds !== null) { %>, <%= lag(c.sync.lagSeconds) %> ago<% } %>.
+                  <%
+                  /* The single field that answers "is this figure real" — the
+                     README says so, and it was readable only as JSON. It leads
+                     rather than follows, because a fixture sync succeeds every
+                     time and its record count is fabricated: printing "8
+                     records" first and the caveat afterwards is the reassuring
+                     half of the sentence arriving first. */
+                  %>
+                  <% if (c.sync.transport === 'fixture') { %>
+                    <strong class="li-bad">Reading synthetic fixtures</strong>, not this vendor —
+                    the <%= c.sync.lastPulled %> record<%= c.sync.lastPulled === 1 ? '' : 's' %> it returned are made up.
+                  <% } else { %>
+                    It carried
+                    <strong class="<%= c.sync.lastPulled ? 'li-ok' : 'li-bad' %>"><%= c.sync.lastPulled %></strong>
+                    record<%= c.sync.lastPulled === 1 ? '' : 's' %><%
+                      %><% if (c.sync.lastPulled && c.sync.lastWritten === 0) { %>, none new since the previous sync<% } %>.
+                  <% } %>
+                <% } %>
+                Polled every <%= Math.round(c.sync.cadence.every / 60) %> min.
+              </p>
+
+              <% if (c.sync.lastError) { %>
+                <p class="li-conn-sync-err">
+                  <%
+                  /* "of the last attempts" named no window, so the number was
+                     unreadable — the run log reports failures within its recent
+                     window, which is what "recent" says without claiming a
+                     count it does not have. */
+                  %>
+                  <strong><%= c.sync.recentFailures %> recent attempt<%= c.sync.recentFailures === 1 ? '' : 's' %> failed.</strong>
+                  <%
+                  /* Verbatim. These messages are written to name the fix — a
+                     summarised version of "TeleCRM has a credential but no
+                     connector" is just "TeleCRM is broken", which sends
+                     somebody to re-paste a key that was never the problem. */
+                  %>
+                  <span><%= c.sync.lastError %></span>
+                </p>
+              <% } %>
+            </div>
           <% } %>
 
           <% if (c.streams) { %>

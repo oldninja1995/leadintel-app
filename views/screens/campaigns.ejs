@@ -73,10 +73,15 @@
                   <% }); %>
                 </tbody>
               </table>
-              <div style="margin-top:10px; padding:10px 12px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); border-radius:9px; display:flex; gap:9px; align-items:flex-start;">
-                <i class="ph-fill ph-sparkle" style="color:var(--color-accent-300); font-size:14px; margin-top:1px;"></i>
-                <span style="font-size:12px; color:var(--color-accent-200); line-height:1.5;">"Honeymoon lookalike 2%" is saturating (freq 4.2, CTR −31% in 10 days). Broaden to 4% lookalike or refresh creatives — projected CPL recovery ₹110.</span>
-              </div>
+              <%
+              /* An authored recommendation about a named ad set that saturated
+                 by a stated amount on a stated date. None of it came from
+                 anywhere — and a recommendation is the one thing on a screen a
+                 reader is meant to act on. */
+              %>
+              <% if (!adsetRows || !adsetRows.length) { %>
+                <%- include('../partials/no-data', { what: 'No ad sets.', needs: 'an ads connector that pulls ad-set rows' }) %>
+              <% } %>
             </div>
           <% } %>
 
@@ -131,6 +136,12 @@
                         <td style="padding:9px 0 9px 8px; text-align:right;"><span style="font-weight:500; font-variant-numeric:tabular-nums; color:<%= k.roasColor %>;"><%= k.roas %></span></td>
                       </tr>
                     <% }); %>
+                    <% if (!kwRows || !kwRows.length) { %>
+                      <%- include('../partials/no-data', {"what":"No keywords.","needs":"Google Ads"}) %>
+                    <% } %>
+                <% if (!adRows || !adRows.length) { %>
+                  <%- include('../partials/no-data', {"what":"No ads.","needs":"an ads connector that pulls ad rows"}) %>
+                <% } %>
                   </tbody>
                 </table>
               </div>
@@ -144,16 +155,18 @@
                       <span style="font-size:10px; border:1px solid var(--color-accent-800); color:var(--color-accent-300); border-radius:5px; padding:1px 7px; cursor:pointer;">+ Add</span>
                     </div>
                   <% }); %>
+                  <% if (!searchTerms || !searchTerms.length) { %>
+                    <%- include('../partials/no-data', {"what":"No search terms.","needs":"Google Ads"}) %>
+                  <% } %>
                 </div>
+                <%
+                /* Four invented negative keywords and a count of 48. Nothing
+                   reads a negative-keyword list from anywhere, so the panel
+                   states its absence rather than a number. */
+                %>
                 <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
-                  <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Negative keywords <span style="font-size:10.5px; color:var(--color-neutral-600);">· 48 active</span></div>
-                  <div style="display:flex; flex-wrap:wrap; gap:6px;">
-                    <span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:2.5px 9px; color:var(--color-neutral-500);">free stay</span>
-                    <span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:2.5px 9px; color:var(--color-neutral-500);">jobs</span>
-                    <span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:2.5px 9px; color:var(--color-neutral-500);">under 2000</span>
-                    <span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:99px; padding:2.5px 9px; color:var(--color-neutral-500);">hostel</span>
-                    <span style="font-size:10.5px; color:var(--color-accent-300); padding:2.5px 4px; cursor:pointer;">View all →</span>
-                  </div>
+                  <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Negative keywords</div>
+                  <%- include('../partials/no-data', { what: 'No negative keyword list.', needs: 'Google Ads' }) %>
                 </div>
               </div>
             </div>
@@ -163,27 +176,24 @@
           <!-- Campaign detail drill-down -->
           <% if (campDetail) { %>
             <div data-screen-label="Campaign detail">
+              <%
+              /* The header carried a health score of 92, an "Active" status, an
+                 objective, an "AI score A+", a daily budget with a pacing bar,
+                 and two sync ages — every one of them a constant in the markup,
+                 none of them about the campaign being viewed. The sync ages
+                 were the worst of them: they claimed a pipeline state while the
+                 real one, which the app has always known, lives on Connections.
+                 What is left is the campaign's own name, which is real. */
+              %>
               <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px; display:flex; align-items:center; gap:18px; margin-bottom:12px;">
-                <svg viewBox="0 0 64 64" style="width:58px; height:58px; flex:none;">
-                  <circle cx="32" cy="32" r="26" fill="none" stroke="var(--color-neutral-900)" stroke-width="6"></circle>
-                  <circle cx="32" cy="32" r="26" fill="none" stroke="var(--color-accent-400)" stroke-width="6" stroke-dasharray="150.3 163.4" stroke-linecap="round" transform="rotate(-90 32 32)"></circle>
-                  <text x="32" y="30" text-anchor="middle" fill="var(--color-neutral-200)" font-size="14" font-weight="500" font-family="Inter">92</text>
-                  <text x="32" y="42" text-anchor="middle" fill="var(--color-neutral-600)" font-size="7" font-family="Inter">HEALTH</text>
-                </svg>
                 <div style="flex:1; min-width:0;">
                   <div style="font-size:15.5px; font-weight:500; font-family:var(--font-heading); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= dName %></div>
-                  <div style="display:flex; align-items:center; gap:6px; margin-top:6px; flex-wrap:wrap;">
-                    <span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:2px 8px; color:var(--color-neutral-400);">Meta</span>
-                    <span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:2px 8px; color:<%= up %>;">● Active</span>
-                    <span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:2px 8px; color:var(--color-neutral-400);">Objective: Leads</span>
-                    <span style="font-size:10.5px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); border-radius:5px; padding:2px 8px; color:var(--color-accent-300);">AI score A+</span>
-                    <div style="display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--color-neutral-500);"><span>Budget ₹3,000/day</span><div style="width:70px; height:5px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:78%; border-radius:99px; background:var(--color-accent-500);"></div></div><span>78% paced</span></div>
+                  <div style="font-size:10.5px; color:var(--color-neutral-600); margin-top:5px;">
+                    Status, objective, budget and pacing are properties of the campaign object, which no connected source pulls yet.
                   </div>
                 </div>
-                <div style="flex:none; display:flex; flex-direction:column; gap:5px; font-size:10.5px; color:var(--color-neutral-500); border-left:1px solid var(--color-neutral-900); padding-left:16px;">
-                  <span style="display:flex; align-items:center; gap:6px;"><span style="width:6px;height:6px;border-radius:99px;background:<%= up %>;"></span>CRM synced 4 min ago</span>
-                  <span style="display:flex; align-items:center; gap:6px;"><span style="width:6px;height:6px;border-radius:99px;background:<%= up %>;"></span>Meta Ads synced 12 min ago</span>
-                  <span style="display:flex; align-items:center; gap:6px;"><i class="ph ph-database" style="font-size:11px;"></i>Business metrics from CRM/PMS</span>
+                <div style="flex:none; font-size:10.5px; color:var(--color-neutral-500); border-left:1px solid var(--color-neutral-900); padding-left:16px;">
+                  <a href="/connections" style="color:var(--color-accent-300); text-decoration:none; display:flex; align-items:center; gap:6px;"><i class="ph ph-pulse" style="font-size:12px;"></i>Sync status</a>
                 </div>
               </div>
               <div style="display:flex; gap:4px; margin-bottom:12px; border-bottom:1px solid var(--color-neutral-900);">
@@ -214,13 +224,14 @@
                 <div style="display:grid; grid-template-columns:1.7fr 1fr; gap:12px; margin-bottom:12px;">
                   <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;"><div style="font-size:13px; font-weight:500;">Revenue & reservations timeline</div><div style="flex:1;"></div><span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-400);"></span>Revenue</span><span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-2-600);"></span>Reservations</span></div>
-                    <svg viewBox="0 0 640 180" style="width:100%; height:180px;" preserveAspectRatio="none">
-                      <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="45" x2="640" y2="45"></line><line x1="0" y1="90" x2="640" y2="90"></line><line x1="0" y1="135" x2="640" y2="135"></line></g>
-                      <path d="M0,130 L46,118 L92,124 L138,100 L184,108 L230,84 L276,94 L322,70 L368,80 L414,56 L460,68 L506,44 L552,54 L598,30 L640,38 L640,180 L0,180 Z" fill="var(--color-accent-500)" opacity="0.12"></path>
-                      <path d="M0,130 L46,118 L92,124 L138,100 L184,108 L230,84 L276,94 L322,70 L368,80 L414,56 L460,68 L506,44 L552,54 L598,30 L640,38" fill="none" stroke="var(--color-accent-400)" stroke-width="2" stroke-linejoin="round"></path>
-                      <path d="M0,152 L46,146 L92,148 L138,138 L184,142 L230,130 L276,134 L322,122 L368,126 L414,114 L460,120 L506,108 L552,112 L598,102 L640,106" fill="none" stroke="var(--color-accent-2-500)" stroke-width="1.6" stroke-linejoin="round"></path>
-                    </svg>
-                    <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--color-neutral-700); padding:2px 2px 0;"><span>Jul 1</span><span>Jul 8</span><span>Jul 15</span><span>Jul 22</span><span>Jul 30</span></div>
+                    <%
+                    /* A rising two-series curve drawn as a literal path, with a
+                       Jul 1 – Jul 30 axis under it. It moved for no reason and
+                       never changed — including when the date range above it
+                       did. A chart that ignores the control next to it is worse
+                       than no chart. */
+                    %>
+                    <%- include('../partials/no-data', { what: 'No revenue timeline.', needs: 'a PMS for revenue and reservations' }) %>
                   </div>
                   <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px; display:flex; flex-direction:column;">
                     <div style="font-size:13px; font-weight:500; margin-bottom:10px;">Booking funnel</div>
@@ -231,6 +242,9 @@
                           <div style="height:8px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= s.w %>; border-radius:99px; background:linear-gradient(90deg, var(--color-accent-700), var(--color-accent-400));"></div></div>
                         </div>
                       <% }); %>
+                      <% if (!dFunnel || !dFunnel.length) { %>
+                        <%- include('../partials/no-data', {"what":"No funnel.","needs":"a CRM and a PMS for the stages below impressions"}) %>
+                      <% } %>
                     </div>
                   </div>
                 </div>
@@ -244,6 +258,9 @@
                         <span style="width:48px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= r.rev %></span>
                       </div>
                     <% }); %>
+                    <% if (!dRooms || !dRooms.length) { %>
+                      <%- include('../partials/no-data', {"what":"No room revenue.","needs":"a PMS"}) %>
+                    <% } %>
                   </div>
                   <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
                     <div style="font-size:13px; font-weight:500; margin-bottom:8px;">Revenue by package <span style="font-size:9px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); border-radius:4px; padding:1px 6px; color:var(--color-accent-300); margin-left:6px;">CRM</span></div>
@@ -254,6 +271,9 @@
                         <span style="width:48px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= r.rev %></span>
                       </div>
                     <% }); %>
+                    <% if (!dPkgs || !dPkgs.length) { %>
+                      <%- include('../partials/no-data', {"what":"No package revenue.","needs":"a CRM"}) %>
+                    <% } %>
                   </div>
                 </div>
               <% } %>
@@ -269,13 +289,12 @@
                       <% }); %>
                     </div>
                   </div>
-                  <svg viewBox="0 0 640 170" style="width:100%; height:170px;" preserveAspectRatio="none">
-                    <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="42" x2="640" y2="42"></line><line x1="0" y1="84" x2="640" y2="84"></line><line x1="0" y1="126" x2="640" y2="126"></line></g>
-                    <g fill="var(--color-accent-600)">
-                      <rect x="16" y="118" width="30" height="50" rx="4"></rect><rect x="70" y="104" width="30" height="64" rx="4"></rect><rect x="124" y="112" width="30" height="56" rx="4"></rect><rect x="178" y="88" width="30" height="80" rx="4"></rect><rect x="232" y="96" width="30" height="72" rx="4"></rect><rect x="286" y="72" width="30" height="96" rx="4"></rect><rect x="340" y="82" width="30" height="86" rx="4"></rect><rect x="394" y="58" width="30" height="110" rx="4"></rect><rect x="448" y="66" width="30" height="102" rx="4"></rect><rect x="502" y="44" width="30" height="124" rx="4"></rect>
-                    </g>
-                    <rect x="556" y="30" width="30" height="138" rx="4" fill="var(--color-accent-400)"></rect>
-                  </svg>
+                  <%
+                  /* Eleven bars at fixed heights, rising to a highlighted last
+                     one. Same objection as the timeline above: it described a
+                     trend nobody measured. */
+                  %>
+                  <%- include('../partials/no-data', { what: 'No revenue series.', needs: 'a PMS for folio revenue' }) %>
                   <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:12px; padding-top:12px; border-top:1px solid var(--color-neutral-900);">
                     <% (dRevStats || []).forEach(function (st) { %>
                       <div><div style="font-size:10px; color:var(--color-neutral-600); letter-spacing:.06em;"><%= st.label %></div><div style="font-size:15px; font-weight:500; margin-top:3px; font-variant-numeric:tabular-nums;"><%= st.value %></div></div>
@@ -301,6 +320,9 @@
                           <td style="padding:9px 0 9px 8px; text-align:right; color:var(--color-neutral-200); font-weight:500; font-variant-numeric:tabular-nums;"><%= r.rev %></td>
                         </tr>
                       <% }); %>
+                      <% if (!resRows || !resRows.length) { %>
+                        <%- include('../partials/no-data', {"what":"No reservations.","needs":"a PMS"}) %>
+                      <% } %>
                     </tbody>
                   </table>
                   <div style="font-size:10.5px; color:var(--color-neutral-600); padding-top:9px; border-top:1px solid var(--color-neutral-900);">Showing 5 of 94 confirmed · every reservation carries campaign, ad set, ad, UTM and sales-owner fields from the CRM</div>
@@ -323,6 +345,9 @@
                       </div>
                     </div>
                   <% }); %>
+                  <% if (!dAi || !dAi.length) { %>
+                    <%- include('../partials/no-data', {"what":"No insights.","needs":"enough connected history to derive one"}) %>
+                  <% } %>
                 </div>
               <% } %>
             </div>

@@ -16,6 +16,9 @@ const ingest = require('./lib/ingest');
 const { SyncRunner } = require('./lib/ingest/runner');
 const httpConnectors = require('./lib/ingest/http');
 const filters = require('./lib/filters');
+/* The design's own segmented-control colours, so a chip the server builds is
+   drawn exactly like the chips the converter emitted. */
+const tokens = require('./data/_tokens');
 const alerts = require('./lib/alerts');
 const commandPalette = require('./lib/palette');
 const identity = require('./lib/identity');
@@ -30,7 +33,7 @@ const { FireLog } = require('./lib/rules/firelog');
 const schedules = require('./lib/schedules');
 const auth = require('./lib/auth');
 const authSessions = require('./lib/auth/sessions');
-const { Connections } = require('./lib/connections');
+const { Connections, stateOf } = require('./lib/connections');
 const hardening = require('./lib/http/hardening');
 const observability = require('./lib/http/observability');
 
@@ -169,14 +172,59 @@ function fireDueRules({ at = new Date().toISOString(), workspace: workspaceId = 
    that is the distinction 5.2 exists to make, so it is threaded in here rather
    than being read by whichever module happens to want it. A screen with no
    model-dependent content simply ignores it. */
-const readParams = (query) => ({ ...(query || {}), model: workspace.model() });
+/* ── the date range control ─────────────────────────────────────────────────
+ *
+ * The chips were authored markup with no behaviour: `data/_shell.js` gave each
+ * one a colour and the topbar rendered `data-action=""`, so clicking 7d did
+ * nothing at all and the screen carried on showing every record the store held
+ * under a highlighted "30d". Decoration that looks like a control is worse than
+ * no control — it answers a question the reader asked, wrongly.
+ *
+ * The mechanism already existed on the metric side: a period narrows the
+ * entities and the whole dependency graph narrows with them. So this is a
+ * matter of reading the choice off the URL and handing it to both readers —
+ * the registry and the repository — rather than of computing anything new.
+ */
+const PERIOD_CHIPS = [
+  { id: 'today', label: 'Today' },
+  { id: '7d', label: '7d' },
+  { id: '30d', label: '30d' },
+  { id: '90d', label: '90d' },
+];
+
+/* Matches the chip the design draws as selected. Stated once: the default and
+   the highlight have to agree or the screen lies on first load. */
+const DEFAULT_PERIOD = '30d';
+
+/* The clock is read here, at the edge, and nowhere inside the metric layer —
+   6.2's reproducibility rests on evaluation being a pure function of what it
+   is given. An unknown period falls back rather than throwing: it arrives from
+   a URL, and a hand-edited query string should not be a 500. */
+function periodFor(query) {
+  const wanted = String((query || {}).period || DEFAULT_PERIOD);
+  const id = PERIOD_CHIPS.some((c) => c.id === wanted) ? wanted : DEFAULT_PERIOD;
+  try {
+    return { id, over: metrics.period.fromLabel(id, new Date().toISOString()) };
+  } catch (err) {
+    return { id: DEFAULT_PERIOD, over: null };
+  }
+}
+
+/* `over` travels with the read so the repository narrows the same rows the
+   registry does. Named apart from the raw `period` string the URL carries,
+   because one is a label and the other is a resolved window. */
+const readParams = (query) => ({ ...(query || {}), model: workspace.model(), over: periodFor(query).over });
 
 /* A screen may declare the grain its KPI cards are about — Campaign Analytics'
    drill-down is one campaign, not the workspace — and the registry is then
    evaluated there. See lib/metrics/scope.js. */
-function resolveMetrics(payload, workspaceId) {
+function resolveMetrics(payload, workspaceId, over = null) {
   const at = payload && payload.metricScope ? payload.metricScope : null;
-  const { values, notApplicable } = metricValues(workspaceId, at);
+  /* Evaluated over the selected range. A card that names its own period —
+     "New leads today" — still carries that period through `valuesFor`, and
+     keeps it: a card about today does not become a card about 90 days
+     because the chip above it moved. */
+  const { values, notApplicable } = metricValues(workspaceId, at, over);
   return resolve.resolve(payload, {
     values,
     notApplicable,
@@ -696,23 +744,40 @@ async function renderConnections(req, res, {
   const publicBase = process.env.LEADINTEL_PUBLIC_URL
     || (process.env.RAILWAY_PUBLIC_DOMAIN ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}` : null);
 
+  /* The sync loop serves one workspace, so its run log describes that
+     workspace's syncs and nobody else's. Shown only there: rendering it for a
+     second tenant would put one workspace's connector health on another's
+     screen, which is both wrong and a leak. That tenant sees exactly what it
+     saw before — webhook deliveries and nothing more. */
+  const syncing = req.workspace === SYNC_WORKSPACE;
+  const status = syncing ? new Map(runner.status().map((s) => [s.source, s])) : new Map();
+
   res.render('layout', {
     screen,
     screens: await repo.screens(),
-    shell: await shellData('connections', req.query),
+    shell: await shellData('connections', req.query, req.path, req.workspace),
     hasView: false,
     data: {
-      connections: connections.list(req.workspace).map((c) => ({
-        ...c,
-        /* Which sources can be *pushed to* at all. A poll-only source has no
-           intake, and offering a webhook URL for one would be an invitation to
-           configure something that can never fire. */
-        streams: (ingest.sources.get(c.source) || {}).cadence
-          ? ingest.sources.get(c.source).cadence.mode === 'stream'
-          : false,
-        webhook: webhookTokens.describe(req.workspace, c.source),
-        webhookUrl: publicBase ? `${publicBase}/ingest/webhook/${c.source}` : null,
-      })),
+      connections: connections.list(req.workspace).map((c) => {
+        const webhook = webhookTokens.describe(req.workspace, c.source);
+        const sync = status.get(c.source) || null;
+        return {
+          ...c,
+          /* Which sources can be *pushed to* at all. A poll-only source has no
+             intake, and offering a webhook URL for one would be an invitation to
+             configure something that can never fire. */
+          streams: (ingest.sources.get(c.source) || {}).cadence
+            ? ingest.sources.get(c.source).cadence.mode === 'stream'
+            : false,
+          webhook,
+          webhookUrl: publicBase ? `${publicBase}/ingest/webhook/${c.source}` : null,
+          /* What the pipeline knows about this source, brought to the screen
+             where somebody would act on it. Derived here rather than in the
+             template so the rule has a test. */
+          sync,
+          ...stateOf({ configured: c.configured, readable: c.readable, webhook, sync }),
+        };
+      }),
       publicBase,
       /* Shown once, immediately after minting, and never retrievable again. */
       mintedToken,
@@ -1369,13 +1434,78 @@ function hasView(view) {
   return fs.existsSync(path.join(__dirname, 'views', 'screens', `${view}.ejs`));
 }
 
-/* Chrome data: the repository supplies the date range and filter chips,
-   the route supplies the parts that are request state — which nav item is
-   active, whether the sidebar is open, whether the workspace menu is down. */
-async function shellData(activeSlug, query) {
+/* The chips, as links. `seg()` in data/_tokens.js still supplies the selected
+   and unselected colours, so the control looks exactly as the design draws it
+   — what changes is that it now goes somewhere. */
+function periodChips(query, path) {
+  const active = periodFor(query).id;
+  return PERIOD_CHIPS.map((chip) => {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(query || {})) {
+      if (key === 'period' || value === undefined) continue;
+      params.set(key, String(value));
+    }
+    params.set('period', chip.id);
+    return { label: chip.label, go: `${path}?${params.toString()}`, ...tokens.seg(chip.id === active) };
+  });
+}
+
+/* The window in words. It was hardcoded as "Jul 1 – Jul 30" — a date range
+   printed next to a range control, describing neither the data nor the
+   selection. Same day both ends means one day, and says so. */
+function rangeLabel(over) {
+  if (!over || !over.from) return 'All time';
+  const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+  const from = day(over.from);
+  const to = day(over.to);
+  return from === to ? from : `${from} – ${to}`;
+}
+
+/* How stale the two systems the chrome names actually are.
+ *
+ * The filter bar carried "CRM 4m · Ads 12m" behind a green dot on every screen
+ * — constants in the markup, green whatever the pipeline was doing. It sat
+ * above Campaign Analytics claiming a freshness while Google Ads had not synced
+ * in a day. The run log has always known the real figure. */
+function freshness(workspaceId) {
+  if (workspaceId !== SYNC_WORKSPACE) return null;
+
+  const status = new Map(runner.status().map((s) => [s.source, s]));
+  const say = (id) => {
+    const row = status.get(id);
+    if (!row || !row.lastSuccessAt) return { text: 'never', ok: false };
+    if (row.recentFailures > 0 || row.health === 'down') return { text: 'failing', ok: false };
+    return { text: shortLag(row.lagSeconds), ok: true };
+  };
+
+  const crm = say('telecrm');
+  const ads = say('meta_ads');
+  return { label: `CRM ${crm.text} · Ads ${ads.text}`, ok: crm.ok && ads.ok };
+}
+
+/* Compact enough to sit in a chip: "4m", "3h", "2d". */
+function shortLag(seconds) {
+  if (seconds === null || seconds === undefined) return '—';
+  if (seconds < 90) return `${seconds}s`;
+  if (seconds < 5400) return `${Math.round(seconds / 60)}m`;
+  if (seconds < 172800) return `${Math.round(seconds / 3600)}h`;
+  return `${Math.round(seconds / 86400)}d`;
+}
+
+/* Chrome data: the repository supplies the filter chips, the route supplies
+   the parts that are request state — which nav item is active, the selected
+   date range, whether the sidebar is open, whether the workspace menu is
+   down. */
+async function shellData(activeSlug, query, path = '/', workspaceId = null) {
   const content = (await repo.read('_shell', readParams(query))) || {};
   const shell = {
     ...content,
+    freshness: freshness(workspaceId),
+    /* The chips replace the authored ones. Each keeps the rest of the query —
+       a filter, a sub-view tab — because changing the date range should not
+       silently undo the other choices on screen. */
+    ranges: periodChips(query, path),
+    rangeLabel: rangeLabel(periodFor(query).over),
     navGroups: await repo.navigation(activeSlug),
     expanded: true,
     sidebarWidth: '214px',
@@ -1394,7 +1524,8 @@ function screenRoute(screen) {
 
       /* 6.4 — every KPI card that names a registry metric carries its
          definition from here on, whichever driver supplied the payload. */
-      const unfiltered = resolveMetrics((await repo.read(screen.view, readParams(req.query))) || {}, req.workspace);
+      const params = readParams(req.query);
+      const unfiltered = resolveMetrics((await repo.read(screen.view, params)) || {}, req.workspace, params.over);
 
       /* Filtering sits between the repository and the view: it narrows rows the
          repository returned rather than asking it a narrower question, because
@@ -1427,7 +1558,7 @@ function screenRoute(screen) {
       res.render('layout', {
         screen,
         screens: await repo.screens(),
-        shell: await shellData(screen.slug, req.query),
+        shell: await shellData(screen.slug, req.query, req.path, req.workspace),
         hasView: hasView(screen.view),
         data,
         drawer,

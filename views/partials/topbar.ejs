@@ -17,7 +17,7 @@
         <% (ranges || []).forEach(function (r) { %>
           <div class="hv-5" data-action="<%= r.go %>" style="padding:6px 11px; font-size:11.5px; cursor:pointer; color: <%= r.color %>; background: <%= r.bg %>; border-right:1px solid var(--color-neutral-900);"><%= r.label %></div>
         <% }); %>
-        <div class="hv-3" style="display:flex; align-items:center; gap:6px; padding:6px 11px; font-size:11.5px; color:var(--color-neutral-500); cursor:pointer;"><i class="ph ph-calendar-blank" style="font-size:13px;"></i>Jul 1 – Jul 30</div>
+        <div style="display:flex; align-items:center; gap:6px; padding:6px 11px; font-size:11.5px; color:var(--color-neutral-500);" title="The window the numbers on this screen are computed over"><i class="ph ph-calendar-blank" style="font-size:13px;"></i><%= typeof rangeLabel === 'string' ? rangeLabel : 'All time' %></div>
       </div>
       <div style="font-size:11px; flex:none; white-space:nowrap; color:var(--color-neutral-600); display:flex; align-items:center; gap:5px;"><i class="ph ph-arrows-left-right" style="font-size:12px;"></i>vs previous period</div>
       <div style="flex:1;"></div>

@@ -1,0 +1,28 @@
+<%
+/* A section with nothing real to show.
+ *
+ * The alternative this replaces is worse than an empty box: Campaign Analytics
+ * was authored from the design with plausible figures — named guests, keyword
+ * bids, a saturating lookalike — and under the ingested driver those stood
+ * beside genuinely ingested campaigns with nothing to tell them apart. A
+ * reader cannot audit what they cannot distinguish.
+ *
+ * So an empty section says what is missing and what would fill it. "No data"
+ * on its own reads as a fault in the app; naming the source turns it into an
+ * instruction. `needs` is a source somebody can go and connect, and the link
+ * goes where they would do it.
+ */
+const what = locals.what || 'This';
+const needs = locals.needs || null;
+%>
+<div style="padding:22px 16px; text-align:center; color:var(--color-neutral-600);">
+  <i class="ph ph-tray" style="font-size:20px; opacity:.75;"></i>
+  <div style="font-size:12px; margin-top:7px; line-height:1.55;">
+    <%= what %>
+    <% if (needs) { %>
+      <div style="font-size:11px; color:var(--color-neutral-700); margin-top:4px;">
+        Needs <%= needs %> — <a href="/connections" style="color:var(--color-accent-300); text-decoration:none;">connect it</a>.
+      </div>
+    <% } %>
+  </div>
+</div>
