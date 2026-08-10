@@ -152,3 +152,57 @@ test('the optional manager id may be omitted entirely', () => {
 test('a source with no checks stores as before', () => {
   assert.doesNotThrow(() => fresh().set('parakkat', 'pms', { baseUrl: 'https://pms.example', apiKey: 'k' }));
 });
+
+/* ── what the screen may show ────────────────────────────────────────────
+ *
+ * The line these hold: a *secret* never leaves the module, and a non-secret
+ * does. Hiding the non-secret ones had a cost — Google answering
+ * `deleted_client` means the stored OAuth client id no longer exists in the
+ * Cloud console, and a screen that shows neither value makes that impossible to
+ * see. A client id is public by construction; a client secret is not.
+ */
+
+test('a secret is never returned, however it is asked for', () => {
+  const store = fresh();
+  store.set('parakkat', 'google_ads', GOOGLE);
+  const described = store.describe('parakkat', 'google_ads');
+
+  const secrets = ['developerToken', 'refreshToken', 'clientSecret'];
+  for (const key of secrets) {
+    const field = described.fields.find((f) => f.key === key);
+    assert.equal(field.value, null, `${key} must not be rendered back`);
+    assert.equal(field.set, true, `${key} should still report as set`);
+  }
+
+  /* Belt and braces: the payload as a whole must not contain them anywhere. */
+  const text = JSON.stringify(described);
+  assert.ok(!text.includes(GOOGLE.clientSecret), 'the client secret leaked into describe()');
+  assert.ok(!text.includes(GOOGLE.refreshToken), 'the refresh token leaked into describe()');
+  assert.ok(!text.includes(GOOGLE.developerToken), 'the developer token leaked into describe()');
+});
+
+test('a non-secret field shows what is stored, so it can be compared', () => {
+  const store = fresh();
+  store.set('parakkat', 'google_ads', GOOGLE);
+  const described = store.describe('parakkat', 'google_ads');
+
+  const clientId = described.fields.find((f) => f.key === 'clientId');
+  assert.equal(clientId.value, GOOGLE.clientId);
+
+  const customerId = described.fields.find((f) => f.key === 'customerId');
+  assert.equal(customerId.value, GOOGLE.customerId);
+});
+
+test('an unset non-secret field has no value rather than an empty string', () => {
+  const store = fresh();
+  store.set('parakkat', 'google_ads', GOOGLE);
+  const manager = store.describe('parakkat', 'google_ads').fields.find((f) => f.key === 'loginCustomerId');
+  assert.equal(manager.set, false);
+  assert.equal(manager.value, null);
+});
+
+test('an unconfigured source reports no values at all', () => {
+  const described = fresh().describe('parakkat', 'google_ads');
+  assert.equal(described.configured, false);
+  for (const field of described.fields) assert.equal(field.value, null);
+});

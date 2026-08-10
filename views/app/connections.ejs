@@ -264,9 +264,18 @@ const openSource = canManage
                       <% if (f.set) { %><em class="li-conn-set">set</em><% } %>
                       <% if (f.optional) { %><em>optional</em><% } %>
                     </label>
+                    <%
+                    /* A non-secret field is prefilled with what is stored, so
+                       the screen can be compared against the vendor's console
+                       — which is the only way to catch a stale OAuth client id
+                       or an ad account id pasted from the wrong account. A
+                       secret stays blank and "leave blank to keep" still
+                       applies to it. */
+                    %>
                     <input id="<%= c.source %>-<%= f.key %>" name="<%= f.key %>"
                            type="<%= f.secret ? 'password' : 'text' %>"
                            autocomplete="off" spellcheck="false"
+                           <%= !f.secret && f.value ? 'value="' + f.value.replace(/"/g, '&quot;') + '"' : '' %>
                            placeholder="<%= f.set ? 'leave blank to keep' : (f.hint || '') %>">
                     <% if (f.hint && f.set) { %><small><%= f.hint %></small><% } %>
                   </div>
