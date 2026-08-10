@@ -88,9 +88,39 @@ function transportFor(sourceId) {
    assumption is visible instead of appearing three times as a literal. */
 const SYNC_WORKSPACE = 'parakkat';
 
+/* How much history a scheduled pull asks for.
+ *
+ * It used to ask for none, and a connector with no window falls back to its own
+ * cheap default — Meta's is `date_preset=last_30d`. That was invisible until the
+ * date-range chips started working: the store had never held more than thirty
+ * days, so **"90d" silently meant "everything we happen to have"** and read only
+ * ₹11,930 above the 30-day figure. A period control is worthless if the store
+ * cannot answer the longest period it offers.
+ *
+ * So the window is stated here rather than inherited: the *product* decides what
+ * history its screens need, and the connector's default goes back to being what
+ * it says it is — a cheap connection test. Re-pulling the same days every cycle
+ * is safe because the raw store keys rows by external id and a repeat is a
+ * no-op; it costs requests, not correctness. */
+const SYNC_LOOKBACK_DAYS = 90;
+
+/* Half-open, and `to` is the start of *tomorrow* — deliberately. Meta's `until`
+   is inclusive and `timeRange()` steps `to` back a day to bridge the two, so a
+   `to` of "now" would ask for everything up to yesterday and today's spend
+   would never arrive. The "Today" chip would then read ₹0 for ever, which is
+   the same class of quiet wrongness this window exists to fix. */
+function syncWindow(now = new Date()) {
+  const midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return {
+    from: new Date(midnight - (SYNC_LOOKBACK_DAYS - 1) * 86400000).toISOString(),
+    to: new Date(midnight + 86400000).toISOString(),
+  };
+}
+
 const runner = new SyncRunner({
   store: ingest.storeFor(SYNC_WORKSPACE),
   transportFor,
+  window: syncWindow,
   /* The ingested driver caches its snapshot of the raw store, so newly synced
      records are invisible to every screen until something drops that cache.
      Dropped here, on write, rather than per request: replaying the whole store
