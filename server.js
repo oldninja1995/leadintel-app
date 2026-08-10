@@ -1036,18 +1036,59 @@ const PREVIEW_FORMATS = new Set([
   'INSTAGRAM_STORY', 'INSTAGRAM_REELS',
 ]);
 
+/* Why the preview is not there, rendered *inside the frame*.
+ *
+ * Every failure on this route used to be `res.status(404).end()` — six of them,
+ * all empty, and none carrying the framing headers the success path sets. So
+ * the browser refused to display the error response as well, and the drawer
+ * showed a blank box whichever of the six things had gone wrong: no credential,
+ * an ad that is no longer in the store, Meta returning no preview body, a
+ * preview address that could not be parsed. Indistinguishable from each other
+ * and from a bug in the app.
+ *
+ * A frame whose whole purpose is to show something must therefore always show
+ * something. The status code is kept for anything reading this route as an API;
+ * what changes is that a person looking at the box can now read what happened.
+ */
+function previewProblem(res, status, what, fix) {
+  res.status(status);
+  res.setHeader('cache-control', 'no-store');
+  /* The same relaxation the success path needs, and for the same reason — an
+     explanation the browser refuses to render explains nothing. */
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
+  res.type('html').send(
+    '<!doctype html><html><body style="margin:0;height:100%;display:grid;place-items:center;'
+    + 'background:#14161f;font-family:Inter,system-ui,sans-serif;color:#8b8fa3;text-align:center">'
+    + '<div style="padding:20px;max-width:320px">'
+    + '<div style="font-size:13px;color:#c9ccd8;line-height:1.5">' + escapeHtml(what) + '</div>'
+    + (fix ? '<div style="font-size:11.5px;margin-top:7px;line-height:1.55">' + escapeHtml(fix) + '</div>' : '')
+    + '</div></body></html>'
+  );
+}
+
+const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+));
+
 app.get('/creatives/:adId/preview', async (req, res) => {
   let creative;
   try {
     creative = (entitiesFor(req.workspace).creatives || [])
       .find((c) => c.adId === req.params.adId);
   } catch (err) {
-    return res.status(503).end();
+    return previewProblem(res, 503, 'The ingested data could not be read, so this ad could not be looked up.', err.message);
   }
-  if (!creative) return res.status(404).end();
+  if (!creative) {
+    return previewProblem(res, 404, 'This ad is not in the store.',
+      'It falls outside the window the last sync pulled, or it has not been synced yet. Connections shows when Meta Ads last ran.');
+  }
 
   const credentials = connections.secretsFor(req.workspace, 'meta_ads');
-  if (!credentials || !credentials.accessToken) return res.status(404).end();
+  if (!credentials || !credentials.accessToken) {
+    return previewProblem(res, 404, 'No Meta Ads credential is stored.',
+      'The preview is fetched from Meta on each open, so it needs a connected account. Add one on Connections.');
+  }
 
   const format = PREVIEW_FORMATS.has(req.query.format) ? req.query.format : 'MOBILE_FEED_STANDARD';
 
@@ -1059,25 +1100,37 @@ app.get('/creatives/:adId/preview', async (req, res) => {
     const upstream = await fetch(url);
     const payload = await upstream.json().catch(() => null);
     const body = payload && payload.data && payload.data[0] && payload.data[0].body;
-    if (!body) return res.status(404).end();
+    if (!body) {
+      /* Meta's own words where it gave any — "(#100) Missing permission" and an
+         ad that simply has no renderable preview are different problems, and
+         only one of them is fixable by the reader. */
+      const said = payload && payload.error && (payload.error.error_user_msg || payload.error.message);
+      return previewProblem(res, 404,
+        said ? 'Meta refused the preview.' : 'Meta returned no preview for this ad.',
+        said || 'Some ad formats have no renderable preview. The metrics beside this are unaffected.');
+    }
 
     /* Meta answers with an `<iframe src="...">` rather than a URL, so the
        address is read out of it. Entities are decoded because the src arrives
        HTML-escaped inside that markup. */
     const match = /src="([^"]+)"/.exec(body);
-    if (!match) return res.status(404).end();
+    if (!match) {
+      return previewProblem(res, 404, 'Meta’s preview could not be read.',
+        'It answered with markup this app did not recognise — the shape of that reply has changed before.');
+    }
     const target = match[1].replace(/&amp;/g, '&');
 
     let parsed;
     try {
       parsed = new URL(target);
     } catch (err) {
-      return res.status(404).end();
+      return previewProblem(res, 404, 'Meta’s preview address could not be parsed.', err.message);
     }
     /* Only the hosts the policy frames. A preview address from anywhere else is
        not a preview. */
     if (parsed.protocol !== 'https:' || !/(^|.)facebook.com$/i.test(parsed.hostname)) {
-      return res.status(404).end();
+      return previewProblem(res, 404, 'The preview address was not a Meta one, so it was refused.',
+        'Only https on facebook.com is framed — the content policy names those hosts and nothing else.');
     }
 
     /* Never cached: the token in it expires, and a stale redirect renders as an
@@ -1101,7 +1154,8 @@ app.get('/creatives/:adId/preview', async (req, res) => {
 
     return res.redirect(302, parsed.toString());
   } catch (err) {
-    return res.status(502).end();
+    /* The last silent one: Meta unreachable, DNS, TLS, timeout. */
+    return previewProblem(res, 502, 'Meta could not be reached for this preview.', err.message);
   }
 });
 
