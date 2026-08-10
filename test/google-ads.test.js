@@ -240,3 +240,55 @@ test('a metric absent entirely is unknown, not zero', () => {
 test('both ad platforms now have a request shape', () => {
   assert.deepEqual(httpConnectors.list().sort(), ['google_ads', 'meta_ads']);
 });
+
+/* ── OAuth refusals, each of which is repaired somewhere different ────────
+ *
+ * These arrive as a single word from Google. Echoed alone they send somebody to
+ * search results; `deleted_client` in particular is not about the token at all —
+ * the client is gone, so re-minting against the old one fails identically, which
+ * is exactly the loop a bare error code invites.
+ */
+
+const oauthRefusal = (error) => ({
+  ok: false,
+  status: 400,
+  json: async () => ({ error }),
+});
+
+const exchangeWith = (error) => google.accessTokenFor(
+  { clientId: 'c.apps.googleusercontent.com', clientSecret: 's', refreshToken: '1//r' },
+  async () => oauthRefusal(error),
+);
+
+test('deleted_client says the client is gone, not the token', async () => {
+  google.clearTokenCache();
+  await assert.rejects(exchangeWith('deleted_client'), /no longer exists.*all three/s);
+});
+
+test('invalid_client names the id and secret as a matched pair', async () => {
+  google.clearTokenCache();
+  await assert.rejects(exchangeWith('invalid_client'), /matched pair/);
+});
+
+test('unauthorized_client names the client type', async () => {
+  google.clearTokenCache();
+  await assert.rejects(exchangeWith('unauthorized_client'), /Desktop app/);
+});
+
+test('access_denied names the test-user list', async () => {
+  google.clearTokenCache();
+  await assert.rejects(exchangeWith('access_denied'), /Test users/);
+});
+
+/* The one everybody hits must keep its existing wording. */
+test('invalid_grant still says the token must be generated again', async () => {
+  google.clearTokenCache();
+  await assert.rejects(exchangeWith('invalid_grant'), /generated again/);
+});
+
+/* An error nobody has written a hint for must still name itself rather than
+   being swallowed into a generic sentence. */
+test('an unrecognised refusal still carries Google’s own code', async () => {
+  google.clearTokenCache();
+  await assert.rejects(exchangeWith('some_new_error'), /some_new_error/);
+});
