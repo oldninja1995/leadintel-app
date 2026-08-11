@@ -299,3 +299,14 @@ test('a picked range has a previous period like any other', () => {
      31 May — not 1 June, which would be 30 and would compare unequal lengths. */
   assert.equal(before.from, '2026-05-31T00:00:00.000Z');
 });
+
+test('two picked ranges are not the same window', () => {
+  const june = period.fromRange('2026-06-01', '2026-06-30');
+  const july = period.fromRange('2026-07-01', '2026-07-31');
+
+  /* Both were labelled "custom", and the metric cache keyed on the label — so
+     June and July shared an entry and the second range asked for answered with
+     the first one's figures, to the rupee. */
+  assert.notEqual(june.label, july.label);
+  assert.notEqual(`${june.from}..${june.to}`, `${july.from}..${july.to}`);
+});

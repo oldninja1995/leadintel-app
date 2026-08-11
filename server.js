@@ -364,7 +364,13 @@ function metricValues(workspaceId, at = null, over = null) {
   /* The workspace is part of the cache key, not an afterthought — two tenants
      sharing a cache entry would be the same leak the partitioned store exists
      to prevent, arriving by a different door. */
-  const key = `${workspaceId}|${at ? `${at.dimension}:${at.value}` : ''}|${over ? over.label || `${over.from}..${over.to}` : ''}`;
+  /* Keyed by the window's *bounds*, never by its label. It used to prefer the
+     label, which is fine while every label names one window and silently wrong
+     the moment two do not: every range from the date picker was labelled
+     "custom", so June and July shared a cache entry and the second one asked
+     for answered with the first one's figures — to the rupee, which is exactly
+     how it looked correct. A window is its bounds; the label is a caption. */
+  const key = `${workspaceId}|${at ? `${at.dimension}:${at.value}` : ''}|${over ? `${over.from}..${over.to}` : ''}`;
   if (Date.now() - evaluated.stamp > METRIC_TTL) evaluated = { stamp: Date.now(), byGrain: new Map() };
   if (evaluated.byGrain.has(key)) return evaluated.byGrain.get(key);
 
