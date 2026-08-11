@@ -20,7 +20,20 @@ const path = require('path');
 
 const { LITERAL_BINDINGS, bindLiterals } = require('./literal-bindings');
 
-const VIEWS = path.join(__dirname, '..', 'views', 'screens');
+/* Screens *and* partials. The converter generates both and the project forbids
+   hand-editing either, but this only ever looked in `views/screens/` — so a
+   literal in the filter bar or the topbar had no way to be bound at all, and
+   the only ways left were to edit generated markup or to leave the control
+   broken. A binding names the file; where it lives is this file's problem. */
+const ROOTS = [
+  path.join(__dirname, '..', 'views', 'screens'),
+  path.join(__dirname, '..', 'views', 'partials'),
+];
+
+const locate = (screen) => ROOTS
+  .map((root) => path.join(root, `${screen}.ejs`))
+  .find((file) => fs.existsSync(file));
+
 const check = process.argv.includes('--check');
 
 const screens = [...new Set(LITERAL_BINDINGS.map((b) => b.screen))];
@@ -28,9 +41,9 @@ let bound = 0;
 let unbound = 0;
 
 for (const screen of screens) {
-  const file = path.join(VIEWS, `${screen}.ejs`);
-  if (!fs.existsSync(file)) {
-    console.warn(`skipped ${screen}: no generated view at ${path.relative(process.cwd(), file)}`);
+  const file = locate(screen);
+  if (!file) {
+    console.warn(`skipped ${screen}: no generated view for it under views/`);
     continue;
   }
 

@@ -526,6 +526,24 @@ const LITERAL_BINDINGS = [
     removes: true,
     why: 'the link had no destination — there is no full-funnel screen',
   },
+
+  /* "Add filter" offered a filter to add and had none. The design draws it in
+     the filter bar with no `onClick`, so it carried no `data-action` and
+     clicking it did nothing — confirmed by clicking it in a browser on the
+     deployed site.
+
+     It cannot be wired, because there is nothing for it to open: the bar
+     already renders a chip for every dimension `lib/filters.js` defines —
+     property, channel, campaign, room type — plus the inert booking window. A
+     menu here would always say "nothing to add", which is a worse control than
+     no control. The chips beside it work; this one goes. */
+  {
+    screen: 'filterbar',
+    find: '<div class="hv-2" style="flex:none; display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--color-neutral-500); cursor:pointer; padding:4.5px 8px; border-radius:99px;"><i class="ph ph-plus-circle" style="font-size:13px;"></i>Add filter</div>',
+    replace: '',
+    removes: true,
+    why: 'every dimension the product has is already a chip — it could add nothing',
+  },
 ];
 
 function bindLiterals(html, screen, { onBind } = {}) {
