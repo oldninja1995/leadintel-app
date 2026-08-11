@@ -58,7 +58,7 @@ function entitiesFor(workspaceId) {
      computed over invented rows the table below it no longer shows. */
   return ingest.snapshot({
     store: ingest.storeFor(workspaceId),
-    connected: connections.configured(workspaceId),
+    connected: ingest.liveSources({ connections, workspace: workspaceId, httpConnectors }),
   });
 }
 

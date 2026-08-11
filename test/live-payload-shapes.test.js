@@ -222,3 +222,33 @@ test('the transport is recorded on what a sync writes', () => {
   const [written] = store.append('meta_ads', [metaDay('c', '2026-08-01', 10, 1)], { transport: 'http' });
   assert.equal(written.transport, 'http');
 });
+
+/* ── which sources may still serve demo data ────────────────────────────── */
+
+const ingest = require('../lib/ingest');
+
+/* The rule has to match `transportFor` in server.js: a source pulling for real
+   while its fixtures keep replaying is the state that put three invented
+   campaigns at the top of Campaign Analytics. */
+test('forcing the http transport retires demo data everywhere', () => {
+  const live = ingest.liveSources({ forced: 'http' });
+
+  for (const source of ingest.sources.list()) {
+    assert.ok(live.has(source.id), `${source.id} would still serve fixtures in production`);
+  }
+});
+
+test('a local run with no forced transport keeps demo mode', () => {
+  const live = ingest.liveSources({ forced: undefined, connections: null, workspace: null });
+  assert.equal(live.size, 0);
+});
+
+test('without a forced transport only connected sources retire theirs', () => {
+  const live = ingest.liveSources({
+    forced: undefined,
+    connections: { configured: () => new Set(['meta_ads']) },
+    workspace: 'parakkat',
+  });
+
+  assert.deepEqual([...live], ['meta_ads']);
+});
