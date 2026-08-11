@@ -418,3 +418,80 @@ test('a stacked ad set is named by its largest pool, not by all of them', () => 
   /* The larger, older pool — the one the ad set actually delivers to. */
   assert.equal(row.audience, '50% Watchers 60 days +1 more');
 });
+
+/* ── the Ads tab ────────────────────────────────────────────────────────── */
+
+/* Same story as the Ad sets tab: `creatives` is already a canonical collection
+   joining the ads edge to ad-level insights — the Creative Intelligence screen
+   reads it — and the campaign screen's Ads tab declined anyway. */
+
+const adEntities = () => {
+  const canonical = require('../lib/ingest/canonical');
+  const adDay = (id, name, date, spend, impr, clicks) => ({
+    source: 'meta_ads', kind: 'ad_day', externalId: `${id}:${date}`,
+    body: {
+      ad_id: id, ad_name: name, adset_id: 'AS1', date_start: date, account_currency: 'INR',
+      spend: String(spend), impressions: String(impr), clicks: String(clicks),
+    },
+  });
+
+  return canonical.build([
+    {
+      source: 'meta_ads', kind: 'creative', externalId: 'AD1',
+      body: { id: 'AD1', name: 'Monsoon 15s', object_type: 'VIDEO', image_url: 'https://x/i.jpg' },
+    },
+    {
+      source: 'meta_ads', kind: 'creative', externalId: 'AD2',
+      body: { id: 'AD2', name: 'Cliff villa still', object_type: 'PHOTO' },
+    },
+    adDay('AD1', 'Monsoon 15s', '2026-08-01', 900, 30000, 450),
+    adDay('AD1', 'Monsoon 15s', '2026-08-02', 1100, 34000, 520),
+    adDay('AD2', 'Cliff villa still', '2026-08-01', 400, 12000, 150),
+  ]);
+};
+
+test('an ad becomes a card, with its days totalled', () => {
+  const { adRows } = PROJECTIONS.campaigns(adEntities(), {});
+
+  assert.equal(adRows.length, 2);
+  assert.equal(adRows[0].name, 'Monsoon 15s');
+  assert.equal(adRows[0].spend, '₹2,000');
+  assert.equal(adRows[0].ctr, '1.52%');
+});
+
+test('the biggest spender is first, and nothing is truncated', () => {
+  const { adRows } = PROJECTIONS.campaigns(adEntities(), {});
+  const spends = adRows.map((a) => a.spend);
+
+  assert.deepEqual(spends, ['₹2,000', '₹400']);
+  assert.equal(adRows.length, 2, 'the design draws three cards; the account decides how many exist');
+});
+
+test('a video and an image are told apart by Meta’s own object type', () => {
+  const { adRows } = PROJECTIONS.campaigns(adEntities(), {});
+
+  assert.equal(adRows.find((a) => a.name === 'Monsoon 15s').type, 'Video');
+  assert.equal(adRows.find((a) => a.name === 'Cliff villa still').type, 'Image');
+});
+
+test('a still is proxied into the card, and an ad without one keeps the gradient', () => {
+  const { adRows } = PROJECTIONS.campaigns(adEntities(), {});
+
+  assert.match(adRows.find((a) => a.name === 'Monsoon 15s').grad, /^url\('\/creatives\/AD1\/thumbnail\?v=/);
+  /* Degrades to a coloured card rather than to a broken-image icon. */
+  assert.match(adRows.find((a) => a.name === 'Cliff villa still').grad, /^linear-gradient/);
+});
+
+test('ad copy and engagement are declined, not invented', () => {
+  const { adRows } = PROJECTIONS.campaigns(adEntities(), {});
+
+  for (const ad of adRows) {
+    /* The copy lives in `object_story_spec`, which no request asks for. */
+    assert.equal(ad.body, NONE);
+    assert.equal(ad.cta, NONE);
+    assert.equal(ad.comments, NONE);
+    assert.equal(ad.shares, NONE);
+    assert.equal(ad.freq, NONE);
+    assert.equal(ad.rev, NONE);
+  }
+});
