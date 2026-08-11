@@ -537,3 +537,40 @@ test('when nothing was measured the ads still show, rather than reading as broke
   assert.equal(adRows.length, 1, 'an empty tab would read as a broken connection');
   assert.equal(adRows[0].spend, NONE);
 });
+
+/* ── the Marketing Dashboard's funnel ───────────────────────────────────── */
+
+/* It read 48.2L impressions and 2,554 leads under a KPI row saying 23,24,542 —
+   the same page contradicting itself — and said the same thing with the range
+   set to "today", when the real figure for today was zero. */
+
+test('the funnel is computed from the same rows as the tiles above it', () => {
+  const { mktFunnel } = PROJECTIONS.marketing(entities());
+  const by = Object.fromEntries(mktFunnel.map((s) => [s.label, s]));
+
+  /* 141900 + 148200 + 14100 impressions, 2980 + 3140 + 1640 clicks. */
+  assert.equal(by.Impressions.n, '3.0L');
+  assert.equal(by.Impressions.pct, '100%');
+  assert.equal(by.Clicks.n, '7,760');
+  assert.equal(by.Clicks.pct, '2.55%');
+});
+
+test('the funnel empties with the date range instead of standing still', () => {
+  const empty = { ...entities(), campaignDays: [], bookings: [] };
+  const { mktFunnel } = PROJECTIONS.marketing(empty);
+
+  for (const s of mktFunnel) {
+    assert.equal(s.n, NONE, `${s.label} still reported a figure with no rows behind it`);
+    assert.equal(s.w, '0%', `${s.label} still drew a bar`);
+  }
+});
+
+test('stages no source defines decline rather than reading zero', () => {
+  const { mktFunnel } = PROJECTIONS.marketing(entities());
+  const by = Object.fromEntries(mktFunnel.map((s) => [s.label, s]));
+
+  /* A lead stage is a CRM concept and no registry metric filters by one. */
+  assert.equal(by.Qualified.n, NONE);
+  /* One booking in the fixture entities, reached through its lead. */
+  assert.equal(by.Bookings.n, '1');
+});

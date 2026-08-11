@@ -511,6 +511,21 @@ const LITERAL_BINDINGS = [
     replace: '><%= attrSankeyTotal %><',
     why: 'booking node — total credited revenue under the model in force',
   },
+
+  /* A link to a screen that does not exist. The design draws "Full funnel →"
+     beside the Marketing Dashboard's funnel and gives it `href="#"`, so it
+     reads as a way to open something and is not one — clicking it jumps to the
+     top of the page, which is indistinguishable from the app being broken.
+     There is no full-funnel view to point it at: the design declares none, and
+     inventing a destination is a bigger lie than removing the invitation.
+     The funnel itself stays; only the promise of more goes. */
+  {
+    screen: 'marketing',
+    find: '<a href="#" style="font-size:11px;">Full funnel →</a>',
+    replace: '',
+    removes: true,
+    why: 'the link had no destination — there is no full-funnel screen',
+  },
 ];
 
 function bindLiterals(html, screen, { onBind } = {}) {

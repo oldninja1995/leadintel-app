@@ -74,6 +74,16 @@ test('every binding names a screen, a reason, and an expression', () => {
      * becomes a player — so requiring the *entire* tag to be nothing but a
      * dotted path rejected exactly the bindings that read the most data. What
      * matters is that data is read, not how plainly. */
+    /* A binding may instead *remove* markup — the design draws controls that
+       lead nowhere, and a dead affordance is a conversion concern in the same
+       way a hardcoded figure is. It has to say so: `removes: true` and an empty
+       replacement, so that deleting part of a screen is always deliberate and
+       never a binding whose expression somebody forgot to write. */
+    if (binding.removes) {
+      assert.equal(binding.replace, '', `${binding.find} is marked as a removal but replaces with something`);
+      continue;
+    }
+
     assert.match(binding.replace, /<%=[^%]*[A-Za-z_$][\w.$]*/, `${binding.find} does not bind to an expression`);
   }
 });
