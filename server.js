@@ -241,6 +241,11 @@ const DEFAULT_PERIOD = '30d';
    is given. An unknown period falls back rather than throwing: it arrives from
    a URL, and a hand-edited query string should not be a 500. */
 function periodFor(query) {
+  /* A custom range from the date control, which the four chips cannot express.
+     Parsed in lib/metrics/period.js, where the half-open rule lives. */
+  const custom = metrics.period.fromRange((query || {}).from, (query || {}).to);
+  if (custom) return { id: 'custom', over: custom };
+
   const wanted = String((query || {}).period || DEFAULT_PERIOD);
   const id = PERIOD_CHIPS.some((c) => c.id === wanted) ? wanted : DEFAULT_PERIOD;
   try {
@@ -1602,7 +1607,11 @@ function periodChips(query, path) {
   return PERIOD_CHIPS.map((chip) => {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(query || {})) {
-      if (key === 'period' || value === undefined) continue;
+      /* A chip clears a custom range as well as the previous chip. Leaving
+         `from`/`to` behind would put two answers to the same question in one
+         URL, and `periodFor` prefers the custom one — so the chip would appear
+         selected while the numbers stayed on the old range. */
+      if (key === 'period' || key === 'from' || key === 'to' || value === undefined) continue;
       params.set(key, String(value));
     }
     params.set('period', chip.id);
@@ -1616,8 +1625,14 @@ function periodChips(query, path) {
 function rangeLabel(over) {
   if (!over || !over.from) return 'All time';
   const day = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+
+  /* The last day the window actually covers, not the exclusive end. Windows are
+     half-open, so a range picked as "1 Jul – 31 Jul" ends at midnight on 1 Aug
+     — printing that raw told the reader their range ran to a day it excludes.
+     A preset is unaffected: its end is a moment inside today, and a millisecond
+     before it is still today. */
   const from = day(over.from);
-  const to = day(over.to);
+  const to = day(new Date(Date.parse(over.to) - 1).toISOString());
   return from === to ? from : `${from} – ${to}`;
 }
 

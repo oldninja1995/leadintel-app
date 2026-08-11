@@ -121,6 +121,31 @@
 .li-menu button[aria-checked="true"] i { opacity: 1; }
 .li-menu-inert { padding: 8px 9px; font-size: 11px; color: var(--color-neutral-600); line-height: 1.5; }
 
+/* — the date range picker —
+   The topbar's calendar control had no menu of its own: the design draws it as
+   a label, so the four preset chips were the only ranges the product could
+   express. This is the popover the enhancement attaches to it. */
+.li-range { min-width: 214px; padding: 10px; display: grid; gap: 8px; }
+.li-range label {
+  display: grid; gap: 4px; font-size: 11px; color: var(--color-neutral-500);
+}
+.li-range input[type="date"] {
+  font: inherit; font-size: 12px; color: var(--color-neutral-200);
+  background: var(--color-neutral-900); border: 1px solid var(--color-neutral-800);
+  border-radius: 6px; padding: 6px 8px;
+  /* The native picker indicator is near-black on a dark surface. */
+  color-scheme: dark;
+}
+.li-range input[type="date"]:focus-visible { outline: 2px solid var(--color-accent-600); outline-offset: 1px; }
+.li-range button {
+  justify-content: center; background: var(--color-accent-900);
+  color: var(--color-accent-300); border: 1px solid var(--color-accent-800);
+}
+.li-range button:hover { background: var(--color-accent-800); }
+/* Named rather than silently corrected — swapping the dates for the reader
+   would answer a question they did not ask. */
+.li-range p { margin: 0; font-size: 11px; color: var(--c-down); }
+
 /* An active chip is marked in the design's own chip markup, which this file
    cannot edit — so the state is carried by a class the enhancement adds. */
 .li-chip-active { border-color: var(--color-accent-800) !important; background: var(--color-accent-900); }

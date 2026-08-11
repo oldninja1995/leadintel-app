@@ -260,3 +260,42 @@ test('all time has nothing before it', () => {
   assert.equal(period.previous({ from: null, to: null }), null);
   assert.equal(period.previous({ from: '2026-08-11', to: '2026-08-11' }), null, 'a zero-length window');
 });
+
+/* ── a range the reader picked ──────────────────────────────────────────── */
+
+/* The topbar's calendar was a read-only label wearing the icon of a control:
+   clicking it did nothing, and the four preset chips were the only ranges the
+   product could express. This is what the picker sends. */
+
+test('a picked range covers the last day the reader chose', () => {
+  const over = period.fromRange('2026-07-01', '2026-07-31');
+
+  assert.equal(over.from, '2026-07-01T00:00:00.000Z');
+  /* Half-open, so the end is advanced by a day. Dropping the 31st is the same
+     inclusive-`until` trap both ad connectors had to solve. */
+  assert.equal(over.to, '2026-08-01T00:00:00.000Z');
+  assert.ok(period.inRange('2026-07-31T09:00:00.000Z', over.from, over.to), 'the last day fell outside its own range');
+});
+
+test('a single day is a range of one day', () => {
+  const over = period.fromRange('2026-07-15', '2026-07-15');
+  assert.ok(period.inRange('2026-07-15T23:59:00.000Z', over.from, over.to));
+  assert.ok(!period.inRange('2026-07-16T00:00:00.000Z', over.from, over.to));
+});
+
+test('anything unparseable or backwards declines rather than guessing', () => {
+  assert.equal(period.fromRange('yesterday', '2026-07-31'), null);
+  assert.equal(period.fromRange('2026-07-01', ''), null);
+  assert.equal(period.fromRange('2026-07-01T00:00:00Z', '2026-07-31'), null, 'a full timestamp is not a picked day');
+  /* Swapping them for the reader would answer a question they did not ask. */
+  assert.equal(period.fromRange('2026-07-31', '2026-07-01'), null);
+});
+
+test('a picked range has a previous period like any other', () => {
+  const before = period.previous(period.fromRange('2026-07-01', '2026-07-31'));
+
+  assert.equal(before.to, '2026-07-01T00:00:00.000Z', 'it ends where the picked range begins');
+  /* July has 31 days, so the window is 31 long and the one before it starts on
+     31 May — not 1 June, which would be 30 and would compare unequal lengths. */
+  assert.equal(before.from, '2026-05-31T00:00:00.000Z');
+});

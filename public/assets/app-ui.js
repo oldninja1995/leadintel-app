@@ -235,6 +235,82 @@
     });
   }
 
+  /* ── The date range ───────────────────────────────────────────────────── */
+
+  /* The topbar draws a calendar icon and a range — "12 Jul – 11 Aug" — beside
+   * the four preset chips. The design gives it no `onClick`, so there is no
+   * `data-action` for the converter to preserve, and it has always been a
+   * read-only label wearing the icon of a control. Clicking it did nothing,
+   * which is indistinguishable from the app being broken, and the four chips
+   * were the only ranges the product could express.
+   *
+   * Found by its calendar icon, the same way presentation mode finds its three
+   * controls, so the generated markup is left alone.
+   *
+   * `to` is the last day the reader means. The server advances it by one,
+   * because windows there are half-open — picking "1 Jul – 31 Jul" and silently
+   * dropping the 31st is the same inclusive-`until` trap both ad connectors had
+   * to solve.
+   */
+  function enhanceRange() {
+    const icon = document.querySelector('.ph-calendar-blank');
+    const control = icon && icon.parentElement;
+    if (!control) return;
+
+    control.style.cursor = 'pointer';
+    control.setAttribute('role', 'button');
+    control.setAttribute('aria-haspopup', 'dialog');
+    control.title = 'Choose a date range';
+
+    const now = new URLSearchParams(window.location.search);
+
+    control.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      ev.preventDefault();
+      if (menu) { closeMenu(); return; }
+
+      closeMenu();
+      menu = document.createElement('div');
+      menu.className = 'li-menu li-range';
+      menu.setAttribute('role', 'dialog');
+      menu.setAttribute('aria-label', 'Date range');
+      menu.innerHTML =
+        '<label>From<input type="date" data-range="from" value="' + (now.get('from') || '') + '"></label>' +
+        '<label>To<input type="date" data-range="to" value="' + (now.get('to') || '') + '"></label>' +
+        '<p data-range="error" hidden></p>' +
+        '<button type="button" data-range="apply">Apply</button>';
+
+      const box = control.getBoundingClientRect();
+      menu.style.top = (box.bottom + 6) + 'px';
+      menu.style.left = Math.max(8, Math.min(box.left, window.innerWidth - 230)) + 'px';
+      document.body.appendChild(menu);
+
+      const field = (name) => menu.querySelector('[data-range="' + name + '"]');
+      const error = field('error');
+
+      const apply = () => {
+        const from = field('from').value;
+        const to = field('to').value;
+        /* Said rather than silently corrected: swapping the two for the reader
+           would answer a question they did not ask. */
+        if (!from || !to) { error.textContent = 'Pick both dates.'; error.hidden = false; return; }
+        if (from > to) { error.textContent = 'The first date must come first.'; error.hidden = false; return; }
+
+        const params = new URLSearchParams(window.location.search);
+        /* A custom range replaces the chip selection rather than sitting beside
+           it, or the URL would carry two answers to the same question. */
+        params.delete('period');
+        params.set('from', from);
+        params.set('to', to);
+        window.location.href = window.location.pathname + '?' + params.toString();
+      };
+
+      field('apply').addEventListener('click', apply);
+      menu.addEventListener('keydown', (e) => { if (e.key === 'Enter') apply(); });
+      field('from').focus();
+    });
+  }
+
   function enhanceChips() {
     const funnel = document.querySelector('.ph-funnel-simple');
     const bar = funnel && funnel.parentElement;
@@ -395,6 +471,7 @@
 
   syncBadge();
   enhanceChips();
+  enhanceRange();
   enhanceSort('li-sort-data', 'Sort:');
   enhanceSort('li-goal-data', 'Judge by:');
   wirePresentation();
