@@ -495,3 +495,45 @@ test('ad copy and engagement are declined, not invented', () => {
     assert.equal(ad.rev, NONE);
   }
 });
+
+test('the Ads tab shows only ads something measured, as the leaderboard does', () => {
+  const canonical = require('../lib/ingest/canonical');
+  const e = canonical.build([
+    {
+      source: 'meta_ads', kind: 'creative', externalId: 'RAN',
+      body: { id: 'RAN', name: 'Ran this month', object_type: 'VIDEO' },
+    },
+    /* Meta's ads edge answers with every ad ever created. This one has no
+       insight rows, which is out-of-window rather than broken — 1,560 of these
+       put 6 MB of "—" on the page. */
+    {
+      source: 'meta_ads', kind: 'creative', externalId: 'OLD',
+      body: { id: 'OLD', name: 'Ran in 2024', object_type: 'PHOTO' },
+    },
+    {
+      source: 'meta_ads', kind: 'ad_day', externalId: 'RAN:2026-08-01',
+      body: {
+        ad_id: 'RAN', ad_name: 'Ran this month', date_start: '2026-08-01',
+        account_currency: 'INR', spend: '900', impressions: '30000', clicks: '450',
+      },
+    },
+  ]);
+
+  const { adRows } = PROJECTIONS.campaigns(e, {});
+  assert.deepEqual(adRows.map((a) => a.name), ['Ran this month']);
+  assert.equal((e.creatives || []).length, 2, 'the unmeasured ad stays in the entities');
+});
+
+test('when nothing was measured the ads still show, rather than reading as broken', () => {
+  const canonical = require('../lib/ingest/canonical');
+  const e = canonical.build([
+    {
+      source: 'meta_ads', kind: 'creative', externalId: 'OLD',
+      body: { id: 'OLD', name: 'Ran in 2024', object_type: 'PHOTO' },
+    },
+  ]);
+
+  const { adRows } = PROJECTIONS.campaigns(e, {});
+  assert.equal(adRows.length, 1, 'an empty tab would read as a broken connection');
+  assert.equal(adRows[0].spend, NONE);
+});
