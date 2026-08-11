@@ -1718,14 +1718,36 @@ function shortLag(seconds) {
  *
  * Initials for the same reason the pipeline avatar takes them: it is a
  * 32-pixel circle, and a name does not fit in one. */
+/* What a permission means, said the way a person would say it. The grant ids
+   are the contract and are not for reading — "connection.manage" on a menu is a
+   developer's word for someone else's screen. Only the consequential ones are
+   named: a list of nine reads as a wall and hides the two that matter. */
+const NOTABLE = {
+  'connection.manage': 'connect data sources',
+  'attribution.change': 'change the attribution model',
+  'metric.edit': 'edit metric definitions',
+  'report.send': 'send reports',
+};
+
 function me(user) {
   if (!user) return null;
   const words = String(user.name || '').trim().split(/\s+/).filter(Boolean);
+  const granted = gatekeeper.permissions.allowed(user);
+
   return {
     initials: words.slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?',
     name: user.name || 'Signed in',
+    /* The sign-in id, which is not the display name. Worth showing: it is what
+       a person quotes when something has to be looked up, and what the audit
+       trail records. */
+    id: user.id || null,
     roleName: user.roleName || user.role || '',
     workspaceName: user.workspaceName || '',
+    /* Computed from the same table the server enforces, so the menu cannot
+       promise something a request would be refused for. */
+    can: granted.map((action) => NOTABLE[action]).filter(Boolean),
+    grants: granted.length,
+    grantsTotal: gatekeeper.permissions.ACTIONS.length,
   };
 }
 

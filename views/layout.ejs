@@ -76,6 +76,10 @@
 <%# What the screen judges by — different businesses buy against different
     measures, and this one buys against qualified lead CPL. %>
 <script type="application/json" id="li-goal-data"><%- JSON.stringify((data && data.goalOptions) || []) %></script>
+<%# Who is signed in, for the profile menu. The avatar can carry initials and
+    a title and no more; the menu needs the role, the workspace and what the
+    role may actually do. %>
+<script type="application/json" id="li-me-data"><%- JSON.stringify(shell.me || null) %></script>
 <script type="application/json" id="li-notif-count"><%- JSON.stringify({ count: notifications.count }) %></script>
 
 <script src="<%= asset('actions.js') %>"></script>

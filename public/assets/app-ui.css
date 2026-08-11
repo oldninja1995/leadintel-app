@@ -124,12 +124,63 @@
 /* — the profile menu —
    The avatar opened nothing, and `POST /logout` had no caller anywhere in the
    interface, so there was no way to sign out. */
-.li-profile { min-width: 172px; padding: 5px; }
-.li-profile-who {
-  margin: 0; padding: 7px 9px 8px; font-size: 11px; line-height: 1.4;
-  color: var(--color-neutral-500); border-bottom: 1px solid var(--color-neutral-900);
+.li-profile { min-width: 228px; max-width: 264px; padding: 5px; }
+
+.li-profile-head {
+  display: flex; align-items: center; gap: 9px; padding: 8px 9px 10px;
+  border-bottom: 1px solid var(--color-neutral-900);
 }
-.li-profile form { margin: 4px 0 0; }
+.li-profile-face {
+  width: 30px; height: 30px; flex: none; border-radius: 99px;
+  background: linear-gradient(135deg, var(--color-neutral-800), var(--color-neutral-700));
+  border: 1px solid var(--color-neutral-700);
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 600; color: var(--color-neutral-200);
+}
+.li-profile-id { display: grid; gap: 1px; min-width: 0; }
+.li-profile-id strong {
+  font-size: 12.5px; font-weight: 500; color: var(--color-neutral-200);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.li-profile-id span { font-size: 10.5px; color: var(--color-neutral-500); }
+
+.li-profile-line {
+  display: flex; align-items: center; gap: 7px;
+  margin: 0; padding: 7px 9px 0; font-size: 11px; color: var(--color-neutral-500);
+}
+.li-profile-line i { font-size: 12px; color: var(--color-neutral-600); }
+.li-profile-line code {
+  font-family: ui-monospace, monospace; font-size: 10.5px; color: var(--color-neutral-400);
+}
+
+/* What the role may do, from the table the server enforces. */
+.li-profile-can {
+  margin: 8px 9px 0; padding-top: 8px; font-size: 10.5px; line-height: 1.5;
+  color: var(--color-neutral-600); border-top: 1px solid var(--color-neutral-900);
+}
+
+.li-profile-acts { margin-top: 5px; padding-top: 4px; border-top: 1px solid var(--color-neutral-900); }
+.li-profile-acts form { margin: 0; }
+.li-profile-acts a,
+.li-profile-acts button {
+  display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+  background: none; border: 0; cursor: pointer; font: inherit; font-size: 12px;
+  color: var(--color-neutral-300); padding: 7px 9px; border-radius: 6px;
+  text-decoration: none;
+}
+.li-profile-acts a:hover,
+.li-profile-acts button:hover { background: var(--color-neutral-900); }
+/* The filter menu's tick sits at the far right — `.li-menu button i` gives it
+   `margin-left:auto` and hides it until checked. Both inherit here and pushed
+   "Sign out" and its icon against the right edge of the menu while the
+   "Connections" link, not being a button, stayed left. Reset, not overridden by
+   accident: this is a leading icon, not a trailing state marker. */
+/* Matched on `.li-profile-acts button i` rather than `.li-profile-acts i`,
+   which lost: `.li-menu button i` is one element more specific and was still
+   winning, so the reset had no effect and "Sign out" stayed pinned right while
+   "Connections" — a link, not a button — sat correctly left. */
+.li-profile-acts a i,
+.li-profile-acts button i { font-size: 13px; opacity: .8; margin-left: 0; }
 
 /* — the date range picker —
    The topbar's calendar control had no menu of its own: the design draws it as

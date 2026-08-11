@@ -136,7 +136,17 @@
   let menu = null;
 
   function closeMenu() {
-    if (menu) { menu.remove(); menu = null; }
+    if (!menu) return;
+    /* A menu that took focus has to give it back, or closing it strands the
+       keyboard at the top of the document. */
+    const opener = document.querySelector('[aria-expanded="true"]');
+    const held = menu.contains(document.activeElement);
+    menu.remove();
+    menu = null;
+    if (opener) {
+      opener.setAttribute('aria-expanded', 'false');
+      if (held && opener.focus) opener.focus();
+    }
   }
 
   function openMenu(chip, dimension) {
@@ -248,24 +258,70 @@
    * A POST, not a link — signing out changes state, and a GET that ends a
    * session can be triggered by anything that prefetches a URL.
    */
+  const escape = (s) => String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
   function openProfile(control) {
     closeMenu();
+    /* Everything the menu shows comes from the server, through the same
+       `application/json` channel the sort and filter controls use. The avatar
+       can carry initials and a title and no more, and a menu built out of a
+       title attribute can only ever repeat it. */
+    const who = json('li-me-data', null) || { name: control.getAttribute('title') || 'Signed in' };
+
     menu = document.createElement('div');
     menu.className = 'li-menu li-profile';
     menu.setAttribute('role', 'menu');
 
-    const who = control.getAttribute('title') || 'Signed in';
-    menu.innerHTML =
-      '<p class="li-profile-who">' + who.replace(/</g, '&lt;') + '</p>' +
-      '<form method="post" action="/logout"><button type="submit" role="menuitem">' +
-      '<i class="ph ph-sign-out"></i>Sign out</button></form>';
+    const rows = [];
+    rows.push(
+      '<div class="li-profile-head">'
+      + '<span class="li-profile-face" aria-hidden="true">' + escape(who.initials || '?') + '</span>'
+      + '<span class="li-profile-id"><strong>' + escape(who.name) + '</strong>'
+      + (who.roleName ? '<span>' + escape(who.roleName) + '</span>' : '')
+      + '</span></div>',
+    );
+
+    /* The workspace, said plainly. Every figure on every screen is scoped to it
+       and the only other place it appears is a switcher that looks decorative,
+       so a reader can be looking at one tenant's numbers believing otherwise. */
+    if (who.workspaceName) {
+      rows.push('<p class="li-profile-line"><i class="ph ph-buildings"></i>' + escape(who.workspaceName) + '</p>');
+    }
+    if (who.id) {
+      rows.push('<p class="li-profile-line"><i class="ph ph-identification-badge"></i>Signed in as <code>'
+        + escape(who.id) + '</code></p>');
+    }
+
+    /* What this role may do, from the table the server enforces — so the menu
+       cannot promise something a request would be refused for. Named rather
+       than counted: "6 of 9 permissions" tells a reader nothing they can act
+       on, and which three are missing is the whole question. */
+    if (who.can && who.can.length) {
+      rows.push('<p class="li-profile-can">Can ' + who.can.map(escape).join(', ') + '.</p>');
+    } else if (who.grants === 0) {
+      rows.push('<p class="li-profile-can">Read-only — this role changes nothing.</p>');
+    }
+
+    rows.push('<div class="li-profile-acts">'
+      + '<a role="menuitem" href="/connections"><i class="ph ph-plugs"></i>Connections</a>'
+      + '<form method="post" action="/logout"><button type="submit" role="menuitem">'
+      + '<i class="ph ph-sign-out"></i>Sign out</button></form></div>');
+
+    menu.innerHTML = rows.join('');
 
     const box = control.getBoundingClientRect();
     menu.style.top = (box.bottom + 6) + 'px';
     /* Right-aligned: this control sits at the edge of the window, and
        left-aligning puts the menu off the page. */
-    menu.style.left = Math.max(8, box.right - 180) + 'px';
+    menu.style.left = Math.max(8, box.right - 236) + 'px';
     document.body.appendChild(menu);
+
+    control.setAttribute('aria-expanded', 'true');
+    /* Focus moves in, so the menu is reachable by keyboard rather than merely
+       visible. `closeMenu` returns it. */
+    const first = menu.querySelector('a, button');
+    if (first) first.focus();
   }
 
   /* ── The date range ───────────────────────────────────────────────────── */
