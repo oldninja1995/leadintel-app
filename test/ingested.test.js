@@ -316,3 +316,76 @@ test('with no campaigns the cards decline rather than showing the workspace', ()
      spend on a single campaign's page. */
   assert.deepEqual(payload.metricScope, { dimension: 'campaign', value: '' });
 });
+
+/* ── the Ad sets tab ────────────────────────────────────────────────────── */
+
+/* It rendered "No ad sets — needs an ads connector that pulls ad-set rows"
+   while Meta had been pulling `adset_day` on every sync. The rows existed and
+   nothing built a table from them, so the empty state blamed a connector that
+   was working. */
+
+const adsetEntities = () => {
+  const canonical = require('../lib/ingest/canonical');
+  const day = (id, name, date, spend, impr, clicks) => ({
+    source: 'meta_ads', kind: 'adset_day', externalId: `${id}:${date}`,
+    body: {
+      adset_id: id, adset_name: name, campaign_id: '120215', date_start: date,
+      account_currency: 'INR', spend: String(spend), impressions: String(impr),
+      clicks: String(clicks), actions: [{ action_type: 'lead', value: '9' }],
+    },
+  });
+
+  return canonical.build([
+    day('AS1', 'Broad | Kerala', '2026-08-01', 1200, 40000, 600),
+    day('AS1', 'Broad | Kerala', '2026-08-02', 1300, 42000, 640),
+    day('AS2', 'All 60 Days KL', '2026-08-01', 800, 15000, 300),
+    {
+      source: 'meta_ads', kind: 'adset', externalId: 'AS2',
+      body: { id: 'AS2', name: 'All 60 Days KL', targeting: { custom_audiences: [{ id: 'A9' }] } },
+    },
+    {
+      source: 'meta_ads', kind: 'audience', externalId: 'A9',
+      body: { id: 'A9', name: '50% Watchers 60 days', retention_days: 60 },
+    },
+  ]);
+};
+
+test('an ad set becomes a row, with its days totalled', () => {
+  const { adsetRows } = PROJECTIONS.campaigns(adsetEntities(), {});
+
+  assert.equal(adsetRows.length, 2, 'one row per ad set, not per day');
+  const broad = adsetRows.find((r) => r.name === 'Broad | Kerala');
+  assert.equal(broad.spend, '₹2,500', 'two days of spend added');
+  assert.equal(broad.ctr, '1.51%');
+  assert.equal(broad.leads, '18');
+});
+
+test('the audience is the ad set’s own, named where the audience was fetched', () => {
+  const { adsetRows } = PROJECTIONS.campaigns(adsetEntities(), {});
+  const warm = adsetRows.find((r) => r.name === 'All 60 Days KL');
+
+  assert.equal(warm.audience, '50% Watchers 60 days');
+});
+
+test('columns nothing measured decline rather than reading zero', () => {
+  const { adsetRows } = PROJECTIONS.campaigns(adsetEntities(), {});
+
+  for (const row of adsetRows) {
+    /* Frequency is impressions over reach and reach does not add across days;
+       bookings and revenue need the CRM and the PMS. */
+    assert.equal(row.freq, NONE, 'frequency cannot be derived from daily rows');
+    assert.equal(row.placement, NONE);
+    assert.equal(row.bookings, NONE);
+    assert.equal(row.rev, NONE);
+    assert.equal(row.roas, NONE);
+  }
+});
+
+test('ad set days narrow with the date range, like campaign days', () => {
+  const period = require('../lib/metrics/period');
+  const narrowed = period.within(adsetEntities(), { from: '2026-08-02', to: '2026-08-03' });
+  const { adsetRows } = PROJECTIONS.campaigns(narrowed, {});
+
+  assert.equal(adsetRows.length, 1, 'only the ad set that ran that day');
+  assert.equal(adsetRows[0].spend, '₹1,300');
+});

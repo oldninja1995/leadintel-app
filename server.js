@@ -1661,10 +1661,37 @@ async function shellData(activeSlug, query, path = '/', workspaceId = null) {
   return shell;
 }
 
+/* Tabs a screen should offer for *this* request.
+ *
+ * A keyword is a Google Ads object. Meta has no such thing, so the Keywords tab
+ * is an invitation to a table that can never fill on a Meta-only workspace —
+ * and it sat beside three Meta campaigns doing exactly that. It is offered when
+ * the channel filter selects Google, and withheld otherwise.
+ *
+ * Withheld from the *group*, not hidden in the view: dropping it here means
+ * `?v=campTabKeywords` falls back to the group's default rather than selecting
+ * a tab nobody can see, and the flag the template reads is simply absent.
+ */
+const KEYWORD_TABS = { campTabKeywords: 'google' };
+
+function tabsOffered(groups, query) {
+  const channel = String((query && query.channel) || '').toLowerCase();
+
+  return groups.map((group) => {
+    const views = group.views.filter((v) => {
+      const needs = KEYWORD_TABS[v.flag];
+      return !needs || channel.includes(needs);
+    });
+    /* Never empty a group: a group with no views has no default and
+       `subviewState` would have nothing to select. */
+    return views.length ? { ...group, views } : group;
+  });
+}
+
 function screenRoute(screen) {
   return async (req, res, next) => {
     try {
-      const groups = await repo.subviewGroups(screen.view);
+      const groups = tabsOffered(await repo.subviewGroups(screen.view), req.query);
       const { flags, tabLists } = subviewState(groups, screen.slug, req.query);
 
       /* 6.4 — every KPI card that names a registry metric carries its
