@@ -265,9 +265,17 @@ function resolveMetrics(payload, workspaceId, over = null) {
      keeps it: a card about today does not become a card about 90 days
      because the chip above it moved. */
   const { values, notApplicable } = metricValues(workspaceId, at, over);
+  /* The same metrics over the window immediately before this one, which is what
+     the topbar's "vs previous period" has always claimed and nothing computed.
+     `metricValues` is cached per window, so this is one extra evaluation per
+     distinct range rather than one per request. */
+  const back = metrics.period.previous(over);
+  const previous = back ? metricValues(workspaceId, at, back).values : null;
+
   return resolve.resolve(payload, {
     values,
     notApplicable,
+    previous,
     useRegistryValues: USE_REGISTRY_VALUES,
     valuesFor: (label) => periodValues(workspaceId, label, at),
   });
@@ -371,7 +379,14 @@ function metricValues(workspaceId, at = null, over = null) {
    evaluation being a pure function of its inputs. */
 function periodValues(workspaceId, label, at = null) {
   try {
-    return metricValues(workspaceId, at, metrics.period.fromLabel(label, new Date().toISOString()));
+    const over = metrics.period.fromLabel(label, new Date().toISOString());
+    const back = metrics.period.previous(over);
+    return {
+      ...metricValues(workspaceId, at, over),
+      /* A card naming its own window is compared against the window before its
+         own, not against the screen's range. */
+      previous: back ? metricValues(workspaceId, at, back).values : null,
+    };
   } catch (err) {
     console.warn(`metrics: unknown period "${label}" —`, err.message);
     return null;

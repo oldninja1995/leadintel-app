@@ -232,3 +232,31 @@ test('a window covering everything leaves the creative untouched', () => {
 
   assert.deepEqual(creatives[0], before);
 });
+
+/* ── the window before this one ─────────────────────────────────────────── */
+
+/* "vs previous period" sat in the topbar since the design was drawn while every
+   card rendered a bare "·". This is the window that sentence describes. */
+
+test('the previous period is the same length, ending where this one starts', () => {
+  const before = period.previous({ from: '2026-08-04T00:00:00.000Z', to: '2026-08-11T00:00:00.000Z' });
+
+  assert.equal(before.to, '2026-08-04T00:00:00.000Z', 'it must end where the current window begins');
+  assert.equal(before.from, '2026-07-28T00:00:00.000Z', 'seven days, like the window it precedes');
+});
+
+test('no day is counted in both windows', () => {
+  const now = { from: '2026-08-04T00:00:00.000Z', to: '2026-08-11T00:00:00.000Z' };
+  const before = period.previous(now);
+
+  /* Half-open at both ends. An overlap of one day would understate every
+     change by about a day's worth and never look wrong. */
+  assert.ok(!period.inRange(before.to, before.from, before.to), 'the boundary day fell in both');
+  assert.ok(period.inRange(before.to, now.from, now.to), 'the boundary day belongs to the current window');
+});
+
+test('all time has nothing before it', () => {
+  assert.equal(period.previous(null), null);
+  assert.equal(period.previous({ from: null, to: null }), null);
+  assert.equal(period.previous({ from: '2026-08-11', to: '2026-08-11' }), null, 'a zero-length window');
+});

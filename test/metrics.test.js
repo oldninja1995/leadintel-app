@@ -16,6 +16,8 @@ const metrics = require('../lib/metrics');
 const registry = require('../lib/metrics/registry');
 const formula = require('../lib/metrics/formula');
 const ingest = require('../lib/ingest');
+const resolve = require('../lib/metrics/resolve');
+const { UP, DOWN } = require('../data/_tokens');
 
 const entities = () => ({
   campaignDays: [{ spend: 700000 }, { spend: 300000 }],
@@ -231,4 +233,56 @@ test('net revenue matches the folio figure precedence settled on in 4.4', () => 
   const { values } = metrics.evaluate(ingest.snapshot({ store: ingest.storeFor('parakkat') }));
   assert.equal(values['revenue.net'], 4280000, 'the registry disagrees with the entity it reads');
   assert.equal(metrics.format(registry.get('revenue.net'), values['revenue.net']), '₹42,800');
+});
+
+/* ── the change against the previous period ─────────────────────────────── */
+
+/* How a change is expressed depends on what the metric is, and getting it wrong
+   is how a dashboard starts lying quietly. */
+
+const resolveOne = (card, value, before) => {
+  const payload = resolve.resolve({ kpis: [card] }, {
+    values: { [card.metric]: value },
+    previous: { [card.metric]: before },
+    useRegistryValues: true,
+  });
+  return payload.kpis[0];
+};
+
+test('a count moves in percent', () => {
+  const out = resolveOne({ label: 'Impressions', value: '', metric: 'ads.impressions' }, 120, 100);
+  assert.equal(out.delta, '+20.0%');
+});
+
+test('a rate moves in points, because percent of a percent reads as the rate', () => {
+  /* 1.0% → 1.5% rose by 0.5 points and by 50 percent; "+50%" beside a CTR is
+     indistinguishable from the CTR itself. */
+  const out = resolveOne({ label: 'CTR', value: '', metric: 'ads.ctr' }, 0.015, 0.010);
+  assert.equal(out.delta, '+0.50pt');
+});
+
+test('a falling cost is good news and says so', () => {
+  const out = resolveOne({ label: 'CPL', value: '', metric: 'cost.per_lead' }, 80, 100);
+  assert.equal(out.delta, '−20.0%');
+  assert.equal(out.deltaColor, UP, 'a cheaper lead rendered as a loss');
+});
+
+test('a rising cost is bad news', () => {
+  const out = resolveOne({ label: 'CPL', value: '', metric: 'cost.per_lead' }, 120, 100);
+  assert.equal(out.deltaColor, DOWN);
+});
+
+test('nothing to compare against is not "no change"', () => {
+  const out = resolveOne({ label: 'Impressions', value: '', metric: 'ads.impressions' }, 120, null);
+  assert.equal(out.delta, '·', 'a metric with no previous figure has not held steady');
+});
+
+test('a previous zero declines rather than reading as infinite growth', () => {
+  const out = resolveOne({ label: 'Impressions', value: '', metric: 'ads.impressions' }, 120, 0);
+  assert.equal(out.delta, '·', 'every first week of spend would otherwise read +∞%');
+});
+
+test('identical is stated, not rendered as a measurement', () => {
+  const out = resolveOne({ label: 'Impressions', value: '', metric: 'ads.impressions' }, 100, 100);
+  assert.equal(out.delta, 'no change');
 });
