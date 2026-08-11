@@ -235,3 +235,55 @@ test('the real fixtures produce the folio figure the 4.4 precedence test settled
      precedence decision made in 4.4, now visible on a screen. */
   assert.equal(munnar.rev, '₹42,800');
 });
+
+/* ── which campaign the drill-down is about ─────────────────────────────── */
+
+/* `metricScope` sets the grain every KPI card on the drill-down is evaluated
+   at, and it was a constant in the authored data pointing at a demo campaign.
+   Once the demo rows stopped replaying, that page read Spend ₹0 over a name
+   from the fixtures — and every row linked to it without saying which campaign
+   it meant, so all of them opened the same dead page. */
+
+test('a campaign row links to itself, not to the bare drill-down', () => {
+  const { campRows } = PROJECTIONS.campaigns(entities());
+
+  for (const row of campRows) {
+    assert.match(row.go, /[?&]campaign=/, `"${row.name}" does not name itself in its link`);
+  }
+  const brand = campRows.find((r) => r.name === 'Brand Search');
+  assert.equal(brand.go, '/campaigns?v=campDetail&campaign=brand%20search');
+});
+
+test('the drill-down is scoped to the campaign the link named', () => {
+  const payload = PROJECTIONS.campaigns(entities(), { campaign: 'brand search' });
+
+  assert.deepEqual(payload.metricScope, { dimension: 'campaign', value: 'brand search' });
+  assert.equal(payload.dName, 'Brand Search');
+});
+
+test('two different campaigns do not open the same page', () => {
+  const a = PROJECTIONS.campaigns(entities(), { campaign: 'brand search' });
+  const b = PROJECTIONS.campaigns(entities(), { campaign: 'munnar honeymoon jul' });
+
+  assert.notDeepEqual(a.metricScope, b.metricScope);
+  assert.notEqual(a.dName, b.dName);
+});
+
+test('a stale link opens a campaign rather than an empty panel', () => {
+  const payload = PROJECTIONS.campaigns(entities(), { campaign: 'a campaign that was retired' });
+
+  assert.equal(payload.metricScope.dimension, 'campaign');
+  assert.ok(payload.metricScope.value, 'fell back to nothing instead of to a campaign');
+  assert.equal(payload.dName, 'Munnar Honeymoon Jul', 'the first row, as the creative overlay does');
+});
+
+/* The case that caused the bug: no ad data at all. */
+test('with no campaigns the cards decline rather than showing the workspace', () => {
+  const empty = { ...entities(), campaignDays: [] };
+  const payload = PROJECTIONS.campaigns(empty, {});
+
+  assert.deepEqual(payload.campRows, []);
+  /* Not absent — an absent scope is workspace grain, which would print total
+     spend on a single campaign's page. */
+  assert.deepEqual(payload.metricScope, { dimension: 'campaign', value: '' });
+});
