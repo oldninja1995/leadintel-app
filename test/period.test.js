@@ -173,3 +173,62 @@ test('the report states the window it was computed over', () => {
   const report = metrics.report(entities(), { over: period.fromLabel('7d', NOW) });
   assert.equal(report.over.label, '7d');
 });
+
+/* ── creatives are narrowed by re-totalling their series ────────────────── */
+
+/* A creative is not a dated row. It was absent from FIELD and so was never
+   narrowed: Creative Intelligence answered identical figures under "7d" and
+   "90d" while the range control above them said otherwise. */
+
+const creativeEntities = () => ({
+  campaignDays: [],
+  leads: [],
+  bookings: [],
+  payments: [],
+  creatives: [{
+    entity: 'creative',
+    adId: 'AD1',
+    title: 'Monsoon 15s',
+    spend: 3000,
+    impressions: 90000,
+    clicks: 1200,
+    leads: 30,
+    days: 3,
+    series: [
+      { date: '2026-08-01', spend: 1000, impressions: 30000, clicks: 400, leads: 10, frequency: 2 },
+      { date: '2026-08-02', spend: 1000, impressions: 30000, clicks: 400, leads: 10, frequency: 3 },
+      { date: '2026-08-09', spend: 1000, impressions: 30000, clicks: 400, leads: 10, frequency: 4 },
+    ],
+  }],
+});
+
+test('a creative is re-totalled from the days inside the window', () => {
+  const { creatives } = period.within(creativeEntities(), { from: '2026-08-01', to: '2026-08-03' });
+  const [c] = creatives;
+
+  assert.equal(c.days, 2);
+  assert.equal(c.spend, 2000);
+  assert.equal(c.impressions, 60000);
+  assert.equal(c.leads, 20, 'leads must narrow with spend, not stay at the all-time figure');
+});
+
+test('a rate is averaged over the days in the window, never added', () => {
+  const { creatives } = period.within(creativeEntities(), { from: '2026-08-01', to: '2026-08-03' });
+  assert.equal(creatives[0].frequency, 2.5, 'adding frequencies would grow it with the window');
+});
+
+test('a creative that did not run in the window reports null, not zero', () => {
+  const { creatives } = period.within(creativeEntities(), { from: '2026-09-01', to: '2026-09-30' });
+  const [c] = creatives;
+
+  assert.equal(c.days, 0);
+  assert.equal(c.spend, null, 'an ad that did not run did not run badly');
+  assert.equal(c.leads, null);
+});
+
+test('a window covering everything leaves the creative untouched', () => {
+  const before = creativeEntities().creatives[0];
+  const { creatives } = period.within(creativeEntities(), { from: '2026-01-01', to: '2027-01-01' });
+
+  assert.deepEqual(creatives[0], before);
+});
