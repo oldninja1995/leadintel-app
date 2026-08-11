@@ -389,3 +389,32 @@ test('ad set days narrow with the date range, like campaign days', () => {
   assert.equal(adsetRows.length, 1, 'only the ad set that ran that day');
   assert.equal(adsetRows[0].spend, '₹1,300');
 });
+
+test('a stacked ad set is named by its largest pool, not by all of them', () => {
+  const canonical = require('../lib/ingest/canonical');
+  const e = canonical.build([
+    {
+      source: 'meta_ads', kind: 'adset_day', externalId: 'AS3:2026-08-01',
+      body: {
+        adset_id: 'AS3', adset_name: 'All 60 Days KL', date_start: '2026-08-01',
+        account_currency: 'INR', spend: '900', impressions: '20000', clicks: '300',
+      },
+    },
+    {
+      source: 'meta_ads', kind: 'adset', externalId: 'AS3',
+      body: { id: 'AS3', name: 'All 60 Days KL', targeting: { custom_audiences: [{ id: 'HOT' }, { id: 'BIG' }] } },
+    },
+    {
+      source: 'meta_ads', kind: 'audience', externalId: 'HOT',
+      body: { id: 'HOT', name: '75% Watchers 30 Days', retention_days: 30, approximate_count_lower_bound: 3900 },
+    },
+    {
+      source: 'meta_ads', kind: 'audience', externalId: 'BIG',
+      body: { id: 'BIG', name: '50% Watchers 60 days', retention_days: 60, approximate_count_lower_bound: 53400 },
+    },
+  ]);
+
+  const [row] = PROJECTIONS.campaigns(e, {}).adsetRows;
+  /* The larger, older pool — the one the ad set actually delivers to. */
+  assert.equal(row.audience, '50% Watchers 60 days +1 more');
+});
