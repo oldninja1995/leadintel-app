@@ -59,9 +59,30 @@ test('reporting posts a GAQL query to searchStream', async () => {
   const { fetchImpl } = stub();
   const built = await google.request({ kind: 'campaign_day', window: null, credentials: CREDS, fetchImpl });
 
-  assert.equal(built.url, 'https://googleads.googleapis.com/v25/customers/1234567890:searchStream');
+  /* `/googleAds` is part of the path. This asserted the URL without it, which
+     is how the mistake survived: the test agreed with the connector and both
+     were wrong, and Google answered every scheduled pull with a 404 of HTML.
+     The spelling here is the discovery document's, verbatim:
+     `POST v25/customers/{customersId}/googleAds:searchStream`. */
+  assert.equal(built.url, 'https://googleads.googleapis.com/v25/customers/1234567890/googleAds:searchStream');
   assert.equal(built.method, 'POST');
   assert.match(JSON.parse(built.body).query, /^SELECT campaign\.id/);
+});
+
+/* The two calls in this file address the same service and must agree on how it
+   is spelled. They did not, and only the one nobody was watching was wrong. */
+test('reporting and the account listing use the same service segment', async () => {
+  const { fetchImpl } = stub();
+  const { url } = await google.request({ kind: 'campaign_day', window: null, credentials: CREDS, fetchImpl });
+
+  const source = require('fs').readFileSync(
+    require('path').join(__dirname, '..', 'lib', 'ingest', 'http', 'google-ads.js'), 'utf8');
+
+  assert.match(url, /\/googleAds:searchStream$/);
+  for (const call of source.match(/customers\/\$\{[^}]+\}[^`]*/g) || []) {
+    assert.match(call, /\/googleAds:(search|searchStream)/,
+      `"${call}" does not name the googleAds service`);
+  }
 });
 
 test('the customer id is reduced to digits, since dashes are rejected', () => {
