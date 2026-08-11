@@ -537,6 +537,24 @@ const LITERAL_BINDINGS = [
      property, channel, campaign, room type — plus the inert booking window. A
      menu here would always say "nothing to add", which is a worse control than
      no control. The chips beside it work; this one goes. */
+  /* The profile avatar was two hardcoded facts and no behaviour: it read `AP`
+     with `title="Anand P — Owner"` whoever was signed in, and clicking it did
+     nothing. Two seeded users exist so tenant isolation is provable, and the
+     one piece of chrome that says who you are was a constant.
+
+     The same replacement carries the `data-action` the design never gave it,
+     because the avatar is also the only place a sign-out belongs — `POST
+     /logout` has existed since Phase 9 and nothing in the interface ever called
+     it, so there was no way to sign out of the app at all. */
+  {
+    screen: 'topbar',
+    find: 'cursor:pointer; border:1px solid var(--color-neutral-700);" title="Anand P — Owner">AP</div>',
+    replace: 'cursor:pointer; border:1px solid var(--color-neutral-700);"'
+      + ' data-action="toggleProfile" title="<%= me ? me.name + \' — \' + me.roleName : \'Signed in\' %>">'
+      + '<%= me ? me.initials : \'?\' %></div>',
+    why: 'the avatar named one hardcoded user and opened nothing',
+  },
+
   {
     screen: 'filterbar',
     find: '<div class="hv-2" style="flex:none; display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--color-neutral-500); cursor:pointer; padding:4.5px 8px; border-radius:99px;"><i class="ph ph-plus-circle" style="font-size:13px;"></i>Add filter</div>',

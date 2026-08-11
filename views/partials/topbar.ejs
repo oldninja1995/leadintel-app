@@ -31,5 +31,5 @@
       <div class="hv-7" data-action="toggleAi" style="display:flex; flex:none; align-items:center; gap:7px; white-space:nowrap; border:1px solid var(--color-accent-600); border-radius:8px; padding:6px 12px; cursor:pointer; color:var(--color-accent-300); background: <%= aiBtnBg %>;">
         <i class="ph-fill ph-sparkle" style="font-size:14px;"></i><span style="font-size:12px; font-weight:500;">Ask AI</span>
       </div>
-      <div style="width:32px; height:32px; border-radius:99px; background:linear-gradient(135deg, var(--color-neutral-800), var(--color-neutral-700)); display:grid; place-items:center; font-size:11.5px; font-weight:600; color:var(--color-neutral-200); cursor:pointer; border:1px solid var(--color-neutral-700);" title="Anand P — Owner">AP</div>
+      <div style="width:32px; height:32px; border-radius:99px; background:linear-gradient(135deg, var(--color-neutral-800), var(--color-neutral-700)); display:grid; place-items:center; font-size:11.5px; font-weight:600; color:var(--color-neutral-200); cursor:pointer; border:1px solid var(--color-neutral-700);" data-action="toggleProfile" title="<%= me ? me.name + ' — ' + me.roleName : 'Signed in' %>"><%= me ? me.initials : '?' %></div>
     </header>

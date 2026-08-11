@@ -235,6 +235,39 @@
     });
   }
 
+  /* ── The profile avatar ───────────────────────────────────────────────── */
+
+  /* `POST /logout` has existed since Phase 9 and nothing in the interface ever
+   * called it, so there was no way to sign out of this app. The avatar is where
+   * a reader looks for that, and it opened nothing.
+   *
+   * Sign-out is a real form submission rather than a fetch: the route already
+   * answers an HTML accept header with a redirect to /login, so a form gets the
+   * navigation for free and still works if this script fails to load.
+   *
+   * A POST, not a link — signing out changes state, and a GET that ends a
+   * session can be triggered by anything that prefetches a URL.
+   */
+  function openProfile(control) {
+    closeMenu();
+    menu = document.createElement('div');
+    menu.className = 'li-menu li-profile';
+    menu.setAttribute('role', 'menu');
+
+    const who = control.getAttribute('title') || 'Signed in';
+    menu.innerHTML =
+      '<p class="li-profile-who">' + who.replace(/</g, '&lt;') + '</p>' +
+      '<form method="post" action="/logout"><button type="submit" role="menuitem">' +
+      '<i class="ph ph-sign-out"></i>Sign out</button></form>';
+
+    const box = control.getBoundingClientRect();
+    menu.style.top = (box.bottom + 6) + 'px';
+    /* Right-aligned: this control sits at the edge of the window, and
+       left-aligning puts the menu off the page. */
+    menu.style.left = Math.max(8, box.right - 180) + 'px';
+    document.body.appendChild(menu);
+  }
+
   /* ── The date range ───────────────────────────────────────────────────── */
 
   /* The topbar draws a calendar icon and a range — "12 Jul – 11 Aug" — beside
@@ -455,6 +488,13 @@
       const action = trigger.getAttribute('data-action');
       if (action === 'openPalette') { ev.preventDefault(); openPalette(); return; }
       if (action === 'toggleNotif') { ev.preventDefault(); toggleNotif(); return; }
+      if (action === 'toggleProfile') {
+        ev.preventDefault();
+        /* Second click closes, like every other menu here. */
+        if (menu && menu.classList.contains('li-profile')) { closeMenu(); return; }
+        openProfile(trigger);
+        return;
+      }
     }
 
     if (menu && !ev.target.closest('.li-menu')) closeMenu();

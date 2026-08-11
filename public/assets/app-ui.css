@@ -121,6 +121,16 @@
 .li-menu button[aria-checked="true"] i { opacity: 1; }
 .li-menu-inert { padding: 8px 9px; font-size: 11px; color: var(--color-neutral-600); line-height: 1.5; }
 
+/* — the profile menu —
+   The avatar opened nothing, and `POST /logout` had no caller anywhere in the
+   interface, so there was no way to sign out. */
+.li-profile { min-width: 172px; padding: 5px; }
+.li-profile-who {
+  margin: 0; padding: 7px 9px 8px; font-size: 11px; line-height: 1.4;
+  color: var(--color-neutral-500); border-bottom: 1px solid var(--color-neutral-900);
+}
+.li-profile form { margin: 4px 0 0; }
+
 /* — the date range picker —
    The topbar's calendar control had no menu of its own: the design draws it as
    a label, so the four preset chips were the only ranges the product could

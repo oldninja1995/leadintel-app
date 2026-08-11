@@ -853,7 +853,7 @@ async function renderConnections(req, res, {
   res.render('layout', {
     screen,
     screens: await repo.screens(),
-    shell: await shellData('connections', req.query, req.path, req.workspace),
+    shell: await shellData('connections', req.query, req.path, req.workspace, req.user),
     hasView: false,
     data: {
       connections: connections.list(req.workspace).map((c) => {
@@ -1709,11 +1709,33 @@ function shortLag(seconds) {
    the parts that are request state — which nav item is active, the selected
    date range, whether the sidebar is open, whether the workspace menu is
    down. */
-async function shellData(activeSlug, query, path = '/', workspaceId = null) {
+/* Who is signed in, for the topbar's avatar.
+ *
+ * It was hardcoded: the markup carries `AP` and `title="Anand P — Owner"`, so
+ * every user saw Anand's initials and Anand's role whoever they actually were.
+ * Two seeded users exist precisely so tenant isolation is provable, and the one
+ * piece of chrome that says who you are was a constant.
+ *
+ * Initials for the same reason the pipeline avatar takes them: it is a
+ * 32-pixel circle, and a name does not fit in one. */
+function me(user) {
+  if (!user) return null;
+  const words = String(user.name || '').trim().split(/\s+/).filter(Boolean);
+  return {
+    initials: words.slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?',
+    name: user.name || 'Signed in',
+    roleName: user.roleName || user.role || '',
+    workspaceName: user.workspaceName || '',
+  };
+}
+
+async function shellData(activeSlug, query, path = '/', workspaceId = null, user = null) {
   const content = (await repo.read('_shell', readParams(query))) || {};
   const shell = {
     ...content,
     freshness: freshness(workspaceId),
+    /* Null when nothing knows — the 404 page renders with no session. */
+    me: me(user),
     /* The chips replace the authored ones. Each keeps the rest of the query —
        a filter, a sub-view tab — because changing the date range should not
        silently undo the other choices on screen. */
@@ -1798,7 +1820,7 @@ function screenRoute(screen) {
       res.render('layout', {
         screen,
         screens: await repo.screens(),
-        shell: await shellData(screen.slug, req.query, req.path, req.workspace),
+        shell: await shellData(screen.slug, req.query, req.path, req.workspace, req.user),
         hasView: hasView(screen.view),
         data,
         drawer,
