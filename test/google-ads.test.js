@@ -211,6 +211,32 @@ test('a successful array response is not mistaken for an error', () => {
   assert.doesNotThrow(() => google.checkForError([{ results: [] }], { ok: true, status: 200 }));
 });
 
+/* …except that searchStream wraps its failures in an array as well. Reading
+   `.error` off the object form alone meant a refused stream matched nothing and
+   fell through to the bare status line — the screen read "HTTP 403 Forbidden"
+   for weeks while the sentence naming the cause sat in the parsed body. */
+test('an error wrapped in an array is read, not skipped', () => {
+  assert.throws(
+    () => google.checkForError([{
+      error: {
+        message: 'The caller does not have permission',
+        status: 'PERMISSION_DENIED',
+        details: [{ errors: [{ message: 'Developer token is not approved for production access.' }] }],
+      },
+    }], { ok: false, status: 403 }),
+    /Developer token is not approved for production access/
+  );
+});
+
+test('an array-wrapped refusal still explains a test-only developer token', () => {
+  assert.throws(
+    () => google.checkForError(
+      [{ error: { message: 'The caller does not have permission', status: 'PERMISSION_DENIED' } }],
+      { ok: false, status: 403 }),
+    /test-account access cannot read a production account/
+  );
+});
+
 /* ── the shape reaching the rest of the pipeline ────────────────────────── */
 
 test('chunks are flattened and there is no cursor to follow', async () => {
