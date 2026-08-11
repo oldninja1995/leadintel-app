@@ -219,3 +219,30 @@ test('the layout never reads through data, which is null on the 404', () => {
 
   assert.deepEqual(unguarded, [], 'these would throw on the not-found page');
 });
+
+/* ── avatars hold initials ──────────────────────────────────────────────── */
+
+/* The pipeline card's owner avatar is a 16-pixel circle set in 7-pixel type,
+   and this module was handing it whole names. A name does not fit in sixteen
+   pixels: it overflowed the circle and printed on top of the age beside it, so
+   every card on the board read "Vishnu Joseph" and "2 days" as one smear and an
+   unassigned lead read "Unassignedtouched 3h". Every other avatar in the
+   product is fed an `init` field; this was the one that was not. */
+test('a pipeline card gives its avatar initials, not a name', () => {
+  const pipeline = require('../data/pipeline');
+
+  for (const stage of pipeline.pipeStages) {
+    for (const card of stage.cards || []) {
+      assert.ok(card.own.length <= 2,
+        `${stage.name}/${card.name}: "${card.own}" is too long for a 16px avatar`);
+    }
+  }
+});
+
+test('an unassigned lead still gets a circle, since it is the one to chase', () => {
+  const pipeline = require('../data/pipeline');
+  const newStage = pipeline.pipeStages.find((s) => s.name === 'New');
+  const unowned = newStage.cards.find((c) => c.name === 'Rahul Menon');
+
+  assert.equal(unowned.own, '—', 'the avatar disappeared instead of saying it is empty');
+});

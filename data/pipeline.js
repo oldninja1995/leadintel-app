@@ -3,13 +3,36 @@
 
 const { UP, DOWN, WARN, NA } = require('./_tokens');
 
+/* The owner avatar is a 16-pixel circle set in 7-pixel type: it holds initials,
+   the way every other avatar in this product does (`init: 'AS'` on the
+   reservations table). This module was handing it whole names, and a whole name
+   does not fit in sixteen pixels — it overflowed the circle and printed on top
+   of the age beside it, so every card on the board read "Vishnu Joseph" and
+   "2 days" as one smear, and an unassigned lead read "Unassignedtouched 3h".
+   Two initials at most: three-part names are common here and a third letter
+   puts the overflow back. */
+const initials = (name) => {
+  const words = String(name || '').trim().split(/\s+/).filter(Boolean);
+  /* Nobody's initials. A lead with no owner is the one a sales manager most
+     needs to see, so the circle stays and says it is empty. */
+  if (!words.length || name === 'Unassigned') return '—';
+  return words.slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+};
+
+/* Names stay written out above, where they are read by a person editing this
+   file; the shortening happens on the way to the screen. */
+const shortenOwners = (stages) => stages.map((stage) => ({
+  ...stage,
+  cards: (stage.cards || []).map((card) => ({ ...card, own: initials(card.own) })),
+}));
+
 module.exports = {
   pipeKanbanBg: 'var(--color-accent-900)',
   pipeKanbanColor: 'var(--color-accent-300)',
   pipeListBg: 'transparent',
   pipeListColor: 'var(--color-neutral-500)',
 
-  pipeStages: [
+  pipeStages: shortenOwners([
     {
       name: 'New', n: '412', rev: '₹12.8L', conv: '77%', time: '0.4 days', drop: '23% lost', dropColor: NA,
       cards: [
@@ -52,5 +75,5 @@ module.exports = {
         { name: 'Lakshmi Iyer', val: '₹33,100', own: 'Arun Kurian', chan: 'Direct', what: 'Lake villa · Aug 09', age: 'Confirmed', ageColor: UP },
       ],
     },
-  ],
+  ]),
 };
