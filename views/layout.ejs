@@ -9,10 +9,10 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
-<link rel="stylesheet" href="/assets/nocturne.css">
-<link rel="stylesheet" href="/assets/app.css">
-<link rel="stylesheet" href="/assets/hover.css">
-<link rel="stylesheet" href="/assets/app-ui.css">
+<link rel="stylesheet" href="<%= asset('nocturne.css') %>">
+<link rel="stylesheet" href="<%= asset('app.css') %>">
+<link rel="stylesheet" href="<%= asset('hover.css') %>">
+<link rel="stylesheet" href="<%= asset('app-ui.css') %>">
 </head>
 <body>
 
@@ -78,7 +78,7 @@
 <script type="application/json" id="li-goal-data"><%- JSON.stringify((data && data.goalOptions) || []) %></script>
 <script type="application/json" id="li-notif-count"><%- JSON.stringify({ count: notifications.count }) %></script>
 
-<script src="/assets/actions.js"></script>
-<script src="/assets/app-ui.js"></script>
+<script src="<%= asset('actions.js') %>"></script>
+<script src="<%= asset('app-ui.js') %>"></script>
 </body>
 </html>

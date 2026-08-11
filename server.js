@@ -6,6 +6,7 @@
  */
 
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const express = require('express');
 
@@ -440,11 +441,42 @@ app.use(hardening.secureHeaders({ secure: TLS }));
 const timings = new observability.Timings();
 app.use(observability.timing(timings, { slowMs: 200 }));
 
-app.use('/assets', express.static(path.join(__dirname, 'public', 'assets'), {
-  /* Fingerprinting is not in place, so a long max-age would serve stale CSS
-     after a deploy. An hour is short enough to be safe and long enough to
-     matter across a session. */
-  maxAge: '1h',
+/* Assets carry a fingerprint of their own contents.
+ *
+ * They used to be served with a flat one-hour max-age and no fingerprint,
+ * reasoned as "short enough to be safe". It is not: for an hour after every
+ * deploy a returning browser keeps running the *previous* JavaScript, so a
+ * fix ships, the server serves it, and the person looking at the page still
+ * has the broken version — with nothing on screen to say so. That is exactly
+ * how the new date picker reached production and stayed invisible.
+ *
+ * The hash is of the file, so the URL changes when and only when the file does.
+ * `express.static` ignores the query string, so this needs nothing of it.
+ */
+const ASSETS = path.join(__dirname, 'public', 'assets');
+
+function fingerprint(name) {
+  try {
+    const body = fs.readFileSync(path.join(ASSETS, name));
+    return crypto.createHash('sha1').update(body).digest('hex').slice(0, 8);
+  } catch (err) {
+    /* A missing asset is the view's problem to show, not a reason not to boot. */
+    return '0';
+  }
+}
+
+const assetVersions = new Map();
+/* Available to every render: Express merges `app.locals` into view locals, so
+   the layout does not have to be handed this by each of the routes. */
+app.locals.asset = (name) => {
+  if (!assetVersions.has(name)) assetVersions.set(name, fingerprint(name));
+  return `/assets/${name}?v=${assetVersions.get(name)}`;
+};
+
+app.use('/assets', express.static(ASSETS, {
+  /* Safe to cache hard now that the URL changes with the file. A request for a
+     version that is current cannot be stale by construction. */
+  maxAge: '30d',
 }));
 
 /* Phase 9. Everything past this line needs a session, and `req.workspace` comes
