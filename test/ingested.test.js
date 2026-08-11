@@ -228,12 +228,41 @@ test('LEADINTEL_REPO=ingested answers every resource the static driver does', as
 });
 
 test('the real fixtures produce the folio figure the 4.4 precedence test settled on', async () => {
-  const repo = createRepository({ driver: 'ingested' });
+  /* Told that nothing is connected, because that is the state this asserts
+     about: the fixtures. A connected source retires its demo rows, so on a
+     machine where Meta happens to be connected — every deployed one — the
+     fixture campaign this reads is correctly gone, and the test would be
+     failing about the wrong thing. */
+  const repo = createRepository({ driver: 'ingested', connections: { configured: () => new Set() } });
   const { campRows } = await repo.read('campaigns', {});
   const munnar = campRows.find((r) => r.name === 'Munnar Honeymoon Jul');
   /* B-1001 settles at the PMS folio's ₹42,800, not the CRM's ₹46,000 — the
      precedence decision made in 4.4, now visible on a screen. */
   assert.equal(munnar.rev, '₹42,800');
+});
+
+/* ── a connected source stops serving demo data ─────────────────────────── */
+
+/* Waiting for real rows was not enough. Google Ads was connected and refused on
+   every attempt, so it had none — and two invented campaigns stayed in the
+   table beside three real ones, under a banner saying Google was down. */
+test('connecting a source retires its demo rows before it ever succeeds', async () => {
+  const asked = createRepository({
+    driver: 'ingested',
+    connections: { configured: () => new Set(['google_ads']) },
+  });
+  const { campRows } = await asked.read('campaigns', {});
+
+  assert.ok(!campRows.some((r) => /Brand Search|Kumarakom/i.test(r.name)),
+    'a connected source still served invented campaigns');
+});
+
+test('an unconnected source keeps its demo rows, which is what demo mode is', async () => {
+  const repo = createRepository({ driver: 'ingested', connections: { configured: () => new Set() } });
+  const { campRows } = await repo.read('campaigns', {});
+
+  assert.ok(campRows.some((r) => /Brand Search/i.test(r.name)),
+    'nothing is connected, so the fixtures should still show');
 });
 
 /* ── which campaign the drill-down is about ─────────────────────────────── */

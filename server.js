@@ -52,7 +52,14 @@ const repo = createRepository();
    explanations — reads through this, so none of them needs to know tenancy
    exists. The partitioning itself lives in lib/ingest. */
 function entitiesFor(workspaceId) {
-  return ingest.snapshot({ store: ingest.storeFor(workspaceId) });
+  /* `connected` retires a source's demo rows once somebody stores a credential
+     for it — see lib/ingest/raw-store.js. The metric layer reads through here,
+     so it must see the same entities the screens do or a headline could be
+     computed over invented rows the table below it no longer shows. */
+  return ingest.snapshot({
+    store: ingest.storeFor(workspaceId),
+    connected: connections.configured(workspaceId),
+  });
 }
 
 const workspace = new attribution.Workspace();
