@@ -94,9 +94,20 @@ module.exports = {
     { metric: 'ads.impressions', label: 'Impressions', value: '9.8L', delta: '+12.1%', deltaColor: NA },
     { metric: 'ads.ctr', label: 'CTR', value: '3.41%', delta: '+0.34pt', deltaColor: UP },
     { metric: 'ads.cpm', label: 'CPM', value: '₹214', delta: '−3.8%', deltaColor: UP },
-    /* Frequency needs reach, which no campaign_day payload carries. */
+    /* Frequency is impressions over *reach*, and reach does not add up across
+       days — the same person reached on Monday and Tuesday is one person, and
+       nothing in a daily row says so. Averaging the daily figures would produce
+       a number that looks like a 30-day frequency and is not one. Meta will
+       answer it for a period, but only from a request that asks for the period
+       rather than for its days, which this pipeline does not make. */
     { label: 'Frequency', value: '2.1', delta: '+0.2', deltaColor: NA },
-    { metric: 'cost.per_lead', label: 'CPL', value: '₹348', delta: '−22.0%', deltaColor: UP },
+    /* Meta's own cost per lead, not the CRM's. This panel is headed "synced
+       from Meta Ads" and `cost.per_lead` divides by CRM leads, so it read "—"
+       on every campaign the CRM has never heard of — while the table one click
+       away showed a CPL for that same campaign, computed from the platform's
+       count. The CRM figure belongs in Business outcomes below, where the
+       source of truth is named. */
+    { metric: 'cost.per_reported_lead', label: 'CPL', value: '₹348', delta: '−22.0%', deltaColor: UP },
   ],
 
   dBiz: [
