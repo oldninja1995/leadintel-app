@@ -68,10 +68,14 @@
 <%# A screen may offer rankings the design drew a caret for and no menu. The
     options travel here so the control can build one at runtime, rather than
     the markup being written into views/screens/, which the converter owns. %>
-<script type="application/json" id="li-sort-data"><%- JSON.stringify(data.sortOptions || []) %></script>
+<%# `data` is null on the not-found page, which has no screen behind it and so
+    has nothing to sort or judge by. Reading through it threw, and the throw
+    replaced every 404 with a 500 — a mistyped URL, a link that moved, and
+    /favicon.ico, which the browser asks for on every single page load. %>
+<script type="application/json" id="li-sort-data"><%- JSON.stringify((data && data.sortOptions) || []) %></script>
 <%# What the screen judges by — different businesses buy against different
     measures, and this one buys against qualified lead CPL. %>
-<script type="application/json" id="li-goal-data"><%- JSON.stringify(data.goalOptions || []) %></script>
+<script type="application/json" id="li-goal-data"><%- JSON.stringify((data && data.goalOptions) || []) %></script>
 <script type="application/json" id="li-notif-count"><%- JSON.stringify({ count: notifications.count }) %></script>
 
 <script src="/assets/actions.js"></script>

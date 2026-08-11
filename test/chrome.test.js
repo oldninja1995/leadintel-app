@@ -196,3 +196,26 @@ test('the index holds no list of its own — an empty registry yields nothing', 
   const entries = await palette.build({ async screens() { return []; }, async subviewGroups() { return []; } });
   assert.deepEqual(entries, []);
 });
+
+/* ── the not-found page ─────────────────────────────────────────────────── */
+
+/* `layout.ejs` renders for the 404 as well as for the fifteen screens, and the
+   404 has no screen behind it: server.js passes `data: null`. Two script tags
+   read straight through it, so every unknown URL answered 500 instead of 404 —
+   including /favicon.ico, which a browser requests on every page load.
+ *
+ * Rendering the layout here would mean building the whole shell — sidebar,
+ * topbar and filterbar locals — so this reads the template instead and holds
+ * the one rule that matters: nothing outside the `hasView` body may dereference
+ * `data` without checking it first. */
+test('the layout never reads through data, which is null on the 404', () => {
+  const fs = require('fs');
+  const source = fs.readFileSync(require('path').join(__dirname, '..', 'views', 'layout.ejs'), 'utf8');
+
+  const unguarded = [];
+  for (const m of source.matchAll(/(.{0,12})\bdata\.\w+/g)) {
+    if (!/data && $/.test(m[1])) unguarded.push(m[0].trim());
+  }
+
+  assert.deepEqual(unguarded, [], 'these would throw on the not-found page');
+});

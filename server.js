@@ -840,6 +840,15 @@ app.get('/connections', (req, res, next) => {
   }).catch(next);
 });
 
+/* Every control on the Connections screen posts to `/connections/:source`, and
+   a person who has just saved a credential there reasonably tries to go back to
+   it — from history, from a bookmark, or by typing what the form's action said.
+   There was no GET, so the URL fell to the not-found handler. It is the one
+   screen the source is a part of, so it answers by opening that source on it
+   rather than by saying the address does not exist. */
+app.get('/connections/:source', (req, res) =>
+  res.redirect(`/connections?source=${encodeURIComponent(req.params.source)}`));
+
 app.post('/connections/:source',
   express.urlencoded({ extended: false }), express.json(),
   gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'set' })),
