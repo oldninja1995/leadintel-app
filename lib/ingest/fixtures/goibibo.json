@@ -1,0 +1,9 @@
+{
+  "_note": "SYNTHETIC. Not Goibibo's data. Commission at 18%, the same platform and the same rate as MakeMyTrip; kept as its own source because the hotel code and the extranet are separate. GOI-3391004 carries no net_amount, which is deliberate — the entity derives net from gross minus commission when the channel does not state it.",
+
+  "reservation": [
+    { "reservation_id": "GOI-3388417", "guest_name": "Nikhil Verma", "property_id": "P-MUN", "property": "Munnar Hillside", "room_type": "Deluxe valley room", "check_in": "2026-07-15", "check_out": "2026-07-17", "nights": 2, "guests": 2, "status": "confirmed", "currency": "INR", "gross_amount": "₹20,600", "commission_amount": "₹3,708", "booked_at": "2026-07-06T11:58:00+05:30", "updated_at": "2026-07-15T13:10:00+05:30" },
+    { "reservation_id": "GOI-3391004", "guest_name": "Deepa Raghavan", "property_id": "P-ALP", "property": "Alleppey Backwaters", "room_type": "Houseboat suite", "check_in": "2026-08-04", "check_out": "2026-08-06", "nights": 2, "guests": 4, "status": "confirmed", "currency": "INR", "gross_amount": "₹37,600", "commission_amount": "₹6,768", "booked_at": "2026-07-23T18:02:00+05:30", "updated_at": "2026-08-04T12:35:00+05:30" },
+    { "reservation_id": "GOI-3393658", "guest_name": "Imran Sheikh", "property_id": "P-MUN", "property": "Munnar Hillside", "room_type": "Cliff-view villa", "check_in": "2026-08-09", "check_out": "2026-08-11", "nights": 2, "guests": 3, "status": "cancelled", "currency": "INR", "gross_amount": "₹44,200", "commission_amount": "₹0", "booked_at": "2026-08-02T15:47:00+05:30", "updated_at": "2026-08-06T10:15:00+05:30" }
+  ]
+}

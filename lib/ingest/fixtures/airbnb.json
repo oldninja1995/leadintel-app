@@ -1,0 +1,9 @@
+{
+  "_note": "SYNTHETIC. Not Airbnb's data. Commission at 3%, the host-only fee — Airbnb charges most of its take to the guest instead, which is why its net rate looks unlike every other channel here and why comparing channels on gross alone misleads.",
+
+  "reservation": [
+    { "reservation_id": "HMABC7X2QK", "guest_name": "Elena Rossi", "property_id": "P-MUN", "property": "Munnar Hillside", "room_type": "Cliff-view villa", "check_in": "2026-07-22", "check_out": "2026-07-26", "nights": 4, "guests": 4, "status": "confirmed", "currency": "INR", "gross_amount": "₹72,400", "commission_amount": "₹2,172", "net_amount": "₹70,228", "booked_at": "2026-06-29T18:22:00+05:30", "updated_at": "2026-07-22T15:10:00+05:30" },
+    { "reservation_id": "HMD4RN9PLT", "guest_name": "Joseph Mathew", "property_id": "P-ALP", "property": "Alleppey Backwaters", "room_type": "Houseboat suite", "check_in": "2026-08-03", "check_out": "2026-08-06", "nights": 3, "guests": 2, "status": "confirmed", "currency": "INR", "gross_amount": "₹54,900", "commission_amount": "₹1,647", "booked_at": "2026-07-18T10:47:00+05:30", "updated_at": "2026-08-03T14:00:00+05:30" },
+    { "reservation_id": "HMK8TZ3VWQ", "guest_name": "Aisha Rahman", "property_id": "P-MUN", "property": "Munnar Hillside", "room_type": "Honeymoon suite", "check_in": "2026-08-11", "check_out": "2026-08-14", "nights": 3, "guests": 2, "status": "confirmed", "currency": "INR", "gross_amount": "₹63,000", "commission_amount": "₹1,890", "booked_at": "2026-07-31T12:38:00+05:30", "updated_at": "2026-08-09T09:30:00+05:30" }
+  ]
+}

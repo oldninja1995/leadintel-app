@@ -1,0 +1,10 @@
+{
+  "_note": "SYNTHETIC. Not Expedia Group's data. Field names follow this app's reservation shape, not Expedia's wire format — there is no request shape written for Expedia (see lib/ingest/http), so nothing here was checked against a real payload. Commission at 18%.",
+
+  "reservation": [
+    { "reservation_id": "EXP-4471203", "guest_name": "Daniel Osei", "property_id": "P-MUN", "property": "Munnar Hillside", "room_type": "Deluxe valley room", "check_in": "2026-07-18", "check_out": "2026-07-21", "nights": 3, "guests": 2, "status": "confirmed", "currency": "INR", "gross_amount": "₹33,900", "commission_amount": "₹6,102", "booked_at": "2026-07-02T04:18:00+05:30", "updated_at": "2026-07-18T13:44:00+05:30" },
+    { "reservation_id": "EXP-4478866", "guest_name": "Carla Mendes", "property_id": "P-ALP", "property": "Alleppey Backwaters", "room_type": "Houseboat suite", "check_in": "2026-07-29", "check_out": "2026-08-01", "nights": 3, "guests": 2, "status": "confirmed", "currency": "INR", "gross_amount": "₹61,200", "commission_amount": "₹11,016", "net_amount": "₹50,184", "booked_at": "2026-07-14T22:30:00+05:30", "updated_at": "2026-07-29T11:05:00+05:30" },
+    { "reservation_id": "EXP-4482017", "guest_name": "Harish Pillai", "property_id": "P-MUN", "property": "Munnar Hillside", "room_type": "Cliff-view villa", "check_in": "2026-08-06", "check_out": "2026-08-08", "nights": 2, "guests": 3, "status": "confirmed", "currency": "INR", "gross_amount": "₹47,000", "commission_amount": "₹8,460", "booked_at": "2026-07-25T15:52:00+05:30", "updated_at": "2026-08-06T12:00:00+05:30" },
+    { "reservation_id": "EXP-4484990", "guest_name": "Lena Fischer", "property_id": "P-MUN", "property": "Munnar Hillside", "room_type": "Honeymoon suite", "check_in": "2026-08-09", "check_out": "2026-08-12", "nights": 3, "guests": 2, "status": "no_show", "currency": "INR", "gross_amount": "₹59,400", "commission_amount": "₹0", "booked_at": "2026-07-30T09:07:00+05:30", "updated_at": "2026-08-10T08:20:00+05:30" }
+  ]
+}

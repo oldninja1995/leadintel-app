@@ -28,9 +28,14 @@ const FIXED = '2026-08-03T00:00:00.000Z';
 
 /* ── 4.1 Source registry & connector contract ───────────────────────────── */
 
-test('all five sources are registered with a connector', () => {
-  assert.deepEqual(sources.list().map((s) => s.id).sort(),
-    ['google_ads', 'meta_ads', 'pms', 'razorpay', 'telecrm']);
+test('every source is registered with a connector', () => {
+  /* The five systems the Analytics Engine page names, plus the six OTAs. Listed
+     rather than counted, so adding a source is a deliberate edit here and not
+     something a number quietly absorbs. */
+  assert.deepEqual(sources.list().map((s) => s.id).sort(), [
+    'agoda', 'airbnb', 'booking_com', 'expedia', 'goibibo', 'google_ads',
+    'makemytrip', 'meta_ads', 'pms', 'razorpay', 'telecrm',
+  ]);
   for (const s of sources.list()) assert.ok(connectors.get(s.id), `${s.id} has no connector`);
 });
 

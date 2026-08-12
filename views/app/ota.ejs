@@ -1,0 +1,258 @@
+<%
+/* OTA Analytics — what each channel sold, and what it kept.
+ *
+ * Not from the design: `LeadIntel App.dc.html` draws no distribution screen, so
+ * this is ours and lives in views/app/ where the converter never reaches. Built
+ * from the Nocturne tokens and the Connections screen's vocabulary, so a reader
+ * moving between the two is not learning a second visual language.
+ *
+ * Every judgement it renders was made in lib/ota.js — which statuses count,
+ * what null means, how channels rank. The template formats and nothing more.
+ * Figures come pre-formatted from the registry, because deciding here how a
+ * rupee looks is how two screens end up disagreeing about the same number. */
+
+/* Nulls are "—" everywhere. This screen has two kinds of nothing — a channel
+   with no reservations in the window, and a channel nobody has connected — and
+   printing ₹0 for either states something false with total confidence. */
+const dash = function (text) { return (text === null || text === undefined || text === '') ? '—' : text; };
+%>
+<div class="li-ota">
+
+  <header class="li-ota-head">
+    <div class="li-ota-title">
+      <h1>OTA Analytics</h1>
+      <p>
+        Reservations as the channels report them, for <strong><%= rangeLabel %></strong>, dated by the
+        night stayed rather than the day booked. Ranked on <strong>net</strong> — what the property banks
+        after commission — because ranking on gross reverses the order whenever channels charge
+        differently, and here they charge between 3% and 20%.
+      </p>
+    </div>
+    <div class="li-ota-tally">
+      <span class="li-ota-tally-n"><%= reporting.length %><em>/<%= rows.length %></em></span>
+      <span class="li-ota-tally-l">channels reporting</span>
+    </div>
+  </header>
+
+  <%
+  /* Said once, at the top, and not repeated on every card: where these figures
+     come from and what they are not. The PMS reconciliation is the honest gap —
+     stating it is cheaper than a reader discovering it from a total that does
+     not match their folio. */
+  %>
+  <p class="li-conn-notice">
+    <i class="ph ph-info"></i>
+    <span>These are the <strong>channels' own account</strong> of each stay, not the PMS folio, and the two are
+    <strong>not reconciled</strong> — do not add these to the revenue on the Executive Dashboard, which reads
+    bookings from the property management system. When the PMS is connected the join is by confirmation
+    number; it is not built.</span>
+  </p>
+
+  <%
+  /* A channel serves real reservations only once it has **both** a stored
+     credential and a written request shape — the rule lib/ingest/raw-store.js
+     replays by. Today no OTA has a request shape, so this banner is on for all
+     six, and it must not quietly go off when somebody pastes a key: that would
+     be the screen claiming its figures are real on the strength of a credential
+     nothing has used. `awaitingConnector` is the half that names why. */
+  %>
+  <% if (demoChannels.length) { %>
+    <p class="li-conn-notice li-conn-notice--warn">
+      <i class="ph ph-flask"></i>
+      <span><strong><%= demoChannels.length === rows.length ? 'Every figure on this screen is synthetic.' : demoChannels.length + ' of these channels are showing synthetic data.' %></strong>
+      <%= demoChannels.map(function (c) { return c.name; }).join(', ') %>
+      <%= demoChannels.length === 1 ? 'is' : 'are' %> reading a fixture file.
+      <% if (awaitingConnector.length) { %>
+        <%= awaitingConnector.map(function (c) { return c.name; }).join(', ') %>
+        <%= awaitingConnector.length === 1 ? 'has a credential stored but' : 'have credentials stored but' %>
+        <strong>no request shape is written for <%= awaitingConnector.length === 1 ? 'it' : 'them' %></strong> —
+        every one of these APIs is partner-gated, and the key is only the first half.
+        Storing it changes that card on <a href="/connections">Connections</a> and does not change these numbers.
+      <% } else { %>
+        <a href="/connections">Connect them</a> to replace this with real reservations.
+      <% } %></span>
+    </p>
+  <% } %>
+
+  <% if (!totals.reservations) { %>
+    <div class="li-ota-empty">
+      <i class="ph ph-bed"></i>
+      <h2>No channel reservations in this range</h2>
+      <%
+      /* Names the missing source rather than shrugging. On production every
+         source is forced onto the live transport, so the synthetic-data banner
+         above is off and this is the only thing on the screen — an empty page
+         that does not say why reads as a broken feature rather than as an
+         unconnected one. */
+      %>
+      <% if (!shapesWritten.length) { %>
+        <p>
+          Nothing has been ingested for <%= rangeLabel %>, and nothing can be yet:
+          <strong>no request shape is written for any of the six channels</strong>. Each of these APIs
+          is partner-gated — Booking.com wants a certified connectivity provider, Expedia and Agoda a
+          signed agreement, Airbnb an approved application — so the credential comes first and the
+          connector is written against it. The forms are ready on
+          <a href="/connections">Connections</a>; storing a key there will not fill this screen on its own.
+        </p>
+      <% } else { %>
+        <p>
+          Nothing has been ingested for <%= rangeLabel %>. Either no OTA is connected, or none of them
+          reported a stay on these nights — widen the range, or check the channels on
+          <a href="/connections">Connections</a>.
+        </p>
+      <% } %>
+    </div>
+  <% } else { %>
+
+    <%
+    /* The headline row. Net first and largest: it is the figure the rest of the
+       screen exists to qualify, and gross sits beside it so the commission
+       between them is legible as a subtraction rather than a claim. */
+    %>
+    <div class="li-ota-kpis">
+      <% kpis.forEach(function (k) { %>
+        <div class="li-ota-kpi <%= k.lead ? 'li-ota-kpi--lead' : '' %>">
+          <span class="li-ota-kpi-l"><%= k.label %></span>
+          <span class="li-ota-kpi-v"><%= dash(k.value) %></span>
+          <% if (k.note) { %><span class="li-ota-kpi-n"><%= k.note %></span><% } %>
+        </div>
+      <% }); %>
+    </div>
+
+    <section class="li-ota-panel">
+      <div class="li-ota-panel-head">
+        <h2>By channel</h2>
+        <p>Confirmed reservations only. Cancellations are counted in their own column and their money is excluded — a channel cannot earn its way up this table on stays that fell through.</p>
+      </div>
+
+      <div class="li-ota-scroll">
+        <table class="li-ota-table">
+          <thead>
+            <tr>
+              <th scope="col">Channel</th>
+              <th scope="col" class="li-num">Res.</th>
+              <th scope="col" class="li-num">Nights</th>
+              <th scope="col" class="li-num">Gross</th>
+              <th scope="col" class="li-num">Commission</th>
+              <th scope="col" class="li-num">Rate</th>
+              <th scope="col" class="li-num">Net</th>
+              <th scope="col" class="li-num">Per night</th>
+              <th scope="col" class="li-num">Cancelled</th>
+              <th scope="col">Share of net</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% rows.forEach(function (r) { %>
+              <tr class="<%= r.confirmed ? '' : 'li-ota-row--quiet' %>">
+                <th scope="row">
+                  <span class="li-ota-ch">
+                    <i class="<%= r.icon %>"></i>
+                    <span><%= r.name %></span>
+                  </span>
+                  <%
+                  /* A zero and an absence read identically in a table, and they
+                     are not the same news. Which one this is comes from
+                     lib/connections.js `stateOf`, the same rule the Connections
+                     screen renders — not re-derived here. */
+                  %>
+                  <span class="li-ota-state li-ota-state--<%= r.state %>"><%= r.stateLabel %></span>
+                </th>
+                <td class="li-num"><%= r.confirmed || '—' %></td>
+                <td class="li-num"><%= dash(r.roomNightsText) %></td>
+                <td class="li-num"><%= dash(r.grossText) %></td>
+                <td class="li-num"><%= dash(r.commissionText) %></td>
+                <td class="li-num"><%= dash(r.commissionRateText) %></td>
+                <td class="li-num li-ota-net"><%= dash(r.netText) %></td>
+                <td class="li-num"><%= dash(r.adrText) %></td>
+                <td class="li-num"><%= r.cancelled || '—' %></td>
+                <td>
+                  <% if (r.share === null) { %>
+                    <span class="li-ota-share-none">—</span>
+                  <% } else { %>
+                    <span class="li-ota-share">
+                      <span class="li-ota-share-bar"><span style="width: <%= Math.max(1, Math.round(r.share * 100)) %>%"></span></span>
+                      <span class="li-ota-share-n"><%= (r.share * 100).toFixed(1) %>%</span>
+                    </span>
+                  <% } %>
+                </td>
+              </tr>
+            <% }); %>
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row">All channels</th>
+              <td class="li-num"><%= totals.confirmed %></td>
+              <td class="li-num"><%= dash(totals.roomNightsText) %></td>
+              <td class="li-num"><%= dash(totals.grossText) %></td>
+              <td class="li-num"><%= dash(totals.commissionText) %></td>
+              <td class="li-num"><%= dash(totals.commissionRateText) %></td>
+              <td class="li-num li-ota-net"><%= dash(totals.netText) %></td>
+              <td class="li-num"><%= dash(totals.adrText) %></td>
+              <td class="li-num"><%= totals.cancelled || '—' %></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <% if (netDerived) { %>
+        <p class="li-ota-foot">
+          <i class="ph ph-calculator"></i>
+          Some channels do not state a payout, so net is worked out as gross minus commission. That assumes
+          commission is the only deduction — true of these six, and still an assumption.
+        </p>
+      <% } %>
+      <% if (totals.unclassified) { %>
+        <p class="li-ota-foot li-ota-foot--warn">
+          <i class="ph ph-question"></i>
+          <%= totals.unclassified %> reservation<%= totals.unclassified === 1 ? '' : 's' %> carry a status this app
+          does not recognise, and <%= totals.unclassified === 1 ? 'is' : 'are' %> counted as neither confirmed nor
+          cancelled. Their money is in no total above.
+        </p>
+      <% } %>
+    </section>
+
+    <section class="li-ota-panel">
+      <div class="li-ota-panel-head">
+        <h2>Reservations</h2>
+        <p>
+          <%= shown %> of <%= totals.reservations %> in this range, latest check-in first<%= truncated ? ' — the rest are not shown' : '' %>.
+        </p>
+      </div>
+
+      <div class="li-ota-scroll">
+        <table class="li-ota-table li-ota-table--rows">
+          <thead>
+            <tr>
+              <th scope="col">Reference</th>
+              <th scope="col">Channel</th>
+              <th scope="col">Guest</th>
+              <th scope="col">Property</th>
+              <th scope="col">Stay</th>
+              <th scope="col" class="li-num">Nights</th>
+              <th scope="col" class="li-num">Gross</th>
+              <th scope="col" class="li-num">Net</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% reservations.forEach(function (r) { %>
+              <tr class="<%= r.cancelled ? 'li-ota-row--cancelled' : '' %>">
+                <th scope="row"><code><%= r.reference %></code></th>
+                <td><%= r.channelName %></td>
+                <td><%= dash(r.guest) %></td>
+                <td><%= dash(r.property) %></td>
+                <td class="li-ota-stay"><%= dash(r.stay) %></td>
+                <td class="li-num"><%= dash(r.nights) %></td>
+                <td class="li-num"><%= dash(r.grossText) %></td>
+                <td class="li-num"><%= dash(r.netText) %></td>
+                <td><span class="li-ota-status li-ota-status--<%= r.cancelled ? 'off' : 'on' %>"><%= r.statusLabel %></span></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  <% } %>
+</div>

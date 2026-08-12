@@ -536,3 +536,111 @@ body.li-tv main { padding: 0 !important; }
 .li-filter-note-text { color: var(--color-neutral-500); line-height: 1.55; }
 .li-filter-note-text strong { color: var(--color-neutral-300); font-weight: 500; }
 .li-filter-clear { margin-left: auto; color: var(--color-accent-300); white-space: nowrap; }
+
+/* ── OTA Analytics ──────────────────────────────────────────────────────────
+ *
+ * Not from the design — `LeadIntel App.dc.html` draws no distribution screen.
+ * Deliberately built from the Connections screen's vocabulary (the same notice,
+ * tally and status pill) rather than a second visual language for a second
+ * screen that is ours.
+ *
+ * The table is the screen. Its one opinion is typographic: net is the column a
+ * mix decision is made on, so it is the only figure rendered at full contrast
+ * and everything else recedes a step. */
+
+.li-ota { max-width: 1180px; }
+
+.li-ota-head { display: flex; align-items: flex-start; gap: 24px; margin-bottom: 16px; }
+.li-ota-title h1 { font-size: 20px; font-weight: 500; margin: 0; color: var(--color-neutral-100); letter-spacing: -0.01em; }
+.li-ota-title p { font-size: 12px; color: var(--color-neutral-500); margin: 6px 0 0; line-height: 1.65; max-width: 76ch; }
+.li-ota-title strong { color: var(--color-neutral-300); font-weight: 500; }
+
+.li-ota-tally { flex: none; text-align: right; border-left: 1px solid var(--color-neutral-800); padding-left: 18px; line-height: 1.15; }
+.li-ota-tally-n { display: block; font-size: 26px; font-weight: 300; color: var(--color-accent-300); }
+.li-ota-tally-n em { font-style: normal; font-size: 15px; color: var(--color-neutral-700); }
+.li-ota-tally-l { font-size: 10.5px; color: var(--color-neutral-600); letter-spacing: .07em; text-transform: uppercase; }
+
+/* ── the headline row ───────────────────────────────────────────────────── */
+
+.li-ota-kpis {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 1px; background: var(--color-neutral-800);
+  border: 1px solid var(--color-neutral-800); border-radius: 10px;
+  overflow: hidden; margin: 0 0 18px;
+}
+.li-ota-kpi { background: var(--color-neutral-900); padding: 13px 15px 14px; }
+.li-ota-kpi-l { display: block; font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--color-neutral-600); }
+.li-ota-kpi-v { display: block; font-size: 19px; font-weight: 400; color: var(--color-neutral-200); margin-top: 5px; letter-spacing: -0.01em; }
+.li-ota-kpi-n { display: block; font-size: 10.5px; color: var(--color-neutral-600); margin-top: 4px; line-height: 1.45; }
+/* Net is the figure the rest of the row qualifies. */
+.li-ota-kpi--lead .li-ota-kpi-v { font-size: 23px; color: var(--color-accent-200); }
+
+/* ── panels ─────────────────────────────────────────────────────────────── */
+
+.li-ota-panel { border: 1px solid var(--color-neutral-800); border-radius: 10px; margin: 0 0 16px; overflow: hidden; }
+.li-ota-panel-head { padding: 13px 16px 12px; border-bottom: 1px solid var(--color-neutral-800); }
+.li-ota-panel-head h2 { margin: 0; font-size: 13px; font-weight: 500; color: var(--color-neutral-200); }
+.li-ota-panel-head p { margin: 5px 0 0; font-size: 11.5px; color: var(--color-neutral-600); line-height: 1.55; max-width: 88ch; }
+
+/* Wide tables scroll inside their own panel rather than pushing the page
+   sideways — ten columns do not fit a laptop at this type size. */
+.li-ota-scroll { overflow-x: auto; }
+
+.li-ota-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.li-ota-table th, .li-ota-table td { padding: 9px 12px; text-align: left; white-space: nowrap; }
+.li-ota-table thead th {
+  font-size: 10px; letter-spacing: .07em; text-transform: uppercase; font-weight: 500;
+  color: var(--color-neutral-600); border-bottom: 1px solid var(--color-neutral-800);
+}
+.li-ota-table tbody tr { border-bottom: 1px solid color-mix(in srgb, var(--color-neutral-800) 55%, transparent); }
+.li-ota-table tbody tr:last-child { border-bottom: 0; }
+.li-ota-table tbody th { font-weight: 400; color: var(--color-neutral-300); }
+.li-ota-table td { color: var(--color-neutral-400); font-variant-numeric: tabular-nums; }
+.li-ota-table .li-num { text-align: right; }
+.li-ota-table tfoot th, .li-ota-table tfoot td {
+  border-top: 1px solid var(--color-neutral-800); color: var(--color-neutral-400);
+  font-size: 11.5px; font-weight: 500;
+}
+.li-ota-net { color: var(--color-neutral-100) !important; }
+
+.li-ota-ch { display: inline-flex; align-items: center; gap: 7px; }
+.li-ota-ch i { font-size: 14px; color: var(--color-neutral-600); }
+
+/* A channel with nothing in the window keeps its row and loses its weight. */
+.li-ota-row--quiet th, .li-ota-row--quiet td { color: var(--color-neutral-700); }
+.li-ota-row--quiet .li-ota-ch i { color: var(--color-neutral-800); }
+.li-ota-row--cancelled th code, .li-ota-row--cancelled td { color: var(--color-neutral-700); text-decoration-color: var(--color-neutral-800); }
+
+.li-ota-state {
+  display: inline-block; margin-left: 8px; font-size: 9.5px; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--color-neutral-600);
+  border: 1px solid var(--color-neutral-800); border-radius: 99px; padding: 1.5px 7px;
+}
+.li-ota-state--on { color: var(--c-up); border-color: color-mix(in srgb, var(--c-up) 40%, transparent); }
+.li-ota-state--idle { color: var(--c-warn); border-color: color-mix(in srgb, var(--c-warn) 40%, transparent); }
+.li-ota-state--failing, .li-ota-state--broken { color: var(--c-down); border-color: color-mix(in srgb, var(--c-down) 40%, transparent); }
+
+.li-ota-share { display: inline-flex; align-items: center; gap: 8px; min-width: 128px; }
+.li-ota-share-bar { flex: 1; height: 5px; border-radius: 99px; background: var(--color-neutral-800); overflow: hidden; }
+.li-ota-share-bar > span { display: block; height: 100%; border-radius: 99px; background: var(--color-accent-400); }
+.li-ota-share-n { flex: none; font-size: 11px; color: var(--color-neutral-500); font-variant-numeric: tabular-nums; }
+.li-ota-share-none { color: var(--color-neutral-700); }
+
+.li-ota-stay { font-variant-numeric: tabular-nums; color: var(--color-neutral-500) !important; }
+.li-ota-table code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--color-neutral-400); }
+
+.li-ota-status { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--c-up); }
+.li-ota-status--off { color: var(--color-neutral-600); }
+
+.li-ota-foot {
+  display: flex; align-items: flex-start; gap: 8px; margin: 0;
+  padding: 10px 16px; border-top: 1px solid var(--color-neutral-800);
+  font-size: 11px; color: var(--color-neutral-600); line-height: 1.55;
+}
+.li-ota-foot i { font-size: 13px; flex: none; margin-top: 1px; }
+.li-ota-foot--warn { color: var(--c-warn); }
+
+.li-ota-empty { text-align: center; padding: 56px 20px; border: 1px solid var(--color-neutral-800); border-radius: 10px; }
+.li-ota-empty i { font-size: 28px; color: var(--color-neutral-700); }
+.li-ota-empty h2 { margin: 12px 0 6px; font-size: 15px; font-weight: 500; color: var(--color-neutral-300); }
+.li-ota-empty p { margin: 0 auto; max-width: 52ch; font-size: 12px; color: var(--color-neutral-500); line-height: 1.65; }

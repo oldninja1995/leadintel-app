@@ -37,7 +37,8 @@ const { FireLog } = require('./lib/rules/firelog');
 const schedules = require('./lib/schedules');
 const auth = require('./lib/auth');
 const authSessions = require('./lib/auth/sessions');
-const { Connections, stateOf } = require('./lib/connections');
+const { Connections, stateOf, REQUIREMENTS } = require('./lib/connections');
+const ota = require('./lib/ota');
 const hardening = require('./lib/http/hardening');
 const observability = require('./lib/http/observability');
 
@@ -1052,6 +1053,185 @@ app.post('/connections/:source/webhook/remove',
         : `${req.params.source}: no token to revoke.`,
     }).catch(next);
   });
+
+/* OTA Analytics — channel production.
+ *
+ * Not from the design, like Connections: the design draws no distribution
+ * screen, and the OTAs are the half of hospitality revenue neither ad platform
+ * can see. Every judgement it renders is made in lib/ota.js and every number is
+ * formatted by the registry, so this route only assembles.
+ *
+ * Read at the workspace grain deliberately. `lib/metrics/scope.js` does not
+ * narrow `otaReservations` by campaign — a channel's commission is not
+ * attributable to the ad that sold the room — so an OTA figure is a workspace
+ * question and `supports()` correctly refuses every dimension.
+ */
+const OTA_ROWS_SHOWN = 40;
+
+async function renderOta(req, res) {
+  const screen = (await repo.screens()).find((s) => s.slug === 'ota');
+  const { over } = periodFor(req.query);
+
+  /* The same window narrows the table and the headline row, from the same
+     entities, for the reason the honesty pass made the date chips real: a
+     headline must never sit over a table that disagrees with it. */
+  const entities = metrics.period.within(entitiesFor(req.workspace), over);
+  const all = entities.otaReservations || [];
+
+  /* The filter chips are real on this screen, and they have to be: the topbar
+     offers a **Channel** chip above a table that is entirely about channels,
+     and one that did nothing would be exactly the decoration the honesty pass
+     removed elsewhere. Property, Channel and Room type all answer, because
+     every reservation carries all three — lib/filters.js requires that of every
+     row before it will offer a chip.
+   *
+   * And unlike every other screen, the totals here **are** filtered: they are
+   * recomputed from the narrowed rows rather than read from a second snapshot
+   * that does not exist. That makes the shared note's standing caveat false
+   * here, so it is told which case it is in rather than left to say the wrong
+   * thing quietly. */
+  const narrowed = filters.applyFilters({ reservations: all }, req.query);
+  const reservations = narrowed.payload.reservations;
+  const note = filters.summarise(narrowed);
+  const { rows, totals, reporting } = ota.summary(reservations);
+
+  /* Formatting is the registry's, not this route's — the same rupee on two
+     screens has to look the same, and `format` is the field that guarantees it.
+     A channel row is not a registry metric, so it borrows the definition of the
+     workspace metric it is a slice of. */
+  const asMetric = (id, value) => metrics.format(metrics.registry.get(id), value);
+
+  /* Which of the six are still reading a fixture file.
+   *
+   * **`liveSources`, not `configured`** — and the difference is the whole point.
+   * A source stops serving demo rows only when it has a credential *and* a
+   * request shape, which is the rule lib/ingest/raw-store.js replays by. No OTA
+   * has a shape written, so storing an Agoda key changes that card's status and
+   * changes nothing about where its numbers come from. Deriving this banner
+   * from the credential alone would have dropped Agoda from it the moment a key
+   * was pasted, while the table below carried on showing invented reservations
+   * — a screen saying its figures are real on the strength of a key nothing has
+   * used yet. */
+  const live = ingest.liveSources({ connections, workspace: req.workspace, httpConnectors });
+  const configured = connections.configured(req.workspace);
+  const syncStatus = req.workspace === SYNC_WORKSPACE
+    ? new Map(runner.status().map((s) => [s.source, s])) : new Map();
+
+  const decorated = rows.map((r) => {
+    const state = stateOf({
+      configured: configured.has(r.channel),
+      readable: configured.has(r.channel) ? connections.decryptable(req.workspace, r.channel) : null,
+      webhook: null,
+      sync: syncStatus.get(r.channel) || null,
+    });
+    return {
+      ...r,
+      icon: (REQUIREMENTS[r.channel] || {}).icon || 'ph ph-bed',
+      state: state.state,
+      stateLabel: state.label,
+      roomNightsText: r.roomNights === null ? null : asMetric('ota.room_nights', r.roomNights),
+      grossText: r.gross === null ? null : asMetric('ota.gross_revenue', r.gross),
+      commissionText: r.commission === null ? null : asMetric('ota.commission', r.commission),
+      commissionRateText: r.commissionRate === null ? null : asMetric('ota.commission_rate', r.commissionRate),
+      netText: r.net === null ? null : asMetric('ota.net_revenue', r.net),
+      adrText: r.adr === null ? null : asMetric('ota.adr', r.adr),
+    };
+  });
+
+  /* Latest stay first — a revenue manager reads the newest arrivals, not the
+     oldest. Capped, and the cap is *stated* on the screen: a truncated list that
+     looks complete is worse than a short one that admits it. */
+  const listed = reservations
+    .slice()
+    .sort((a, b) => String(b.checkIn || '').localeCompare(String(a.checkIn || '')))
+    .slice(0, OTA_ROWS_SHOWN);
+
+  const stay = (from, to) => {
+    if (!from) return null;
+    const day = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+    return to ? `${day(from)} – ${day(to)}` : day(from);
+  };
+
+  res.render('layout', {
+    screen,
+    screens: await repo.screens(),
+    shell: await shellData('ota', req.query, req.path, req.workspace, req.user),
+    hasView: false,
+    data: {
+      rangeLabel: rangeLabel(over),
+      rows: decorated,
+      reporting,
+      demoChannels: decorated.filter((r) => !live.has(r.channel)),
+      /* Of those, the ones somebody has already pasted a key for. They are still
+         on fixtures and the banner has to say why, or the next question is why
+         connecting a channel did nothing. */
+      awaitingConnector: decorated.filter((r) => !live.has(r.channel) && configured.has(r.channel)),
+      /* Whether *any* channel could pull if it were given a key. On production
+         `LEADINTEL_TRANSPORT=http` forces every source live, so the demo banner
+         above is off and this screen is simply empty — and an empty screen that
+         does not say why reads as a broken feature. This is the sentence that
+         answers it. */
+      shapesWritten: ingest.sources.OTA_IDS.filter((id) => httpConnectors.has(id)),
+      netDerived: decorated.some((r) => r.netDerived),
+      totals: {
+        ...totals,
+        roomNightsText: totals.roomNights === null ? null : asMetric('ota.room_nights', totals.roomNights),
+        grossText: totals.gross === null ? null : asMetric('ota.gross_revenue', totals.gross),
+        commissionText: totals.commission === null ? null : asMetric('ota.commission', totals.commission),
+        commissionRateText: totals.commissionRate === null ? null : asMetric('ota.commission_rate', totals.commissionRate),
+        netText: totals.net === null ? null : asMetric('ota.net_revenue', totals.net),
+        adrText: totals.adr === null ? null : asMetric('ota.adr', totals.adr),
+      },
+      /* Net leads, and gross sits beside it, so the commission between the two
+         reads as a subtraction rather than as a claim. */
+      kpis: [
+        { label: 'Net revenue', value: totals.net === null ? null : asMetric('ota.net_revenue', totals.net), note: 'what the property banks', lead: true },
+        { label: 'Gross', value: totals.gross === null ? null : asMetric('ota.gross_revenue', totals.gross), note: 'what guests paid' },
+        { label: 'Commission', value: totals.commission === null ? null : asMetric('ota.commission', totals.commission), note: totals.commissionRate === null ? null : `${asMetric('ota.commission_rate', totals.commissionRate)} effective` },
+        { label: 'Reservations', value: asMetric('ota.reservations', totals.confirmed), note: 'confirmed' },
+        { label: 'Room nights', value: totals.roomNights === null ? null : asMetric('ota.room_nights', totals.roomNights) },
+        { label: 'Rate per night', value: totals.adr === null ? null : asMetric('ota.adr', totals.adr), note: 'gross, guest-paid' },
+        { label: 'Cancelled', value: asMetric('ota.cancellations', totals.cancelled), note: totals.cancellationRate === null ? null : `${asMetric('ota.cancellation_rate', totals.cancellationRate)} of reservations` },
+      ],
+      shown: listed.length,
+      truncated: reservations.length > listed.length,
+      reservations: listed.map((r) => ({
+        reference: r.reference,
+        channelName: r.channelName,
+        guest: r.guest,
+        property: r.property,
+        stay: stay(r.checkIn, r.checkOut),
+        nights: r.nights,
+        /* Gross stays on a cancelled row — it is the stay that fell through and
+           worth seeing — but **net is dashed**, because a cancelled reservation
+           banked nothing and a channel that bills no commission on one would
+           otherwise render its full gross in the net column, reading as money
+           the property received. The table above already excludes it; this row
+           was the one place the entity's raw figure reached a screen. */
+        grossText: r.gross === null ? null : asMetric('ota.gross_revenue', r.gross),
+        netText: ota.isCancelled(r) || r.net === null ? null : asMetric('ota.net_revenue', r.net),
+        cancelled: ota.isCancelled(r),
+        /* The channel's own word, made readable — never re-interpreted. */
+        statusLabel: String(r.status || 'unknown').replace(/_/g, ' '),
+      })),
+    },
+    drawer: null,
+    palette: await palette(),
+    notifications: notifications(req.workspace),
+    /* Options come from the *unfiltered* rows, so choosing Booking.com does not
+       leave the Channel menu holding only Booking.com — a filter you cannot
+       change is a filter you cannot undo. */
+    filterData: filterData({ reservations: all }, narrowed.active),
+    filterNote: note && {
+      ...note,
+      totalsFiltered: true,
+      clearUrl: clearUrl(req.originalUrl, narrowed.active),
+    },
+    attrPreview: null,
+  });
+}
+
+app.get('/ota', (req, res, next) => { renderOta(req, res).catch(next); });
 
 /* Creative thumbnails, proxied.
  *

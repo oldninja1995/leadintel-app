@@ -21,7 +21,17 @@
         <%= filterNote.tables %> table<%= filterNote.tables === 1 ? '' : 's' %> narrowed,
         <%= filterNote.dropped %> row<%= filterNote.dropped === 1 ? '' : 's' %> hidden.
       <% } %>
-      Totals and charts are <strong>not</strong> filtered — that needs a second data snapshot per screen, which does not exist yet.
+      <%
+      /* The caveat is the standing case, not the only one. A screen that
+         derives its totals from the rows it just narrowed — OTA Analytics does
+         — filters them for free, and printing "totals are not filtered" over
+         totals that are is the same class of lie this note exists to prevent. */
+      %>
+      <% if (filterNote.totalsFiltered) { %>
+        Totals on this screen are recomputed from the narrowed rows, so they match.
+      <% } else { %>
+        Totals and charts are <strong>not</strong> filtered — that needs a second data snapshot per screen, which does not exist yet.
+      <% } %>
     </span>
 
     <a class="li-filter-clear" href="<%= filterNote.clearUrl %>">Clear</a>

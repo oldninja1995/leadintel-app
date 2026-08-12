@@ -1,0 +1,10 @@
+{
+  "_note": "SYNTHETIC. Not Agoda's data. Commission at 20%, the higher end and the reason a channel-mix screen is worth having: Agoda's gross here reads well and its net does not.",
+
+  "reservation": [
+    { "reservation_id": "AGD-70551", "guest_name": "Wei Lin Tan", "property_id": "P-MUN", "property": "Munnar Hillside", "room_type": "Deluxe valley room", "check_in": "2026-07-20", "check_out": "2026-07-23", "nights": 3, "guests": 2, "status": "confirmed", "currency": "INR", "gross_amount": "₹30,600", "commission_amount": "₹6,120", "booked_at": "2026-07-05T02:41:00+05:30", "updated_at": "2026-07-20T14:15:00+05:30" },
+    { "reservation_id": "AGD-70884", "guest_name": "Arjun Nambiar", "property_id": "P-MUN", "property": "Munnar Hillside", "room_type": "Cliff-view villa", "check_in": "2026-07-31", "check_out": "2026-08-02", "nights": 2, "guests": 4, "status": "confirmed", "currency": "INR", "gross_amount": "₹43,800", "commission_amount": "₹8,760", "net_amount": "₹35,040", "booked_at": "2026-07-17T20:09:00+05:30", "updated_at": "2026-07-31T13:00:00+05:30" },
+    { "reservation_id": "AGD-71012", "guest_name": "Priya Sundaram", "property_id": "P-ALP", "property": "Alleppey Backwaters", "room_type": "Houseboat suite", "check_in": "2026-08-05", "check_out": "2026-08-07", "nights": 2, "guests": 2, "status": "confirmed", "currency": "INR", "gross_amount": "₹39,000", "commission_amount": "₹7,800", "booked_at": "2026-07-24T13:33:00+05:30", "updated_at": "2026-08-05T12:25:00+05:30" },
+    { "reservation_id": "AGD-71190", "guest_name": "Kenji Watanabe", "property_id": "P-MUN", "property": "Munnar Hillside", "room_type": "Deluxe valley room", "check_in": "2026-08-10", "check_out": "2026-08-12", "nights": 2, "guests": 1, "status": "cancelled", "currency": "INR", "gross_amount": "₹21,400", "commission_amount": "₹0", "booked_at": "2026-08-01T06:14:00+05:30", "updated_at": "2026-08-07T19:50:00+05:30" }
+  ]
+}

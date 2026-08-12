@@ -33,6 +33,12 @@ const SCREENS = [
   { slug: 'pipeline',    view: 'pipeline',    gate: 'isPipe',     name: 'Sales Pipeline',       icon: 'ph ph-funnel',            group: 'Sales' },
   { slug: 'sales',       view: 'sales',       gate: 'isSales',    name: 'Sales Analytics',      icon: 'ph ph-handshake',         group: 'Sales' },
 
+  /* NOT FROM THE DESIGN, like Connections below. The design draws no
+     distribution screen, and channel production is the half of hospitality
+     revenue the ad platforms cannot see. Grouped under Sales because it is a
+     revenue question, not a marketing one. */
+  { slug: 'ota',         view: 'ota',         gate: null, app: 'ota', name: 'OTA Analytics',    icon: 'ph ph-bed',               group: 'Sales' },
+
   /* NOT FROM THE DESIGN. Every screen above is converted from
      `LeadIntel App.dc.html`; this one is ours. The design draws no way to
      connect a source, so credentials had nowhere to go and every connector
