@@ -64,6 +64,22 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
           </tr>
         <% }); %>
       </tbody>
+      <%
+      /* Summed from the rows above rather than from a second read, so the total
+         and the column it sits under cannot disagree. */
+      const tot = d.campaignTotal || {};
+      %>
+      <tfoot>
+        <tr>
+          <th>All campaigns</th><th></th>
+          <th class="li-num"><%= txt(tot.spendText) %></th>
+          <th class="li-num"><%= num(tot.impressions) %></th>
+          <th class="li-num"><%= num(tot.clicks) %></th>
+          <th class="li-num"><%= txt(tot.cpcText) %></th>
+          <th class="li-num"><%= num(tot.conversions) %></th>
+          <th class="li-num"><%= txt(tot.cplText) %></th>
+        </tr>
+      </tfoot>
     </table>
   </div>
   <% } %>

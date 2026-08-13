@@ -1591,6 +1591,19 @@ async function renderGoogleAds(req, res) {
     lostToRank: r.lostToRank ?? null,
   }));
 
+  /* The account line. Summed from the same rows the table renders, so a total
+     can never disagree with the column above it — the reason the honesty pass
+     made every headline share its table's entities. */
+  const campaignTotal = campaigns.reduce((t, c) => ({
+    spend: t.spend + c.spend,
+    impressions: t.impressions + c.impressions,
+    clicks: t.clicks + c.clicks,
+    conversions: t.conversions + c.conversions,
+  }), { spend: 0, impressions: 0, clicks: 0, conversions: 0 });
+  campaignTotal.spendText = campaigns.length ? asMoney(campaignTotal.spend) : null;
+  campaignTotal.cpcText = campaignTotal.clicks > 0 ? asMoney(campaignTotal.spend / campaignTotal.clicks) : null;
+  campaignTotal.cplText = campaignTotal.conversions > 0 ? asMoney(campaignTotal.spend / campaignTotal.conversions) : null;
+
   const adGroups = rollUp(entities.googleAdGroups, (r) => r.adgroupId, (r) => ({ adgroup: r.adgroup }));
   const ads = rollUp(entities.googleAds, (r) => r.adId, (r) => ({ ad: r.ad, adId: r.adId, adType: r.adType, status: r.status }));
   const keywords = rollUp(entities.googleKeywords, (r) => r.keyword, (r) => ({
@@ -1692,7 +1705,7 @@ async function renderGoogleAds(req, res) {
     data: {
       rangeLabel: rangeLabel(over),
       connected: ingest.liveSources({ connections, workspace: req.workspace, httpConnectors }).has('google_ads'),
-      campaigns, adGroups, ads, keywords, conversions,
+      campaigns, campaignTotal, adGroups, ads, keywords, conversions,
       searchTerms: terms, termSummary, words,
       keywordsNotApplicable,
     },
