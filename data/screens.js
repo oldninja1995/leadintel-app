@@ -19,7 +19,7 @@
 const SCREENS = [
   { slug: '',            view: 'dashboard',   gate: 'isDash',     name: 'Executive Dashboard',  icon: 'ph ph-squares-four',      group: 'Overview' },
   { slug: 'marketing',   view: 'marketing',   gate: 'isMkt',      name: 'Marketing Dashboard',  icon: 'ph ph-megaphone',         group: 'Marketing' },
-  { slug: 'campaigns',   view: 'campaigns',   gate: 'isCamp',     name: 'Campaign Analytics',   icon: 'ph ph-chart-line-up',     group: 'Marketing' },
+  { slug: 'campaigns',   view: 'campaigns',   gate: 'isCamp',     name: 'Meta Ads Analytics',   icon: 'ph ph-chart-line-up',     group: 'Marketing' },
   { slug: 'creatives',   view: 'creatives',   gate: 'isCreative', name: 'Creative Intelligence', icon: 'ph ph-film-strip',       group: 'Marketing' },
   { slug: 'audiences',   view: 'audiences',   gate: 'isAud',      name: 'Audience Analytics',   icon: 'ph ph-users',             group: 'Marketing' },
   { slug: 'attribution', view: 'attribution', gate: 'isAttr',     name: 'Attribution',          icon: 'ph ph-tree-structure',    group: 'Marketing' },
@@ -44,7 +44,7 @@ const SCREENS = [
      search terms beneath it and no ad-set concept at all. Pouring one into the
      other put Google rows under Meta's ad-set projection, which is what this
      screen exists to stop. Two screens, because they are two shapes. */
-  { slug: 'google-ads',  view: 'google-ads',  gate: null, app: 'googleAds', name: 'Google Ads Analytics', icon: 'ph ph-google-logo', group: 'Marketing' },
+  { slug: 'google-ads',  view: 'google-ads',  gate: null, app: 'google-ads', name: 'Google Ads Analytics', icon: 'ph ph-google-logo', group: 'Marketing' },
 
   /* NOT FROM THE DESIGN. Every screen above is converted from
      `LeadIntel App.dc.html`; this one is ours. The design draws no way to
