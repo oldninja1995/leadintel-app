@@ -779,6 +779,14 @@ app.post('/ingest/webhook/:source', express.json({ limit: '1mb' }), async (req, 
  *
  * The staleness logic is untouched: `due()` still decides, so a tick that
  * arrives early does nothing and one that arrives after downtime catches up.
+ *
+ * **The schedule in vercel.json is daily, and that is not the intended
+ * cadence.** Vercel's Hobby plan refuses any cron more frequent than once a day
+ * — it rejects the deploy outright rather than downgrading it quietly. The
+ * sources still declare a 15-minute SLA and `due()` still enforces it, so the
+ * schedule is a floor on how often the app is *asked*, not a change to what it
+ * considers stale. Anything holding CRON_SECRET can call this route as often as
+ * the SLA actually wants: an external scheduler, or Vercel Pro.
  */
 /* GET as well as POST: Vercel Cron issues a GET. */
 app.all('/cron/sync', async (req, res) => {
@@ -2377,4 +2385,18 @@ async function start() {
    `ready` per invocation and gets the same already-built app back. */
 const ready = start();
 
-module.exports = { app, ready };
+/* The app itself is the export, with `ready` hung off it.
+ *
+ * `module.exports = { app, ready }` is the shape this wants to be, and it is
+ * the shape that broke production: Vercel's Express preset makes server.js a
+ * function entry and invokes its default export, which was an object — every
+ * request it caught died with "Invalid export found in module server.js. The
+ * default export must be a function or server." The preset is off now
+ * (vercel.json), and exporting the handler as well means the failure cannot
+ * come back if anything else ever loads this file expecting one.
+ *
+ * Callers still want `ready` rather than `app`: routes are registered
+ * asynchronously, so the app is not complete until it resolves. */
+module.exports = app;
+module.exports.app = app;
+module.exports.ready = ready;

@@ -19,3 +19,6 @@ var-backups/
 .vercel/
 
 *.log
+
+# Local copy of CRON_SECRET, used to exercise the sync route by hand.
+.cron-secret.local
