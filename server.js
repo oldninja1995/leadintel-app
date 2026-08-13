@@ -14,7 +14,7 @@ const { createRepository } = require('./lib/repository');
 const { subviewState } = require('./lib/view-state');
 const schema = require('./lib/schema');
 const ingest = require('./lib/ingest');
-const { SyncRunner } = require('./lib/ingest/runner');
+const { SyncRunner, RunLog } = require('./lib/ingest/runner');
 const httpConnectors = require('./lib/ingest/http');
 /* Directly, for the account picker — that call is a Connections-screen concern
    rather than part of any sync. */
@@ -41,6 +41,7 @@ const { Connections, stateOf, REQUIREMENTS } = require('./lib/connections');
 const ota = require('./lib/ota');
 const hardening = require('./lib/http/hardening');
 const observability = require('./lib/http/observability');
+const store = require('./lib/store');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -79,16 +80,47 @@ const repo = createRepository();
  * only reads. */
 const entityCache = new Map();
 
-function entitiesFor(workspaceId) {
-  if (entityCache.has(workspaceId)) return entityCache.get(workspaceId);
-  /* `connected` retires a source's demo rows once somebody stores a credential
-     for it — see lib/ingest/raw-store.js. The metric layer reads through here,
-     so it must see the same entities the screens do or a headline could be
-     computed over invented rows the table below it no longer shows. */
-  const entities = ingest.snapshot({
+/* `connected` retires a source's demo rows once somebody stores a credential
+   for it — see lib/ingest/raw-store.js. The metric layer reads through here, so
+   it must see the same entities the screens do or a headline could be computed
+   over invented rows the table below it no longer shows. */
+function snapshotFor(workspaceId) {
+  return ingest.snapshot({
     store: ingest.storeFor(workspaceId),
     connected: ingest.liveSources({ connections, workspace: workspaceId, httpConnectors }),
   });
+}
+
+/* Filling the cache is the async half; reading it is not.
+ *
+ * A Postgres store replays over the network, so the snapshot is a promise. Made
+ * `entitiesFor` itself async and the eleven call sites below would each need an
+ * await — but two of them are `pipelineState` and `metricValues`, which are
+ * called from a dozen more places apiece, and the ripple would have reached most
+ * of this file for what is a storage detail.
+ *
+ * So the resolution happens once, at the request edge, exactly as it does for
+ * the document stores: `hydrateEntities` is awaited by the middleware and every
+ * synchronous reader afterwards finds a resolved value. */
+async function hydrateEntities(workspaceId) {
+  if (entityCache.has(workspaceId)) return entityCache.get(workspaceId);
+  const entities = await snapshotFor(workspaceId);
+  entityCache.set(workspaceId, entities);
+  return entities;
+}
+
+function entitiesFor(workspaceId) {
+  if (entityCache.has(workspaceId)) return entityCache.get(workspaceId);
+
+  const entities = snapshotFor(workspaceId);
+  /* Against a file store this is already a value and nothing had to be
+     hydrated, which is what keeps every existing test and every local run
+     working unchanged. Against Postgres, reaching here means the edge did not
+     hydrate — a programming error, and one that would otherwise surface as a
+     promise being treated as an entity set and every figure reading as empty. */
+  if (entities && typeof entities.then === 'function') {
+    throw new Error(`entities for "${workspaceId}" were not hydrated for this request`);
+  }
   entityCache.set(workspaceId, entities);
   return entities;
 }
@@ -102,9 +134,24 @@ function dropEntities(workspaceId = null) {
   else entityCache.clear();
 }
 
-const workspace = new attribution.Workspace();
-const dispatches = new reports.Dispatches();
-const connections = new Connections();
+/* Which medium the stores run on is decided once, in lib/store, from whether
+   DATABASE_URL is set. Every store takes a `backend` and a null one means "use
+   the file path", so a local run and the whole test suite are unaffected. */
+const backends = store.backends();
+
+const workspace = new attribution.Workspace(undefined, { backend: backends.docs });
+const dispatches = new reports.Dispatches(undefined, { backend: backends.dispatches });
+const connections = new Connections({ backend: backends.docs });
+
+/* Three stores are constructed inside the modules that own them rather than
+   here — the definition log and the evaluation store by lib/metrics, the audit
+   log by lib/auth. They are reachable afterwards, and the backend is the only
+   thing they need, so it is attached rather than threaded through three
+   constructors that exist for other reasons. */
+if (store.usingPostgres()) {
+  metrics.definitionLog.backend = backends.docs;
+  metrics.evaluations.backend = backends.evaluations;
+}
 
 /* Which transport each source gets, decided per sync rather than once at boot.
  *
@@ -169,6 +216,7 @@ function syncWindow(now = new Date()) {
 
 const runner = new SyncRunner({
   store: ingest.storeFor(SYNC_WORKSPACE),
+  log: new RunLog(undefined, { backend: backends.runs }),
   transportFor,
   window: syncWindow,
   /* The ingested driver caches its snapshot of the raw store, so newly synced
@@ -186,7 +234,7 @@ const runner = new SyncRunner({
   },
 });
 const reasoner = createReasoner();
-const fires = new FireLog();
+const fires = new FireLog(undefined, { backend: backends.fires });
 
 /* Phase 8. A rule watches a registry metric and evaluates on that metric's
    cadence — so the rules are checked whenever the pipeline is, not on a
@@ -530,14 +578,16 @@ app.use('/assets', express.static(ASSETS, {
    another tenant's data by changing a parameter, because there is no parameter.
    `LEADINTEL_AUTH=off` disables the gate for local work on the screens; it is
    refused outright in production below. */
-const gatekeeper = auth.create();
+/* The audit log gets the same treatment as the other stores. Constructed here
+   rather than defaulted inside auth.create so it can carry a backend. */
+const gatekeeper = auth.create({ audit: new auth.AuditLog(undefined, { backend: backends.audit }) });
 const AUTH_OFF = process.env.LEADINTEL_AUTH === 'off';
 
 /* Bearer credentials for the sources that push. Separate from `connections`,
    which holds credentials this app presents *outward*; these are the ones it
    accepts *inward*, and they are hashed rather than encrypted because they are
    only ever checked. */
-const webhookTokens = new auth.webhooks.Webhooks();
+const webhookTokens = new auth.webhooks.Webhooks({ backend: backends.docs });
 
 /* Phase 10 — configuration that is merely unwise locally and unsafe in
    production is refused there rather than warned about. A warning in a startup
@@ -698,6 +748,42 @@ if (!AUTH_OFF) {
     next();
   });
 }
+
+/* Pull this request's state out of Postgres before anything reads it.
+ *
+ * Every store below keeps its reads synchronous — that is what let the storage
+ * move happen without rewriting the metric layer, the scheduler and their
+ * tests — and the price is that something has to fill them first. This is that
+ * something, and it sits here because `req.workspace` is set by the middleware
+ * immediately above and nothing workspace-scoped is served before it.
+ *
+ * **Per request, not per process.** A serverless instance handles one request
+ * and may never handle another, and the next one may be a different instance
+ * entirely. A credential saved on one and cached in another's memory is
+ * invisible to it — the user stores a key and the Connections screen goes on
+ * saying it is not configured.
+ *
+ * Concurrently, so this costs one round trip of latency rather than seven. The
+ * document stores collapse into a single query between them.
+ *
+ * Against a file store this is a no-op: every `hydrate` returns immediately and
+ * the synchronous file reads happen as they always did. */
+app.use((req, res, next) => {
+  if (!store.usingPostgres() || !req.workspace) return next();
+
+  Promise.all([
+    store.hydrateDocuments({ connections, workspace, webhookTokens, definitionLog: metrics.definitionLog }),
+    runner.log.hydrate(),
+    gatekeeper.audit.hydrate(),
+    fires.hydrate(),
+    dispatches.hydrate(),
+    metrics.evaluations.hydrate(),
+    hydrateEntities(req.workspace),
+    /* The repository keeps its own snapshot — the screens read through it while
+       the metric layer reads through `entitiesFor` — so it hydrates too. */
+    typeof repo.hydrate === 'function' ? repo.hydrate() : null,
+  ]).then(() => next(), next);
+});
 
 app.get('/whoami', (req, res) => {
   res.json({
