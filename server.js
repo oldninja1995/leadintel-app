@@ -1139,7 +1139,7 @@ app.get('/connections/:source', (req, res) =>
 app.post('/connections/:source',
   express.urlencoded({ extended: false }), express.json(),
   gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'set' })),
-  (req, res, next) => {
+  async (req, res, next) => {
     const source = req.params.source;
     try {
       /* A blank field means "keep what is stored" rather than "clear it", so
@@ -1151,6 +1151,12 @@ app.post('/connections/:source',
       }
 
       connections.set(req.workspace, source, merged, { by: req.user.name });
+      /* Awaited before answering, and this is the whole reason `flush` exists.
+         The write is issued by a synchronous method; a serverless function is
+         frozen the moment it responds, so redirecting first can strand the
+         credential in a promise that never settles — the user pastes a token,
+         is told it was saved, and the next request finds nothing there. */
+      await connections.flush();
       /* Connecting a source retires its demo rows, so the entities change
          without a sync having written anything. */
       dropEntities(req.workspace);
@@ -1205,8 +1211,9 @@ app.post('/connections/:source/accounts',
 app.post('/connections/:source/remove',
   express.urlencoded({ extended: false }), express.json(),
   gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'remove' })),
-  (req, res) => {
+  async (req, res) => {
     connections.remove(req.workspace, req.params.source);
+    await connections.flush();
     /* Disconnecting puts the source's fixtures back into the replay, which is
        the same change in the other direction. */
     dropEntities(req.workspace);
@@ -1232,6 +1239,7 @@ app.post('/connections/:source/test',
       result = { ok: false, detail: err.message };
     }
     connections.recordTest(req.workspace, source, result);
+    await connections.flush();
     const query = `${result.ok ? 'saved' : 'error'}=${encodeURIComponent(`${source}: ${result.detail}`)}`;
     return res.redirect(`/connections?source=${encodeURIComponent(source)}&${query}`);
   });
