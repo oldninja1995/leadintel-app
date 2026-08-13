@@ -1594,8 +1594,62 @@ async function renderGoogleAds(req, res) {
     keyword: r.keyword, matchType: r.matchType, qualityScore: r.qualityScore,
   }));
   const searchTerms = rollUp(entities.googleSearchTerms, (r) => r.term, (r) => ({
-    term: r.term, termStatus: r.termStatus,
+    term: r.term, termStatus: r.termStatus, adgroupId: r.adgroupId,
   }));
+
+  /* ── search term detail ───────────────────────────────────────────────────
+   *
+   * The rates are derived here rather than in the view so the two cannot
+   * disagree, and both follow the registry's rule: a ratio with no denominator
+   * is null, not zero. A term with no impressions has no click-through rate —
+   * saying 0% would claim nobody clicked something nobody was shown. */
+  const rate = (num, den) => (den > 0 ? `${((num / den) * 100).toFixed(2)}%` : null);
+  const adgroupName = new Map(adGroups.map((g) => [g.adgroupId, g.adgroup]));
+
+  const terms = searchTerms.map((t) => ({
+    ...t,
+    adgroup: adgroupName.get(t.adgroupId) || null,
+    ctr: rate(t.clicks, t.impressions),
+    convRate: rate(t.conversions, t.clicks),
+    wasted: t.spend > 0 && !t.conversions,
+  }));
+
+  const wastedTerms = terms.filter((t) => t.wasted);
+  const termSummary = {
+    total: terms.length,
+    converting: terms.filter((t) => t.conversions > 0).length,
+    wasted: wastedTerms.length,
+    wastedSpendText: wastedTerms.length ? asMoney(wastedTerms.reduce((s, t) => s + t.spend, 0)) : null,
+  };
+
+  /* Which *words* are costing money, as opposed to which phrases.
+   *
+   * A search term report is long and mostly one-off phrases — the same waste
+   * shows up as fifty near-identical rows, each too small to notice. Rolling
+   * spend up by word is what makes a negative keyword obvious: one token
+   * appearing across a dozen non-converting terms is the thing worth excluding,
+   * and no per-row view surfaces it.
+   *
+   * Deliberately not stemmed or stopword-filtered beyond the shortest tokens:
+   * this is the account's own vocabulary, and guessing which words are
+   * meaningful is how a tool starts hiding the answer. */
+  const byWord = new Map();
+  for (const t of terms) {
+    const seen = new Set(String(t.term || '').toLowerCase().split(/\s+/).filter((w) => w.length > 2));
+    for (const word of seen) {
+      const acc = byWord.get(word) || { word, terms: 0, spend: 0, clicks: 0, conversions: 0 };
+      acc.terms += 1;
+      acc.spend += t.spend;
+      acc.clicks += t.clicks;
+      acc.conversions += t.conversions;
+      byWord.set(word, acc);
+    }
+  }
+  const words = [...byWord.values()]
+    .filter((w) => w.terms > 1)
+    .map((w) => ({ ...w, spendText: asMoney(w.spend), wasted: w.spend > 0 && !w.conversions }))
+    .sort((a, b) => b.spend - a.spend)
+    .slice(0, 25);
 
   /* Conversions carry no spend — they are a breakdown of the campaign's — so
      they are rolled up on their own terms rather than through `rollUp`. */
@@ -1635,7 +1689,8 @@ async function renderGoogleAds(req, res) {
     data: {
       rangeLabel: rangeLabel(over),
       connected: ingest.liveSources({ connections, workspace: req.workspace, httpConnectors }).has('google_ads'),
-      campaigns, adGroups, ads, keywords, searchTerms, conversions,
+      campaigns, adGroups, ads, keywords, conversions,
+      searchTerms: terms, termSummary, words,
       keywordsNotApplicable,
     },
     drawer: null,

@@ -83,30 +83,42 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
   <% if (!(d.searchTerms || []).length) { %>
     <p class="li-ota-foot">No search term rows in this range.</p>
   <% } else { %>
+    <% const s = d.termSummary || {}; %>
+    <p class="li-ota-foot">
+      <strong><%= num(s.total) %></strong> terms ·
+      <strong><%= num(s.converting) %></strong> converted ·
+      <strong><%= num(s.wasted) %></strong> spent with no conversion<%
+        if (s.wastedSpendText) { %>, costing <strong><%= s.wastedSpendText %></strong><% } %>.
+    </p>
+
   <div class="li-ota-scroll">
     <table class="li-ota-table">
       <thead>
         <tr>
-          <th>Search term</th><th>Status</th>
-          <th class="li-num">Spend</th><th class="li-num">Impressions</th>
-          <th class="li-num">Clicks</th><th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th>
+          <th>Search term</th><th>Ad group</th><th>Status</th>
+          <th class="li-num">Spend</th><th class="li-num">Impr.</th>
+          <th class="li-num">Clicks</th><th class="li-num">CTR</th>
+          <th class="li-num">Conv.</th><th class="li-num">Conv. rate</th><th class="li-num">Cost/conv.</th>
         </tr>
       </thead>
       <tbody>
         <% d.searchTerms.forEach((t) => { %>
-          <%
-          /* Spend with nothing to show for it. Flagged rather than sorted away:
-             this table is a worklist, and the rows worth acting on are the ones
-             that cost money and converted nobody. */
-          const wasted = (t.spend > 0) && !t.conversions;
-          %>
           <tr>
-            <td><%= txt(t.term) %><% if (wasted) { %> <span class="li-chip">wasted</span><% } %></td>
+            <%
+            /* Spend with nothing to show for it. Flagged rather than sorted
+               away: this table is a worklist, and the rows worth acting on are
+               the ones that cost money and converted nobody. */
+            %>
+            <td><%= txt(t.term) %><% if (t.wasted) { %> <span class="li-chip">wasted</span><% } %></td>
+            <td><%= txt(t.adgroup) %></td>
             <td><%= chip(t.termStatus) %></td>
             <td class="li-num"><%= txt(t.spendText) %></td>
             <td class="li-num"><%= num(t.impressions) %></td>
             <td class="li-num"><%= num(t.clicks) %></td>
-            <td class="li-num"><%= num(t.conversions) %></td><td class="li-num"><%= txt(t.cplText) %></td>
+            <td class="li-num"><%= txt(t.ctr) %></td>
+            <td class="li-num"><%= num(t.conversions) %></td>
+            <td class="li-num"><%= txt(t.convRate) %></td>
+            <td class="li-num"><%= txt(t.cplText) %></td>
           </tr>
         <% }); %>
       </tbody>
@@ -114,6 +126,40 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
   </div>
   <% } %>
 </section>
+
+<!-- Words across search terms ----------------------------------------------->
+<% if ((d.words || []).length) { %>
+<section class="li-ota-panel">
+  <div class="li-ota-panel-head">
+    <h2>Words across search terms</h2>
+    <p>
+      Which <em>words</em> are costing money, as opposed to which phrases. A search term report
+      is mostly one-off queries, so the same waste appears as dozens of near-identical rows, each
+      too small to notice — rolling spend up by word is what makes a negative keyword obvious.
+      Only words appearing in more than one term are shown.
+    </p>
+  </div>
+
+  <div class="li-ota-scroll">
+    <table class="li-ota-table">
+      <thead>
+        <tr><th>Word</th><th class="li-num">Terms</th><th class="li-num">Spend</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th></tr>
+      </thead>
+      <tbody>
+        <% d.words.forEach((w) => { %>
+          <tr>
+            <td><%= txt(w.word) %><% if (w.wasted) { %> <span class="li-chip">no conversions</span><% } %></td>
+            <td class="li-num"><%= num(w.terms) %></td>
+            <td class="li-num"><%= txt(w.spendText) %></td>
+            <td class="li-num"><%= num(w.clicks) %></td>
+            <td class="li-num"><%= num(w.conversions) %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+</section>
+<% } %>
 
 <!-- Keywords ---------------------------------------------------------------->
 <section class="li-ota-panel">
@@ -135,7 +181,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
       <thead>
         <tr>
           <th>Keyword</th><th>Match</th><th class="li-num">Quality</th>
-          <th class="li-num">Spend</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th>
+          <th class="li-num">Spend</th><th class="li-num">Impressions</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th>
         </tr>
       </thead>
       <tbody>
@@ -145,6 +191,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
             <td><span class="li-chip"><%= chip(k.matchType) %></span></td>
             <td class="li-num"><%= txt(k.qualityScore) %></td>
             <td class="li-num"><%= txt(k.spendText) %></td>
+            <td class="li-num"><%= num(k.impressions) %></td>
             <td class="li-num"><%= num(k.clicks) %></td>
             <td class="li-num"><%= num(k.conversions) %></td><td class="li-num"><%= txt(k.cplText) %></td>
           </tr>
