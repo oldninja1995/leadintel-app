@@ -580,7 +580,13 @@ app.use('/assets', express.static(ASSETS, {
    refused outright in production below. */
 /* The audit log gets the same treatment as the other stores. Constructed here
    rather than defaulted inside auth.create so it can carry a backend. */
-const gatekeeper = auth.create({ audit: new auth.AuditLog(undefined, { backend: backends.audit }) });
+const gatekeeper = auth.create({
+  audit: new auth.AuditLog(undefined, { backend: backends.audit }),
+  /* Sessions move off the in-process Map for the same reason as everything
+     else: a session minted on one serverless instance is unknown to the next,
+     which the user experiences as being signed out at random. */
+  store: new authSessions.Sessions({ backend: backends.sessions }),
+});
 const AUTH_OFF = process.env.LEADINTEL_AUTH === 'off';
 
 /* Bearer credentials for the sources that push. Separate from `connections`,
@@ -638,7 +644,7 @@ const loginLimiter = new hardening.RateLimiter({ limit: 10, windowMs: 60_000 });
 app.post('/login',
   hardening.limit(loginLimiter, { message: 'too many sign-in attempts' }),
   express.urlencoded({ extended: false }), express.json(),
-  (req, res) => {
+  async (req, res) => {
   const body = req.body || {};
   const user = auth.identity.authenticate(body.user, body.password);
   const wantsHtml = (req.get('accept') || '').includes('text/html');
@@ -649,7 +655,18 @@ app.post('/login',
     return res.status(401).json({ error: 'that username and password do not match' });
   }
 
-  const session = gatekeeper.sessions.create(user);
+  /* Awaited: the Postgres session store returns a promise here. A cookie set
+     before the row lands would be a session the next request cannot find.
+     Caught explicitly because Express 4 does not catch a rejection out of an
+     async handler — it would take the process down rather than answer. */
+  let session;
+  try {
+    session = await gatekeeper.sessions.create(user);
+  } catch (err) {
+    console.error('login: the session store refused a write —', err.message);
+    if (wantsHtml) return res.redirect(`/login?error=${encodeURIComponent('Sign-in is unavailable right now.')}`);
+    return res.status(503).json({ error: 'the session store is unavailable' });
+  }
   res.setHeader('Set-Cookie', authSessions.cookieHeader(session.cookie, { secure: TLS }));
   gatekeeper.audit.record({ user, action: 'auth.login', outcome: 'allowed', workspace: user.workspace });
 
@@ -657,8 +674,14 @@ app.post('/login',
   return res.json({ user });
 });
 
-app.post('/logout', (req, res) => {
-  gatekeeper.sessions.destroy(authSessions.fromRequest(req));
+app.post('/logout', async (req, res) => {
+  /* A failed delete must still clear the cookie — leaving somebody signed in
+     because the store was unreachable is the wrong way to fail. */
+  try {
+    await gatekeeper.sessions.destroy(authSessions.fromRequest(req));
+  } catch (err) {
+    console.error('logout: the session store refused a delete —', err.message);
+  }
   res.setHeader('Set-Cookie', authSessions.clearHeader());
   if ((req.get('accept') || '').includes('text/html')) return res.redirect('/login');
   return res.json({ ok: true });
