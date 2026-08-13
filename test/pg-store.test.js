@@ -160,3 +160,95 @@ test('a workspace sees only its own rows', opts, async () => {
   await a.clear();
   await b.clear();
 });
+
+/* ── documents and line logs ────────────────────────────────────────────────
+ *
+ * These shapes did not have to change — they are small and read whole, and the
+ * only thing wrong with them on serverless is the disk. So what is asserted is
+ * that they behave exactly like the files they replace.
+ */
+
+const { PgDocs, PgLineLog } = require('../lib/store/pg-docs');
+
+const uniq = (p) => `test:${p}:${Date.now()}:${process.hrtime()[1]}`;
+
+test('a document round-trips verbatim, key order included', opts, async () => {
+  /* Same reason the raw store's body is TEXT: connections.json is read,
+     modified and written back, and a store that reorders it is a store that
+     rewrites the user's data behind their back. */
+  const docs = new PgDocs();
+  const key = uniq('doc');
+  const value = { meta_ads: { token: 'x' }, google_ads: { id: '1' }, order: ['a', 'b'] };
+
+  await docs.put(key, value);
+  assert.equal(JSON.stringify(await docs.get(key)), JSON.stringify(value));
+  await docs.remove(key);
+});
+
+test('writing a document twice replaces rather than accumulating', opts, async () => {
+  const docs = new PgDocs();
+  const key = uniq('doc');
+  await docs.put(key, { first: true });
+  await docs.put(key, { second: true });
+  assert.deepEqual(await docs.get(key), { second: true });
+  await docs.remove(key);
+});
+
+test('a missing document is null, not an error', opts, async () => {
+  assert.equal(await new PgDocs().get(uniq('absent')), null);
+});
+
+test('getMany fetches several documents in one round trip', opts, async () => {
+  /* The hot path asks connections.configured() on essentially every render, so
+     the doc reads have to collapse into one query rather than one each. */
+  const docs = new PgDocs();
+  const a = uniq('doc-a');
+  const b = uniq('doc-b');
+  await docs.put(a, { n: 1 });
+  await docs.put(b, { n: 2 });
+
+  const found = await docs.getMany([a, b, uniq('absent')]);
+  assert.equal(found.size, 2, 'an absent key should be omitted, not throw');
+  assert.equal(found.get(a).n, 1);
+  assert.equal(found.get(b).n, 2);
+  await docs.remove(a);
+  await docs.remove(b);
+});
+
+test('a directory-shaped store lists by prefix', opts, async () => {
+  const docs = new PgDocs();
+  const prefix = uniq('dispatches');
+  await docs.put(`${prefix}/r-2`, { id: 'r-2' });
+  await docs.put(`${prefix}/r-1`, { id: 'r-1' });
+
+  const listed = await docs.list(`${prefix}/`);
+  assert.deepEqual(listed.map((r) => r.value.id), ['r-1', 'r-2']);
+  await docs.clear(prefix);
+  assert.deepEqual(await docs.list(`${prefix}/`), []);
+});
+
+test('a line log keeps arrival order and appends rather than replacing', opts, async () => {
+  const log = new PgLineLog(uniq('runs'));
+  for (const n of [1, 2, 3]) await log.append({ n });
+  assert.deepEqual((await log.all()).map((r) => r.n), [1, 2, 3]);
+  await log.clear();
+  assert.deepEqual(await log.all(), []);
+});
+
+test('a bounded read returns the newest entries, still in order', opts, async () => {
+  /* What the file logs could not express: they parsed the whole file to answer
+     "what happened lately". */
+  const log = new PgLineLog(uniq('audit'));
+  for (const n of [1, 2, 3, 4]) await log.append({ n });
+  assert.deepEqual((await log.last(2)).map((r) => r.n), [3, 4]);
+  await log.clear();
+});
+
+test('two line logs with different keys do not see each other', opts, async () => {
+  const a = new PgLineLog(uniq('log-a'));
+  const b = new PgLineLog(uniq('log-b'));
+  await a.append({ from: 'a' });
+  assert.equal((await a.all()).length, 1);
+  assert.deepEqual(await b.all(), []);
+  await a.clear();
+});
