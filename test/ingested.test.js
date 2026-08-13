@@ -25,7 +25,7 @@ const entities = () => ({
   campaignDays: [
     { entity: 'campaignDay', campaign: 'munnar honeymoon jul', label: 'Munnar Honeymoon Jul', date: '2026-07-15', platform: 'meta_ads', spend: 682050, impressions: 141900, clicks: 2980, leads: 19 },
     { entity: 'campaignDay', campaign: 'munnar honeymoon jul', label: 'Munnar Honeymoon Jul', date: '2026-07-14', platform: 'meta_ads', spend: 700000, impressions: 148200, clicks: 3140, leads: 21 },
-    { entity: 'campaignDay', campaign: 'brand search', label: 'Brand Search', date: '2026-07-14', platform: 'google_ads', spend: 203000, impressions: 14100, clicks: 1640, leads: 14 },
+    { entity: 'campaignDay', campaign: 'brand search', label: 'Brand Search', date: '2026-07-14', platform: 'meta_ads', spend: 203000, impressions: 14100, clicks: 1640, leads: 14 },
   ],
   leads: [
     { entity: 'lead', id: 'L-1', name: 'George Kurien', phone: '+919847000001', property: 'Munnar Hillside', campaign: 'munnar honeymoon jul', owner: 'Vivek S', stage: 'Booked' },
@@ -97,11 +97,18 @@ test('a booking whose lead is unknown is not credited to a campaign', () => {
   assert.equal(munnar.bookings, NONE);
 });
 
-test('two platforms on one campaign are both named', () => {
+test('Google rows are excluded — they have a screen of their own', () => {
+  /* This screen is campaign -> ad set -> ad, and a Google campaign has no ad
+     sets, so its rows were being rendered through a hierarchy they do not have.
+     It used to label a shared campaign 'Meta + Google'; that spend is now
+     described on /google-ads, and claiming it here as well would double-count
+     it. */
   const e = entities();
-  e.campaignDays.push({ ...e.campaignDays[0], platform: 'google_ads', date: '2026-07-16' });
-  const munnar = PROJECTIONS.campaigns(e).campRows.find((r) => r.name === 'Munnar Honeymoon Jul');
-  assert.equal(munnar.platform, 'Meta + Google');
+  e.campaignDays.push({ ...e.campaignDays[0], platform: 'google_ads', date: '2026-07-16', campaign: 'google only', label: 'Google Only' });
+  const rows = PROJECTIONS.campaigns(e).campRows;
+
+  assert.ok(!rows.some((r) => r.name === 'Google Only'), 'a Google campaign reached the Meta screen');
+  assert.equal(rows.find((r) => r.name === 'Munnar Honeymoon Jul').platform, 'Meta');
 });
 
 /* ── sparklines ─────────────────────────────────────────────────────────── */
@@ -261,7 +268,9 @@ test('an unconnected source keeps its demo rows, which is what demo mode is', as
   const repo = createRepository({ driver: 'ingested', connections: { configured: () => new Set() } });
   const { campRows } = await repo.read('campaigns', {});
 
-  assert.ok(campRows.some((r) => /Brand Search/i.test(r.name)),
+  /* A Meta demo campaign, since this screen no longer shows Google's — Brand
+     Search is a Google fixture and now lives on /google-ads. */
+  assert.ok(campRows.some((r) => /Munnar Honeymoon/i.test(r.name)),
     'nothing is connected, so the fixtures should still show');
 });
 

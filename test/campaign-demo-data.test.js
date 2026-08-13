@@ -21,7 +21,7 @@ const campaigns = PROJECTIONS.campaigns;
 
 const entities = () => ({
   campaignDays: [
-    { campaign: 'munnar honeymoon jul', label: 'Munnar Honeymoon', platform: 'meta', date: '2026-08-01', spend: 1000, impressions: 5000, clicks: 100, leads: 10 },
+    { campaign: 'munnar honeymoon jul', label: 'Munnar Honeymoon', platform: 'meta_ads', date: '2026-08-01', spend: 1000, impressions: 5000, clicks: 100, leads: 10 },
   ],
   leads: [{ id: 'l-1', campaign: 'munnar honeymoon jul' }],
   bookings: [{ leadId: 'l-1', checkIn: '2026-08-09', revenue: 42800 }],
