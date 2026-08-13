@@ -49,7 +49,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
         <tr>
           <th>Campaign</th><th>Type</th>
           <th class="li-num">Spend</th><th class="li-num">Impressions</th>
-          <th class="li-num">Clicks</th><th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th>
+          <th class="li-num">Clicks</th><th class="li-num">CPC</th><th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th>
         </tr>
       </thead>
       <tbody>
@@ -59,7 +59,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
             <td><span class="li-chip"><%= chip(c.channelType) %></span></td>
             <td class="li-num"><%= txt(c.spendText) %></td>
             <td class="li-num"><%= num(c.impressions) %></td>
-            <td class="li-num"><%= num(c.clicks) %></td>
+            <td class="li-num"><%= num(c.clicks) %></td><td class="li-num"><%= txt(c.cpcText) %></td>
             <td class="li-num"><%= num(c.conversions) %></td><td class="li-num"><%= txt(c.cplText) %></td>
           </tr>
         <% }); %>
@@ -95,9 +95,9 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
     <table class="li-ota-table">
       <thead>
         <tr>
-          <th>Search term</th><th>Ad group</th><th>Status</th>
+          <th>Search term</th><th>Status</th>
           <th class="li-num">Spend</th><th class="li-num">Impr.</th>
-          <th class="li-num">Clicks</th><th class="li-num">CTR</th>
+          <th class="li-num">Clicks</th><th class="li-num">CPC</th><th class="li-num">CTR</th>
           <th class="li-num">Conv.</th><th class="li-num">Conv. rate</th><th class="li-num">Cost/conv.</th>
         </tr>
       </thead>
@@ -110,11 +110,10 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
                the ones that cost money and converted nobody. */
             %>
             <td><%= txt(t.term) %><% if (t.wasted) { %> <span class="li-chip">wasted</span><% } %></td>
-            <td><%= txt(t.adgroup) %></td>
             <td><%= chip(t.termStatus) %></td>
             <td class="li-num"><%= txt(t.spendText) %></td>
             <td class="li-num"><%= num(t.impressions) %></td>
-            <td class="li-num"><%= num(t.clicks) %></td>
+            <td class="li-num"><%= num(t.clicks) %></td><td class="li-num"><%= txt(t.cpcText) %></td>
             <td class="li-num"><%= txt(t.ctr) %></td>
             <td class="li-num"><%= num(t.conversions) %></td>
             <td class="li-num"><%= txt(t.convRate) %></td>
@@ -126,40 +125,6 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
   </div>
   <% } %>
 </section>
-
-<!-- Words across search terms ----------------------------------------------->
-<% if ((d.words || []).length) { %>
-<section class="li-ota-panel">
-  <div class="li-ota-panel-head">
-    <h2>Words across search terms</h2>
-    <p>
-      Which <em>words</em> are costing money, as opposed to which phrases. A search term report
-      is mostly one-off queries, so the same waste appears as dozens of near-identical rows, each
-      too small to notice — rolling spend up by word is what makes a negative keyword obvious.
-      Only words appearing in more than one term are shown.
-    </p>
-  </div>
-
-  <div class="li-ota-scroll">
-    <table class="li-ota-table">
-      <thead>
-        <tr><th>Word</th><th class="li-num">Terms</th><th class="li-num">Spend</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th></tr>
-      </thead>
-      <tbody>
-        <% d.words.forEach((w) => { %>
-          <tr>
-            <td><%= txt(w.word) %><% if (w.wasted) { %> <span class="li-chip">no conversions</span><% } %></td>
-            <td class="li-num"><%= num(w.terms) %></td>
-            <td class="li-num"><%= txt(w.spendText) %></td>
-            <td class="li-num"><%= num(w.clicks) %></td>
-            <td class="li-num"><%= num(w.conversions) %></td>
-          </tr>
-        <% }); %>
-      </tbody>
-    </table>
-  </div>
-</section>
-<% } %>
 
 <!-- Keywords ---------------------------------------------------------------->
 <section class="li-ota-panel">
@@ -181,7 +146,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
       <thead>
         <tr>
           <th>Keyword</th><th>Match</th><th class="li-num">Quality</th>
-          <th class="li-num">Spend</th><th class="li-num">Impressions</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th>
+          <th class="li-num">Spend</th><th class="li-num">Impressions</th><th class="li-num">Clicks</th><th class="li-num">CPC</th><th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th>
         </tr>
       </thead>
       <tbody>
@@ -192,7 +157,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
             <td class="li-num"><%= txt(k.qualityScore) %></td>
             <td class="li-num"><%= txt(k.spendText) %></td>
             <td class="li-num"><%= num(k.impressions) %></td>
-            <td class="li-num"><%= num(k.clicks) %></td>
+            <td class="li-num"><%= num(k.clicks) %></td><td class="li-num"><%= txt(k.cpcText) %></td>
             <td class="li-num"><%= num(k.conversions) %></td><td class="li-num"><%= txt(k.cplText) %></td>
           </tr>
         <% }); %>
@@ -215,7 +180,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
   <div class="li-ota-scroll">
     <table class="li-ota-table">
       <thead>
-        <tr><th>Ad group</th><th class="li-num">Spend</th><th class="li-num">Impressions</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th></tr>
+        <tr><th>Ad group</th><th class="li-num">Spend</th><th class="li-num">Impressions</th><th class="li-num">Clicks</th><th class="li-num">CPC</th><th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th></tr>
       </thead>
       <tbody>
         <% d.adGroups.forEach((g) => { %>
@@ -223,7 +188,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
             <td><%= txt(g.adgroup) %></td>
             <td class="li-num"><%= txt(g.spendText) %></td>
             <td class="li-num"><%= num(g.impressions) %></td>
-            <td class="li-num"><%= num(g.clicks) %></td>
+            <td class="li-num"><%= num(g.clicks) %></td><td class="li-num"><%= txt(g.cpcText) %></td>
             <td class="li-num"><%= num(g.conversions) %></td><td class="li-num"><%= txt(g.cplText) %></td>
           </tr>
         <% }); %>
@@ -246,7 +211,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
   <div class="li-ota-scroll">
     <table class="li-ota-table">
       <thead>
-        <tr><th>Ad</th><th>Type</th><th>Status</th><th class="li-num">Spend</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th></tr>
+        <tr><th>Ad</th><th>Type</th><th>Status</th><th class="li-num">Spend</th><th class="li-num">Clicks</th><th class="li-num">CPC</th><th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th></tr>
       </thead>
       <tbody>
         <% d.ads.forEach((a) => { %>
@@ -255,7 +220,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
             <td><span class="li-chip"><%= chip(a.adType) %></span></td>
             <td><%= chip(a.status) %></td>
             <td class="li-num"><%= txt(a.spendText) %></td>
-            <td class="li-num"><%= num(a.clicks) %></td>
+            <td class="li-num"><%= num(a.clicks) %></td><td class="li-num"><%= txt(a.cpcText) %></td>
             <td class="li-num"><%= num(a.conversions) %></td><td class="li-num"><%= txt(a.cplText) %></td>
           </tr>
         <% }); %>

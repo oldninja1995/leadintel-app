@@ -1573,6 +1573,9 @@ async function renderGoogleAds(req, res) {
          * by action table below is where that total is broken apart, and until
          * a lead action is nominated this figure is not a cost per lead. */
         cplText: a.conversions > 0 ? asMoney(a.spend / a.conversions) : null,
+        /* Cost per click, same rule: no clicks means no cost *per* click, so it
+           is unknown rather than zero or infinite. */
+        cpcText: a.clicks > 0 ? asMoney(a.spend / a.clicks) : null,
       }))
       .sort((x, y) => y.spend - x.spend);
   };
