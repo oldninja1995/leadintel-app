@@ -39,6 +39,13 @@ const SCREENS = [
      revenue question, not a marketing one. */
   { slug: 'ota',         view: 'ota',         gate: null, app: 'ota', name: 'OTA Analytics',    icon: 'ph ph-bed',               group: 'Sales' },
 
+  /* NOT FROM THE DESIGN. Campaign Analytics is Meta-shaped — campaign, ad set,
+     ad — and Google's hierarchy is campaign, ad GROUP, ad, with keywords and
+     search terms beneath it and no ad-set concept at all. Pouring one into the
+     other put Google rows under Meta's ad-set projection, which is what this
+     screen exists to stop. Two screens, because they are two shapes. */
+  { slug: 'google-ads',  view: 'google-ads',  gate: null, app: 'googleAds', name: 'Google Ads Analytics', icon: 'ph ph-google-logo', group: 'Marketing' },
+
   /* NOT FROM THE DESIGN. Every screen above is converted from
      `LeadIntel App.dc.html`; this one is ours. The design draws no way to
      connect a source, so credentials had nowhere to go and every connector

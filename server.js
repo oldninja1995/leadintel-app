@@ -1517,6 +1517,122 @@ async function renderOta(req, res) {
 
 app.get('/ota', (req, res, next) => { renderOta(req, res).catch(next); });
 
+/* Google Ads Analytics — its own screen, not a tab on the Meta one.
+ *
+ * Campaign Analytics is Meta-shaped: campaign, ad set, ad. Google's hierarchy is
+ * campaign, ad **group**, ad, with keywords and search terms beneath it and no
+ * ad-set concept at all. Rendering Google's rows through Meta's projection is
+ * exactly what put ad groups under a column labelled "ad set", and renaming that
+ * column would have left the wrong projection behind it.
+ *
+ * Everything here is summed from the canonical Google entities, which are kept
+ * apart from Meta's for the same reason. Nothing is borrowed and nothing is
+ * invented: a level with no rows says so.
+ */
+const GOOGLE_KEYWORD_TYPES = new Set(['SEARCH', 'DISPLAY', 'MULTI_CHANNEL', 'UNKNOWN', null]);
+
+async function renderGoogleAds(req, res) {
+  const screen = (await repo.screens()).find((s) => s.slug === 'google-ads');
+  const { over } = periodFor(req.query);
+  const entities = metrics.period.within(entitiesFor(req.workspace), over);
+
+  const asMoney = (v) => (v === null || v === undefined ? null : metrics.format(metrics.registry.get('ads.spend'), v));
+
+  /* One row per entity rather than per entity-day: the tables answer "how is
+     this keyword doing over the range", and a row per day would be a different
+     screen. Summed here rather than in the entity, because the entity is the
+     day — that is what makes a period narrow it. */
+  const rollUp = (rows, keyOf, shape) => {
+    const by = new Map();
+    for (const r of rows || []) {
+      const key = keyOf(r);
+      if (key === null || key === undefined) continue;
+      const acc = by.get(key) || { ...shape(r), spend: 0, impressions: 0, clicks: 0, conversions: 0, measured: false };
+      /* null is unknown, not zero — a row that reported no figure must not be
+         summed as though it reported none. */
+      if (r.spend !== null) { acc.spend += r.spend; acc.measured = true; }
+      if (r.impressions !== null) acc.impressions += r.impressions;
+      if (r.clicks !== null) acc.clicks += r.clicks;
+      if (r.leads !== null) acc.conversions += r.leads;
+      by.set(key, acc);
+    }
+    return [...by.values()]
+      .map((a) => ({ ...a, spendText: a.measured ? asMoney(a.spend) : null }))
+      .sort((x, y) => y.spend - x.spend);
+  };
+
+  const googleDays = (entities.campaignDays || []).filter((c) => c.platform === 'google_ads');
+  const campaigns = rollUp(googleDays, (r) => r.campaign, (r) => ({
+    campaign: r.campaign,
+    channelType: r.channelType || null,
+    /* Impression share is a rate, not a total, so it is taken from the most
+       recent day rather than summed — adding percentages would be nonsense. */
+    impressionShare: r.impressionShare ?? null,
+    lostToBudget: r.lostToBudget ?? null,
+    lostToRank: r.lostToRank ?? null,
+  }));
+
+  const adGroups = rollUp(entities.googleAdGroups, (r) => r.adgroupId, (r) => ({ adgroup: r.adgroup }));
+  const ads = rollUp(entities.googleAds, (r) => r.adId, (r) => ({ ad: r.ad, adId: r.adId, adType: r.adType, status: r.status }));
+  const keywords = rollUp(entities.googleKeywords, (r) => r.keyword, (r) => ({
+    keyword: r.keyword, matchType: r.matchType, qualityScore: r.qualityScore,
+  }));
+  const searchTerms = rollUp(entities.googleSearchTerms, (r) => r.term, (r) => ({
+    term: r.term, termStatus: r.termStatus,
+  }));
+
+  /* Conversions carry no spend — they are a breakdown of the campaign's — so
+     they are rolled up on their own terms rather than through `rollUp`. */
+  const byAction = new Map();
+  for (const c of entities.googleConversions || []) {
+    if (!c.action) continue;
+    const acc = byAction.get(c.action) || { action: c.action, category: c.category, conversions: 0, value: 0 };
+    if (c.conversions !== null) acc.conversions += c.conversions;
+    if (c.conversionValue !== null) acc.value += c.conversionValue;
+    byAction.set(c.action, acc);
+  }
+  const conversions = [...byAction.values()]
+    .map((a) => ({
+      ...a,
+      /* Left fractional on purpose: Google splits conversion credit across
+         touches, and rounding would discard the fraction on every row. */
+      conversions: Math.round(a.conversions * 1e6) / 1e6,
+      valueText: asMoney(a.value),
+    }))
+    .sort((x, y) => y.conversions - x.conversions);
+
+  /* Whether keywords *apply*, which is not the same question as whether any
+     were returned. App, Performance Max and Shopping campaigns have none by
+     construction, and an empty table would state "no keywords" about a campaign
+     type that cannot have them. Only claimed when every campaign in range is of
+     such a type — a mixed account still has keywords worth showing. */
+  const types = [...new Set(campaigns.map((c) => c.channelType).filter(Boolean))];
+  const keywordsNotApplicable = (!keywords.length && types.length && types.every((t) => !GOOGLE_KEYWORD_TYPES.has(t)))
+    ? `every campaign in this range is ${types.join(', ')}`
+    : null;
+
+  res.render('layout', {
+    screen,
+    screens: await repo.screens(),
+    shell: await shellData('google-ads', req.query, req.path, req.workspace, req.user),
+    hasView: false,
+    data: {
+      rangeLabel: rangeLabel(over),
+      connected: ingest.liveSources({ connections, workspace: req.workspace, httpConnectors }).has('google_ads'),
+      campaigns, adGroups, ads, keywords, searchTerms, conversions,
+      keywordsNotApplicable,
+    },
+    drawer: null,
+    palette: await palette(),
+    notifications: notifications(req.workspace),
+    filterData: filterData(null),
+    filterNote: null,
+    attrPreview: null,
+  });
+}
+
+app.get('/google-ads', (req, res, next) => { renderGoogleAds(req, res).catch(next); });
+
 /* Creative thumbnails, proxied.
  *
  * The images are on Meta's CDN, and the page's CSP is `img-src 'self' data:` —
