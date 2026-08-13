@@ -252,3 +252,73 @@ test('two line logs with different keys do not see each other', opts, async () =
   assert.deepEqual(await b.all(), []);
   await a.clear();
 });
+
+/* ── run-log hydration ──────────────────────────────────────────────────────
+ *
+ * The run log is the one line log whose reads reach arbitrarily far back:
+ * `lastSuccess` drives lag, health and due-ness, and a source that has been
+ * failing for hours has its last success well outside any recent window. A
+ * plain bounded read would therefore have reported a long-broken source as
+ * *never-synced* — lag null, "has never run" on the Connections screen — for
+ * three of the sources on production right now, which have not succeeded since
+ * 2026-08-09 while failing every five minutes since.
+ */
+
+const { RunLog } = require('../lib/ingest/runner');
+const { SyncRunner } = require('../lib/ingest/runner');
+
+test('hydration keeps the last success even when it is far outside the window', opts, async () => {
+  const backend = new PgLineLog(uniq('runs'));
+  const log = new RunLog(null, { backend });
+
+  /* One success, then enough failures to push it out of a small window. */
+  log.append({ source: 'telecrm', ok: true, startedAt: 'A', finishedAt: '2026-08-09T10:00:00.000Z', pulled: 8, written: 8 });
+  for (let i = 0; i < 40; i += 1) {
+    log.append({ source: 'telecrm', ok: false, startedAt: 'B', finishedAt: '2026-08-13T09:00:00.000Z', error: 'no credential stored' });
+  }
+  await log.flush();
+
+  const fresh = new RunLog(null, { backend });
+  await fresh.hydrate({ limit: 10 });
+
+  const success = fresh.lastSuccess('telecrm');
+  assert.ok(success, 'the last success fell out of the hydration window');
+  assert.equal(success.finishedAt, '2026-08-09T10:00:00.000Z');
+  await backend.clear();
+});
+
+test('a long-failing source reads as down, not never-synced', opts, async () => {
+  /* The property the test above protects, stated the way the screen states it. */
+  const backend = new PgLineLog(uniq('runs'));
+  const log = new RunLog(null, { backend });
+  log.append({ source: 'telecrm', ok: true, finishedAt: '2026-08-09T10:00:00.000Z' });
+  for (let i = 0; i < 30; i += 1) {
+    log.append({ source: 'telecrm', ok: false, finishedAt: '2026-08-13T09:00:00.000Z', error: 'no credential stored' });
+  }
+  await log.flush();
+
+  const fresh = new RunLog(null, { backend });
+  await fresh.hydrate({ limit: 5 });
+
+  const runner = new SyncRunner({ log: fresh, clock: () => new Date('2026-08-13T09:05:00.000Z') });
+  assert.equal(runner.health('telecrm'), 'down', 'a source with an old success must not read as never-synced');
+  assert.ok(runner.lag('telecrm') > 0, 'lag should be a real number, not null');
+  await backend.clear();
+});
+
+test('appends are visible to the same instance before they are flushed', opts, async () => {
+  /* A runner logs several runs in one tick and reads its own due-ness back. */
+  const backend = new PgLineLog(uniq('runs'));
+  const log = new RunLog(null, { backend });
+  await log.hydrate();
+
+  log.append({ source: 'meta_ads', ok: true, finishedAt: '2026-08-13T09:00:00.000Z' });
+  assert.equal(log.all().length, 1, 'the log did not see its own write');
+  assert.ok(log.lastSuccess('meta_ads'));
+
+  await log.flush();
+  const fresh = new RunLog(null, { backend });
+  await fresh.hydrate();
+  assert.equal(fresh.all().length, 1, 'the write did not reach Postgres');
+  await backend.clear();
+});
