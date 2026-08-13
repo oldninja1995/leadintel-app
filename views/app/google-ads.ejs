@@ -49,7 +49,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
         <tr>
           <th>Campaign</th><th>Type</th>
           <th class="li-num">Spend</th><th class="li-num">Impressions</th>
-          <th class="li-num">Clicks</th><th class="li-num">Conv.</th>
+          <th class="li-num">Clicks</th><th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th>
         </tr>
       </thead>
       <tbody>
@@ -60,7 +60,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
             <td class="li-num"><%= txt(c.spendText) %></td>
             <td class="li-num"><%= num(c.impressions) %></td>
             <td class="li-num"><%= num(c.clicks) %></td>
-            <td class="li-num"><%= num(c.conversions) %></td>
+            <td class="li-num"><%= num(c.conversions) %></td><td class="li-num"><%= txt(c.cplText) %></td>
           </tr>
         <% }); %>
       </tbody>
@@ -89,7 +89,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
         <tr>
           <th>Search term</th><th>Status</th>
           <th class="li-num">Spend</th><th class="li-num">Impressions</th>
-          <th class="li-num">Clicks</th><th class="li-num">Conv.</th>
+          <th class="li-num">Clicks</th><th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th>
         </tr>
       </thead>
       <tbody>
@@ -106,7 +106,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
             <td class="li-num"><%= txt(t.spendText) %></td>
             <td class="li-num"><%= num(t.impressions) %></td>
             <td class="li-num"><%= num(t.clicks) %></td>
-            <td class="li-num"><%= num(t.conversions) %></td>
+            <td class="li-num"><%= num(t.conversions) %></td><td class="li-num"><%= txt(t.cplText) %></td>
           </tr>
         <% }); %>
       </tbody>
@@ -135,7 +135,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
       <thead>
         <tr>
           <th>Keyword</th><th>Match</th><th class="li-num">Quality</th>
-          <th class="li-num">Spend</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th>
+          <th class="li-num">Spend</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th>
         </tr>
       </thead>
       <tbody>
@@ -146,7 +146,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
             <td class="li-num"><%= txt(k.qualityScore) %></td>
             <td class="li-num"><%= txt(k.spendText) %></td>
             <td class="li-num"><%= num(k.clicks) %></td>
-            <td class="li-num"><%= num(k.conversions) %></td>
+            <td class="li-num"><%= num(k.conversions) %></td><td class="li-num"><%= txt(k.cplText) %></td>
           </tr>
         <% }); %>
       </tbody>
@@ -168,7 +168,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
   <div class="li-ota-scroll">
     <table class="li-ota-table">
       <thead>
-        <tr><th>Ad group</th><th class="li-num">Spend</th><th class="li-num">Impressions</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th></tr>
+        <tr><th>Ad group</th><th class="li-num">Spend</th><th class="li-num">Impressions</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th></tr>
       </thead>
       <tbody>
         <% d.adGroups.forEach((g) => { %>
@@ -177,7 +177,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
             <td class="li-num"><%= txt(g.spendText) %></td>
             <td class="li-num"><%= num(g.impressions) %></td>
             <td class="li-num"><%= num(g.clicks) %></td>
-            <td class="li-num"><%= num(g.conversions) %></td>
+            <td class="li-num"><%= num(g.conversions) %></td><td class="li-num"><%= txt(g.cplText) %></td>
           </tr>
         <% }); %>
       </tbody>
@@ -199,7 +199,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
   <div class="li-ota-scroll">
     <table class="li-ota-table">
       <thead>
-        <tr><th>Ad</th><th>Type</th><th>Status</th><th class="li-num">Spend</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th></tr>
+        <tr><th>Ad</th><th>Type</th><th>Status</th><th class="li-num">Spend</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th></tr>
       </thead>
       <tbody>
         <% d.ads.forEach((a) => { %>
@@ -209,7 +209,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
             <td><%= chip(a.status) %></td>
             <td class="li-num"><%= txt(a.spendText) %></td>
             <td class="li-num"><%= num(a.clicks) %></td>
-            <td class="li-num"><%= num(a.conversions) %></td>
+            <td class="li-num"><%= num(a.conversions) %></td><td class="li-num"><%= txt(a.cplText) %></td>
           </tr>
         <% }); %>
       </tbody>

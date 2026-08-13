@@ -1557,7 +1557,23 @@ async function renderGoogleAds(req, res) {
       by.set(key, acc);
     }
     return [...by.values()]
-      .map((a) => ({ ...a, spendText: a.measured ? asMoney(a.spend) : null }))
+      .map((a) => ({
+        ...a,
+        spendText: a.measured ? asMoney(a.spend) : null,
+        /* Cost per conversion. **Null on zero, never Infinity** — a row that
+           spent money and converted nobody has no cost *per* anything, and the
+           registry's own rule is that a ratio with no denominator is unknown
+           rather than infinitely bad. The wasted-spend flag on the search terms
+           table is what surfaces those rows; a number here would only look like
+           a very large price.
+         *
+         * Named cost-per-conversion rather than cost-per-lead in the column,
+         * because Google's `conversions` counts every action the account
+         * defines — a booking enquiry and a phone click alike. The Conversions
+         * by action table below is where that total is broken apart, and until
+         * a lead action is nominated this figure is not a cost per lead. */
+        cplText: a.conversions > 0 ? asMoney(a.spend / a.conversions) : null,
+      }))
       .sort((x, y) => y.spend - x.spend);
   };
 
