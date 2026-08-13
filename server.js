@@ -45,6 +45,10 @@ const store = require('./lib/store');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+/* Vercel sets VERCEL=1 on every runtime. It decides two things: nothing listens
+   on a socket, and the in-process sync timer is not started — see /cron/sync. */
+const SERVERLESS = Boolean(process.env.VERCEL);
 const repo = createRepository();
 
 /* Phase 9 — the raw store is partitioned per workspace: `var/raw/<workspace>/`.
@@ -756,6 +760,61 @@ app.post('/ingest/webhook/:source', express.json({ limit: '1mb' }), async (req, 
        all, and the Connections screen has to be able to say which. */
     webhookTokens.recordDelivery(claim.id, { records: 0 });
     return res.status(400).json({ error: err.message });
+  }
+});
+
+/* The sync, driven from outside the process.
+ *
+ * `runner.start()` is a setInterval, which needs a process that stays alive
+ * between requests. A serverless function does not: it is frozen the moment it
+ * answers, so the timer either never fires or fires inside an unrelated
+ * request. Vercel Cron calls this instead, on the schedule in vercel.json.
+ *
+ * Registered before the session gate and authenticated by a shared secret,
+ * because the caller is a scheduler and has no session. Vercel presents
+ * `Authorization: Bearer $CRON_SECRET`; the comparison is timing-safe and a
+ * missing secret refuses rather than defaulting open — an unauthenticated route
+ * that makes the app talk to Meta and write to the store is not something to
+ * leave to a truthy check.
+ *
+ * The staleness logic is untouched: `due()` still decides, so a tick that
+ * arrives early does nothing and one that arrives after downtime catches up.
+ */
+/* GET as well as POST: Vercel Cron issues a GET. */
+app.all('/cron/sync', async (req, res) => {
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return res.status(503).json({ error: 'CRON_SECRET is not set — the sync cannot be driven' });
+
+  const presented = (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  const a = Buffer.from(presented);
+  const b = Buffer.from(secret);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+    return res.status(401).json({ error: 'not authorised' });
+  }
+
+  try {
+    /* The scheduler's request does not pass through the hydration middleware —
+       it has no session and no workspace — so the two stores this needs are
+       filled here: the run log to know what is due, and the credentials to pull
+       with. */
+    await Promise.all([
+      runner.log.hydrate(),
+      store.hydrateDocuments({ connections, workspace, webhookTokens, definitionLog: metrics.definitionLog }),
+    ]);
+
+    const runs = await runner.runDue();
+    await runner.log.flush();
+
+    return res.json({
+      ran: runs.length,
+      runs: runs.map((r) => ({
+        source: r.source, ok: r.ok, pulled: r.pulled, written: r.written,
+        partialFailures: r.partialFailures || [], error: r.error || null,
+      })),
+    });
+  } catch (err) {
+    console.error('cron sync failed:', err.message);
+    return res.status(500).json({ error: err.message });
   }
 });
 
@@ -2246,7 +2305,13 @@ async function start() {
     console.warn('metrics: could not reconcile definition versions —', err.message);
   }
 
-  if (process.env.LEADINTEL_SYNC !== 'off') {
+  /* On a serverless runtime there is no process to hold a timer: the function
+     is frozen between requests, so `setInterval` either never fires or fires
+     inside somebody's request. The sync is driven by Vercel Cron calling
+     POST /cron/sync instead — see the route above and vercel.json. The
+     staleness-based `due()` logic is unchanged, which is what makes a cron
+     tick, a manual run and a post-downtime catch-up the same call. */
+  if (process.env.LEADINTEL_SYNC !== 'off' && !SERVERLESS) {
     runner.runDue().catch((err) => console.error('boot sync failed:', err.message));
     runner.start();
 
@@ -2267,6 +2332,11 @@ async function start() {
       tick();
     }
   }
+
+  /* Nothing listens on a serverless runtime — the platform owns the socket and
+     the app is handed requests as a function. `api/index.js` awaits `ready` and
+     calls it. */
+  if (SERVERLESS) return app;
 
   const server = app.listen(PORT, () => {
     console.log(`LeadIntel app on http://localhost:${PORT}`);
@@ -2297,6 +2367,14 @@ async function start() {
       }, 10_000).unref();
     });
   }
+
+  return app;
 }
 
-start();
+/* Routes are registered asynchronously — the screen list comes from the
+   repository — so what a caller needs is the promise, not the app. A long-lived
+   process starts listening as a side effect of this; a serverless one awaits
+   `ready` per invocation and gets the same already-built app back. */
+const ready = start();
+
+module.exports = { app, ready };
