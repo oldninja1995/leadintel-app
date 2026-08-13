@@ -1,231 +1,258 @@
 <%
 /* Google Ads Analytics — Google's own hierarchy, not Meta's.
  *
- * Campaign Analytics is Meta-shaped: campaign, ad set, ad. Google is campaign,
- * ad GROUP, ad, with keywords and search terms beneath and no ad-set concept at
- * all. This screen exists because those are two shapes, and rendering Google's
- * rows through Meta's projection is what put ad groups under a column labelled
- * "ad set".
+ * Meta Ads Analytics is campaign → ad set → ad. Google is campaign → ad GROUP →
+ * ad, with keywords and the search terms that matched them beneath, and no
+ * ad-set concept at all. Two screens, because they are two shapes: rendering
+ * Google's rows through Meta's projection is what put ad groups under a column
+ * labelled "ad set".
+ *
+ * Markup is the OTA screen's — `li-ota-panel`, `li-ota-scroll`, `li-ota-table`,
+ * `li-num` — rather than classes of its own. The first version of this file
+ * invented `li-card` and `li-table`, which exist nowhere, so six unstyled
+ * tables rendered in a row. Borrowing a styled vocabulary beats inventing an
+ * unstyled one; a screen-specific stylesheet can come later if this ever needs
+ * to look different, rather than merely to look right.
  *
  * Every table declines rather than invents. A level with no rows says which
- * source would carry them; the keyword table says whether the campaign type
- * *has* keywords, because an App or Performance Max campaign having none is not
- * the same fact as a Search campaign having none.
+ * source would carry them, and the keyword table distinguishes "no keywords"
+ * from "keywords do not apply" — an App or Performance Max campaign having none
+ * is a different fact from a Search campaign having none.
  */
 const d = data || {};
-const money = (v) => (v === null || v === undefined ? '—' : v);
 const num = (v) => (v === null || v === undefined ? '—' : Number(v).toLocaleString('en-IN'));
+const txt = (v) => (v === null || v === undefined || v === '' ? '—' : v);
+const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
 %>
 
-<div class="li-screen">
-  <header class="li-screen-head">
-    <div>
-      <h1>Google Ads Analytics</h1>
-      <p class="li-sub">
-        Campaign → ad group → ad, with keywords and the search terms that matched them.
-        <%= d.rangeLabel ? d.rangeLabel : '' %>
-      </p>
-    </div>
-  </header>
+<% if (!d.connected) { %>
+  <p class="li-conn-notice li-conn-notice--warn">
+    <i class="ph ph-warning-diamond"></i>
+    <strong>Google Ads is not connected.</strong>
+    Store a credential on the Connections screen — nothing below is invented while it is absent.
+  </p>
+<% } %>
 
-  <% if (!d.connected) { %>
-    <div class="li-empty" role="status">
-      <strong>Google Ads is not connected.</strong>
-      <p>Store a credential on the Connections screen. Nothing here is invented while it is absent.</p>
-    </div>
-  <% } %>
-
-  <!-- Campaigns ------------------------------------------------------------ -->
-  <section class="li-card">
+<!-- Campaigns --------------------------------------------------------------->
+<section class="li-ota-panel">
+  <div class="li-ota-panel-head">
     <h2>Campaigns</h2>
-    <% if (!(d.campaigns || []).length) { %>
-      <p class="li-empty-inline">No campaign rows for this range — Google Ads carries them.</p>
-    <% } else { %>
-    <div style="overflow-x:auto;">
-      <table class="li-table">
-        <thead>
+    <p>Spend and delivery per campaign. The keyword detail beneath is where the account is actually managed.</p>
+  </div>
+
+  <% if (!(d.campaigns || []).length) { %>
+    <p class="li-ota-foot">No campaign rows in this range.</p>
+  <% } else { %>
+  <div class="li-ota-scroll">
+    <table class="li-ota-table">
+      <thead>
+        <tr>
+          <th>Campaign</th><th>Type</th>
+          <th class="li-num">Spend</th><th class="li-num">Impressions</th>
+          <th class="li-num">Clicks</th><th class="li-num">Conv.</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% d.campaigns.forEach((c) => { %>
           <tr>
-            <th>Campaign</th><th>Type</th><th class="num">Spend</th><th class="num">Impr.</th>
-            <th class="num">Clicks</th><th class="num">Conv.</th>
-            <%
-            /* Impression share is Google-only and cannot be derived from
-               anything else on this page. It is the field that answers whether
-               spending more would achieve anything, so the two "lost" columns
-               sit beside it rather than behind a drawer. */
-            %>
-            <th class="num">Impr. share</th><th class="num">Lost · budget</th><th class="num">Lost · rank</th>
+            <td><%= txt(c.campaign) %></td>
+            <td><span class="li-chip"><%= chip(c.channelType) %></span></td>
+            <td class="li-num"><%= txt(c.spendText) %></td>
+            <td class="li-num"><%= num(c.impressions) %></td>
+            <td class="li-num"><%= num(c.clicks) %></td>
+            <td class="li-num"><%= num(c.conversions) %></td>
           </tr>
-        </thead>
-        <tbody>
-          <% d.campaigns.forEach((c) => { %>
-            <tr>
-              <td><%= c.campaign %></td>
-              <td><span class="li-chip"><%= c.channelType || '—' %></span></td>
-              <td class="num"><%= money(c.spendText) %></td>
-              <td class="num"><%= num(c.impressions) %></td>
-              <td class="num"><%= num(c.clicks) %></td>
-              <td class="num"><%= num(c.conversions) %></td>
-              <td class="num"><%= c.impressionShare === null ? '—' : c.impressionShare %></td>
-              <td class="num"><%= c.lostToBudget === null ? '—' : c.lostToBudget %></td>
-              <td class="num"><%= c.lostToRank === null ? '—' : c.lostToRank %></td>
-            </tr>
-          <% }); %>
-        </tbody>
-      </table>
-    </div>
-    <% } %>
-  </section>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</section>
 
-  <!-- Ad groups ------------------------------------------------------------ -->
-  <section class="li-card">
-    <h2>Ad groups</h2>
-    <p class="li-note">Google's grouping level. Not an ad set — a different entity, measured separately.</p>
-    <% if (!(d.adGroups || []).length) { %>
-      <p class="li-empty-inline">No ad group rows for this range.</p>
-    <% } else { %>
-    <div style="overflow-x:auto;">
-      <table class="li-table">
-        <thead><tr><th>Ad group</th><th class="num">Spend</th><th class="num">Impr.</th><th class="num">Clicks</th><th class="num">Conv.</th></tr></thead>
-        <tbody>
-          <% d.adGroups.forEach((g) => { %>
-            <tr>
-              <td><%= g.adgroup || '—' %></td>
-              <td class="num"><%= money(g.spendText) %></td>
-              <td class="num"><%= num(g.impressions) %></td>
-              <td class="num"><%= num(g.clicks) %></td>
-              <td class="num"><%= num(g.conversions) %></td>
-            </tr>
-          <% }); %>
-        </tbody>
-      </table>
-    </div>
-    <% } %>
-  </section>
-
-  <!-- Ads ------------------------------------------------------------------ -->
-  <section class="li-card">
-    <h2>Ads</h2>
-    <% if (!(d.ads || []).length) { %>
-      <p class="li-empty-inline">No ad rows for this range.</p>
-    <% } else { %>
-    <div style="overflow-x:auto;">
-      <table class="li-table">
-        <thead><tr><th>Ad</th><th>Type</th><th>Status</th><th class="num">Spend</th><th class="num">Clicks</th><th class="num">Conv.</th></tr></thead>
-        <tbody>
-          <% d.ads.forEach((a) => { %>
-            <tr>
-              <%
-              /* A responsive search ad genuinely has no name — Google composes
-                 it from assets. Showing its id is honest; inventing a label
-                 would not be. */
-              %>
-              <td><%= a.ad || ('#' + (a.adId || '—')) %></td>
-              <td><span class="li-chip"><%= (a.adType || '—').replace(/_/g, ' ') %></span></td>
-              <td><%= (a.status || '—').replace(/_/g, ' ') %></td>
-              <td class="num"><%= money(a.spendText) %></td>
-              <td class="num"><%= num(a.clicks) %></td>
-              <td class="num"><%= num(a.conversions) %></td>
-            </tr>
-          <% }); %>
-        </tbody>
-      </table>
-    </div>
-    <% } %>
-  </section>
-
-  <!-- Keywords ------------------------------------------------------------- -->
-  <section class="li-card">
-    <h2>Keywords</h2>
-    <% if (d.keywordsNotApplicable) { %>
-      <%
-      /* The distinction this screen refuses to blur: a Search campaign with no
-         keyword rows and an App campaign that cannot have any are different
-         facts, and an empty table would state the first about the second. */
-      %>
-      <p class="li-empty-inline">
-        Not applicable — <%= d.keywordsNotApplicable %>. Keywords exist only on Search campaigns.
-      </p>
-    <% } else if (!(d.keywords || []).length) { %>
-      <p class="li-empty-inline">No keyword rows for this range.</p>
-    <% } else { %>
-    <div style="overflow-x:auto;">
-      <table class="li-table">
-        <thead><tr><th>Keyword</th><th>Match</th><th class="num">Quality</th><th class="num">Spend</th><th class="num">Clicks</th><th class="num">Conv.</th></tr></thead>
-        <tbody>
-          <% d.keywords.forEach((k) => { %>
-            <tr>
-              <%- /* Verbatim: a keyword is the literal string that was bid on. */ %>
-              <td><code><%= k.keyword || '—' %></code></td>
-              <td><span class="li-chip"><%= k.matchType || '—' %></span></td>
-              <td class="num"><%= k.qualityScore === null ? '—' : k.qualityScore %></td>
-              <td class="num"><%= money(k.spendText) %></td>
-              <td class="num"><%= num(k.clicks) %></td>
-              <td class="num"><%= num(k.conversions) %></td>
-            </tr>
-          <% }); %>
-        </tbody>
-      </table>
-    </div>
-    <% } %>
-  </section>
-
-  <!-- Search terms --------------------------------------------------------- -->
-  <section class="li-card">
+<!-- Search terms ------------------------------------------------------------>
+<section class="li-ota-panel">
+  <div class="li-ota-panel-head">
     <h2>Search terms</h2>
-    <p class="li-note">What people actually typed, as opposed to what was bid on — where wasted spend and negative keywords live.</p>
-    <% if (!(d.searchTerms || []).length) { %>
-      <p class="li-empty-inline">No search term rows for this range.</p>
-    <% } else { %>
-    <div style="overflow-x:auto;">
-      <table class="li-table">
-        <thead><tr><th>Search term</th><th>Status</th><th class="num">Spend</th><th class="num">Impr.</th><th class="num">Clicks</th><th class="num">Conv.</th></tr></thead>
-        <tbody>
-          <% d.searchTerms.forEach((t) => { %>
-            <tr>
-              <td><code><%= t.term || '—' %></code></td>
-              <td><%= (t.termStatus || '—').replace(/_/g, ' ') %></td>
-              <td class="num"><%= money(t.spendText) %></td>
-              <td class="num"><%= num(t.impressions) %></td>
-              <td class="num"><%= num(t.clicks) %></td>
-              <td class="num"><%= num(t.conversions) %></td>
-            </tr>
-          <% }); %>
-        </tbody>
-      </table>
-    </div>
-    <% } %>
-  </section>
-
-  <!-- Conversions ---------------------------------------------------------- -->
-  <section class="li-card">
-    <h2>Conversions by action</h2>
-    <p class="li-note">
-      Split by the action that produced them. Google's undivided figure sums every action an
-      account defines into one fractional number that names none of them.
+    <p>
+      What people actually typed, as opposed to what was bid on. Keywords say what was bought;
+      this says what was sold against — and it is the only place wasted spend and
+      negative-keyword opportunities are visible. Placed above keywords for that reason.
     </p>
-    <% if (!(d.conversions || []).length) { %>
-      <p class="li-empty-inline">No conversion rows for this range.</p>
-    <% } else { %>
-    <div style="overflow-x:auto;">
-      <table class="li-table">
-        <thead><tr><th>Action</th><th>Category</th><th class="num">Conversions</th><th class="num">Value</th></tr></thead>
-        <tbody>
-          <% d.conversions.forEach((c) => { %>
-            <tr>
-              <td><%= c.action || '—' %></td>
-              <td><%= (c.category || '—').replace(/_/g, ' ') %></td>
-              <%
-              /* Not rounded. Google reports conversions as a fractional double
-                 because attribution splits credit across touches, and rounding
-                 4.166666 to 4 would quietly discard the fraction on every row. */
-              %>
-              <td class="num"><%= c.conversions === null ? '—' : c.conversions %></td>
-              <td class="num"><%= money(c.valueText) %></td>
-            </tr>
-          <% }); %>
-        </tbody>
-      </table>
-    </div>
-    <% } %>
-  </section>
-</div>
+  </div>
+
+  <% if (!(d.searchTerms || []).length) { %>
+    <p class="li-ota-foot">No search term rows in this range.</p>
+  <% } else { %>
+  <div class="li-ota-scroll">
+    <table class="li-ota-table">
+      <thead>
+        <tr>
+          <th>Search term</th><th>Status</th>
+          <th class="li-num">Spend</th><th class="li-num">Impressions</th>
+          <th class="li-num">Clicks</th><th class="li-num">Conv.</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% d.searchTerms.forEach((t) => { %>
+          <%
+          /* Spend with nothing to show for it. Flagged rather than sorted away:
+             this table is a worklist, and the rows worth acting on are the ones
+             that cost money and converted nobody. */
+          const wasted = (t.spend > 0) && !t.conversions;
+          %>
+          <tr>
+            <td><%= txt(t.term) %><% if (wasted) { %> <span class="li-chip">wasted</span><% } %></td>
+            <td><%= chip(t.termStatus) %></td>
+            <td class="li-num"><%= txt(t.spendText) %></td>
+            <td class="li-num"><%= num(t.impressions) %></td>
+            <td class="li-num"><%= num(t.clicks) %></td>
+            <td class="li-num"><%= num(t.conversions) %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</section>
+
+<!-- Keywords ---------------------------------------------------------------->
+<section class="li-ota-panel">
+  <div class="li-ota-panel-head">
+    <h2>Keywords</h2>
+    <p>Shown verbatim — a keyword is the literal string that was bid on, and match type is what decides how far Google may stray from it.</p>
+  </div>
+
+  <% if (d.keywordsNotApplicable) { %>
+    <p class="li-ota-foot li-ota-foot--warn">
+      Not applicable — <%= d.keywordsNotApplicable %>. Keywords exist only on Search campaigns,
+      so an empty table here would claim there were none rather than that the concept does not apply.
+    </p>
+  <% } else if (!(d.keywords || []).length) { %>
+    <p class="li-ota-foot">No keyword rows in this range.</p>
+  <% } else { %>
+  <div class="li-ota-scroll">
+    <table class="li-ota-table">
+      <thead>
+        <tr>
+          <th>Keyword</th><th>Match</th><th class="li-num">Quality</th>
+          <th class="li-num">Spend</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% d.keywords.forEach((k) => { %>
+          <tr>
+            <td><%= txt(k.keyword) %></td>
+            <td><span class="li-chip"><%= chip(k.matchType) %></span></td>
+            <td class="li-num"><%= txt(k.qualityScore) %></td>
+            <td class="li-num"><%= txt(k.spendText) %></td>
+            <td class="li-num"><%= num(k.clicks) %></td>
+            <td class="li-num"><%= num(k.conversions) %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</section>
+
+<!-- Ad groups --------------------------------------------------------------->
+<section class="li-ota-panel">
+  <div class="li-ota-panel-head">
+    <h2>Ad groups</h2>
+    <p>Google's grouping level. Not an ad set — a different entity, measured separately, which is why it lives on its own screen.</p>
+  </div>
+
+  <% if (!(d.adGroups || []).length) { %>
+    <p class="li-ota-foot">No ad group rows in this range.</p>
+  <% } else { %>
+  <div class="li-ota-scroll">
+    <table class="li-ota-table">
+      <thead>
+        <tr><th>Ad group</th><th class="li-num">Spend</th><th class="li-num">Impressions</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th></tr>
+      </thead>
+      <tbody>
+        <% d.adGroups.forEach((g) => { %>
+          <tr>
+            <td><%= txt(g.adgroup) %></td>
+            <td class="li-num"><%= txt(g.spendText) %></td>
+            <td class="li-num"><%= num(g.impressions) %></td>
+            <td class="li-num"><%= num(g.clicks) %></td>
+            <td class="li-num"><%= num(g.conversions) %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</section>
+
+<!-- Ads --------------------------------------------------------------------->
+<section class="li-ota-panel">
+  <div class="li-ota-panel-head">
+    <h2>Ads</h2>
+    <p>A responsive search ad has no name — Google composes it from assets — so its id is shown rather than a label invented for it.</p>
+  </div>
+
+  <% if (!(d.ads || []).length) { %>
+    <p class="li-ota-foot">No ad rows in this range.</p>
+  <% } else { %>
+  <div class="li-ota-scroll">
+    <table class="li-ota-table">
+      <thead>
+        <tr><th>Ad</th><th>Type</th><th>Status</th><th class="li-num">Spend</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th></tr>
+      </thead>
+      <tbody>
+        <% d.ads.forEach((a) => { %>
+          <tr>
+            <td><%= a.ad || ('#' + txt(a.adId)) %></td>
+            <td><span class="li-chip"><%= chip(a.adType) %></span></td>
+            <td><%= chip(a.status) %></td>
+            <td class="li-num"><%= txt(a.spendText) %></td>
+            <td class="li-num"><%= num(a.clicks) %></td>
+            <td class="li-num"><%= num(a.conversions) %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</section>
+
+<!-- Conversions by action --------------------------------------------------->
+<section class="li-ota-panel">
+  <div class="li-ota-panel-head">
+    <h2>Conversions by action</h2>
+    <p>
+      Split by the action that produced them. Google's undivided figure sums every action an
+      account defines into one fractional number that names none of them — a booking enquiry, a
+      phone click and a page view counted alike.
+    </p>
+  </div>
+
+  <% if (!(d.conversions || []).length) { %>
+    <p class="li-ota-foot">No conversion rows in this range.</p>
+  <% } else { %>
+  <div class="li-ota-scroll">
+    <table class="li-ota-table">
+      <thead>
+        <tr><th>Action</th><th>Category</th><th class="li-num">Conversions</th><th class="li-num">Value</th></tr>
+      </thead>
+      <tbody>
+        <% d.conversions.forEach((c) => { %>
+          <tr>
+            <td><%= txt(c.action) %></td>
+            <td><%= chip(c.category) %></td>
+            <%
+            /* Left fractional on purpose: Google splits conversion credit across
+               touches, so rounding 4.166666 to 4 would discard the fraction on
+               every row and quietly understate the total. */
+            %>
+            <td class="li-num"><%= txt(c.conversions) %></td>
+            <td class="li-num"><%= txt(c.valueText) %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+  <% } %>
+</section>
