@@ -225,6 +225,12 @@ const SYNC_LOOKBACK_DAYS = 90;
  * working because history accumulates rather than being re-fetched. */
 const SYNC_REFRESH_DAYS = 14;
 
+/* Set per request by /cron/sync?days=N. A module-level latch rather than a
+   threaded argument because the window function is handed to SyncRunner at
+   construction and reaches runOne through it; cleared in a finally so one
+   forced backfill cannot widen every later tick. */
+let FORCED_DAYS = null;
+
 function syncWindow(now = new Date(), sourceId = null) {
   const midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   /* A source that has never succeeded has nothing stored, so it gets the full
@@ -238,7 +244,9 @@ function syncWindow(now = new Date(), sourceId = null) {
    * dashboard short without anything reporting an error. */
   const last = sourceId ? runner.log.lastSuccess(sourceId) : null;
   const backfilled = Boolean(last && last.transport && last.transport !== 'fixture');
-  const days = backfilled ? SYNC_REFRESH_DAYS : SYNC_LOOKBACK_DAYS;
+  /* Overridable, so a source that was short-changed once can be refilled
+     without waiting for a first pull it has already had. */
+  const days = FORCED_DAYS || (backfilled ? SYNC_REFRESH_DAYS : SYNC_LOOKBACK_DAYS);
   return {
     from: new Date(midnight - (days - 1) * 86400000).toISOString(),
     to: new Date(midnight + 86400000).toISOString(),
@@ -852,8 +860,15 @@ app.all('/cron/sync', async (req, res) => {
       ? due.filter((s) => s.id === req.query.source)
       : due.slice(0, 1);
 
+    const asked = Number(req.query.days);
+    FORCED_DAYS = Number.isFinite(asked) && asked > 0 ? Math.min(asked, 400) : null;
+
     const runs = [];
-    for (const source of wanted) runs.push(await runner.runOne(source.id));
+    try {
+      for (const source of wanted) runs.push(await runner.runOne(source.id));
+    } finally {
+      FORCED_DAYS = null;
+    }
     await runner.log.flush();
 
     return res.json({
