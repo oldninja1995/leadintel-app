@@ -229,7 +229,15 @@ function syncWindow(now = new Date(), sourceId = null) {
   const midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   /* A source that has never succeeded has nothing stored, so it gets the full
      history. One that has is only catching up. */
-  const backfilled = sourceId ? Boolean(runner.log.lastSuccess(sourceId)) : false;
+  /* Backfilled means "has real history", and a **fixture** run is not that.
+   *
+   * This read `lastSuccess` alone, and a fixture sync counts as a success — so
+   * a source whose only prior run replayed fixtures was treated as already
+   * backfilled and its first live pull asked for a fortnight instead of ninety
+   * days. Meta went live holding 13 days, which made every 30-day figure on the
+   * dashboard short without anything reporting an error. */
+  const last = sourceId ? runner.log.lastSuccess(sourceId) : null;
+  const backfilled = Boolean(last && last.transport && last.transport !== 'fixture');
   const days = backfilled ? SYNC_REFRESH_DAYS : SYNC_LOOKBACK_DAYS;
   return {
     from: new Date(midnight - (days - 1) * 86400000).toISOString(),
