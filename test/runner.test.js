@@ -240,3 +240,85 @@ test('starting a running loop does not schedule a second one', (t) => {
   assert.equal(runner.timer, null);
   assert.equal(runner.stop().timer, null, 'stopping an idle loop threw or resurrected it');
 });
+
+/* ── Partial failures ───────────────────────────────────────────────────────
+ *
+ * `connectors.pull` drops a failing kind and keeps the rest, so one refused
+ * edge cannot cost an account its spend. That isolation was silent: the
+ * failures were attached to the returned array and nothing ever read them, so
+ * a source whose `creative` kind failed on **every** sync reported
+ * `health: ok`, `recentFailures: 0`, `lastError: null` — indistinguishable
+ * from a source with nothing wrong. On production that ran for days: the
+ * creative rows were never refreshed, their signed image URLs expired, and all
+ * 42 thumbnails served 502 while the status page stayed green.
+ */
+
+/* Fails one kind of one source and behaves for everything else. */
+function failingKind(kind, ids = ['meta_ads'], inner = fixtureTransport()) {
+  return {
+    name: 'partial',
+    async fetch(request) {
+      if (ids.includes(request.source.id) && request.kind === kind) {
+        throw new Error(`${kind} refused`);
+      }
+      return inner.fetch(request);
+    },
+  };
+}
+
+test('a kind that fails while others succeed is recorded rather than swallowed', async () => {
+  const { runner } = harness({ transport: failingKind('creative') });
+  const run = await runner.runOne('meta_ads');
+
+  /* Still a success: the source fed, and marking it down is the bug the
+     isolation exists to prevent. */
+  assert.equal(run.ok, true);
+  assert.deepEqual(run.partialFailures.map((f) => f.kind), ['creative']);
+  assert.match(run.partialFailures[0].reason, /refused/);
+});
+
+test('a half-failing source stops reporting as unqualified green', async () => {
+  const { runner } = harness({ transport: failingKind('creative') });
+  await runner.runOne('meta_ads');
+
+  const meta = runner.status().find((s) => s.source === 'meta_ads');
+  assert.deepEqual(meta.partialFailures.map((f) => f.kind), ['creative']);
+  /* and is still not down — both halves matter */
+  assert.equal(meta.health, 'ok');
+  assert.equal(meta.recentFailures, 0);
+  assert.equal(meta.lastError, null);
+});
+
+test('a clean run reports no partial failures and adds no field to the log', async () => {
+  const { runner } = harness();
+  const run = await runner.runOne('meta_ads');
+
+  assert.equal('partialFailures' in run, false, 'a clean run should not carry the field');
+  assert.deepEqual(runner.status().find((s) => s.source === 'meta_ads').partialFailures, []);
+});
+
+test('partial failures are read from the latest run, not the latest good one', async () => {
+  /* A source that failed partially and has since started failing wholesale
+     must not still be advertising the older run's partial state. */
+  const root = tmpDir();
+  let now = new Date(T0);
+  const log = new RunLog(path.join(root, 'runs.jsonl'));
+  const runner = new SyncRunner({
+    store: new RawStore(path.join(root, 'raw')),
+    log,
+    transport: failingKind('creative'),
+    clock: () => now,
+  });
+
+  await runner.runOne('meta_ads');
+  assert.equal(runner.status().find((s) => s.source === 'meta_ads').partialFailures.length, 1);
+
+  runner.transport = breaking(['meta_ads']);
+  runner.transportFor = () => runner.transport;
+  now = new Date(now.getTime() + 1000);
+  await runner.runOne('meta_ads');
+
+  const meta = runner.status().find((s) => s.source === 'meta_ads');
+  assert.deepEqual(meta.partialFailures, [], 'the older run’s partial state outlived it');
+  assert.ok(meta.lastError, 'a wholesale failure should still be reported');
+});

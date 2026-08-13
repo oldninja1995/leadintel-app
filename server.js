@@ -53,15 +53,53 @@ const repo = createRepository();
 /* Entities for one workspace. Everything downstream — metrics, rules,
    explanations — reads through this, so none of them needs to know tenancy
    exists. The partitioning itself lives in lib/ingest. */
+
+/* Cached per workspace, and this is load-bearing rather than an optimisation.
+ *
+ * `ingest.snapshot` replays the whole raw store: `readFileSync` plus a
+ * `JSON.parse` per line of every `.jsonl` the workspace has, then
+ * `canonical.build` over all of it. Synchronously — so it does not merely cost
+ * its own time, it **blocks the event loop and serialises every other
+ * request behind it**.
+ *
+ * Uncached, that ran on each of the eleven call sites below, per request. The
+ * measured cost on production was 20–56s a page, getting worse as the
+ * append-only store grew, and Creative Intelligence was the worst case by
+ * construction: its page emits 42 thumbnail URLs, each of which is a request
+ * that replayed the entire store again, so one page view queued 42 full
+ * replays behind itself and the proxied images timed out into 502s.
+ *
+ * The repository driver already had exactly this cache (`entities()` in
+ * lib/repository/ingested.js) and exactly this invalidation hook; this path
+ * simply bypassed both. So the fix is to join the existing seam rather than to
+ * invent a second one — `dropEntities` is called wherever `repo.refresh` is.
+ *
+ * Safe to share the object across requests because nothing mutates it:
+ * `period.within` copies (`{...entities}` and `filter`), and every other reader
+ * only reads. */
+const entityCache = new Map();
+
 function entitiesFor(workspaceId) {
+  if (entityCache.has(workspaceId)) return entityCache.get(workspaceId);
   /* `connected` retires a source's demo rows once somebody stores a credential
      for it — see lib/ingest/raw-store.js. The metric layer reads through here,
      so it must see the same entities the screens do or a headline could be
      computed over invented rows the table below it no longer shows. */
-  return ingest.snapshot({
+  const entities = ingest.snapshot({
     store: ingest.storeFor(workspaceId),
     connected: ingest.liveSources({ connections, workspace: workspaceId, httpConnectors }),
   });
+  entityCache.set(workspaceId, entities);
+  return entities;
+}
+
+/* Dropped on the two events that change what a replay would produce: a sync
+   writing new rows, and a credential being stored or removed — the latter
+   because `connected` decides whether a source's demo rows are still replayed,
+   so connecting a source changes the entities without writing anything. */
+function dropEntities(workspaceId = null) {
+  if (workspaceId) entityCache.delete(workspaceId);
+  else entityCache.clear();
 }
 
 const workspace = new attribution.Workspace();
@@ -138,7 +176,14 @@ const runner = new SyncRunner({
      Dropped here, on write, rather than per request: replaying the whole store
      on each page load would put the p95 budget out of reach for no benefit
      between syncs. */
-  onWrite: () => { if (typeof repo.refresh === 'function') repo.refresh(); },
+  onWrite: () => {
+    if (typeof repo.refresh === 'function') repo.refresh();
+    /* The same staleness, one layer up. `entitiesFor` is what the metric layer,
+       the rules and the creative routes read through, and it cached nothing —
+       so before this the screens were fresh on write and everything computed
+       *about* them was replayed per request. */
+    dropEntities(SYNC_WORKSPACE);
+  },
 });
 const reasoner = createReasoner();
 const fires = new FireLog();
@@ -930,6 +975,9 @@ app.post('/connections/:source',
       }
 
       connections.set(req.workspace, source, merged, { by: req.user.name });
+      /* Connecting a source retires its demo rows, so the entities change
+         without a sync having written anything. */
+      dropEntities(req.workspace);
       return res.redirect(`/connections?saved=${encodeURIComponent(`${source} saved. The credential is encrypted and will not be shown again.`)}`);
     } catch (err) {
       /* The message names the field and what the value looked like — never the
@@ -983,6 +1031,9 @@ app.post('/connections/:source/remove',
   gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'remove' })),
   (req, res) => {
     connections.remove(req.workspace, req.params.source);
+    /* Disconnecting puts the source's fixtures back into the replay, which is
+       the same change in the other direction. */
+    dropEntities(req.workspace);
     return res.redirect(`/connections?saved=${encodeURIComponent(`${req.params.source} disconnected — it will read fixtures again.`)}`);
   });
 
