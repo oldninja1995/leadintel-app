@@ -133,3 +133,44 @@ test('a workspace with no sync status falls back to what it can see', () => {
   assert.equal(stateOf({ configured: true, readable: true, sync: null }).state, 'idle');
   assert.equal(stateOf({ configured: true, readable: true, sync: null, webhook: hook({ records: 3 }) }).state, 'on');
 });
+
+test('a source that failed once and has recovered is not "failing"', () => {
+  /* The bug this guards: `recentFailures` counts failures across the last
+     twenty runs, so one failure kept the red badge for ever. Meta showed
+     "failing" directly above its own line reading "Last succeeded 8 min ago.
+     It carried 684 records" — the failure in its window was the run before the
+     credential was saved. The card contradicted itself, and the screen was
+     believed over the data. */
+  const state = stateOf({
+    configured: true,
+    readable: true,
+    sync: {
+      health: 'ok',
+      transport: 'http',
+      lastPulled: 684,
+      recentFailures: 1,
+      lastError: null,
+      priorError: 'meta_ads: every kind failed — no credential stored',
+    },
+  });
+
+  assert.equal(state.state, 'on');
+  assert.equal(state.label, 'receiving');
+});
+
+test('a source whose latest run failed still reads "failing"', () => {
+  const state = stateOf({
+    configured: true,
+    readable: true,
+    sync: {
+      health: 'ok',
+      transport: 'http',
+      lastPulled: 0,
+      recentFailures: 1,
+      lastError: 'google_ads: every kind failed — no credential stored',
+    },
+  });
+
+  assert.equal(state.state, 'failing');
+  assert.equal(state.label, 'failing');
+});
