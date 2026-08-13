@@ -13,6 +13,8 @@ const google = require('../lib/ingest/http/google-ads');
 const httpConnectors = require('../lib/ingest/http');
 const { httpTransport } = require('../lib/ingest/transport');
 const connectors = require('../lib/ingest/connectors');
+const { QUERIES } = google;
+const { EXTERNAL_ID } = connectors;
 const canonical = require('../lib/ingest/canonical');
 const sources = require('../lib/ingest/sources');
 
@@ -338,4 +340,61 @@ test('invalid_grant still says the token must be generated again', async () => {
 test('an unrecognised refusal still carries Google’s own code', async () => {
   google.clearTokenCache();
   await assert.rejects(exchangeWith('some_new_error'), /some_new_error/);
+});
+
+/* ── the kinds added for per-platform Campaign Analytics ─────────────────── */
+
+test('every kind the source declares has a query, and every query is per-day', () => {
+  /* `segments.date` missing from any one of these means Google returns a single
+     aggregate row for the whole range and that day-kind becomes a lie — the
+     trap this connector already fell into once. Asserted across all of them
+     rather than per query, so a kind added later cannot skip it. */
+  const declared = sources.get('google_ads').kinds;
+  for (const kind of declared) {
+    assert.ok(QUERIES[kind], `no GAQL query for declared kind "${kind}"`);
+    assert.match(QUERIES[kind], /segments\.date/, `${kind} is not segmented by date`);
+    assert.match(QUERIES[kind], /customer\.currency_code/, `${kind} does not ask for the currency`);
+  }
+});
+
+test('the ad level exists, so Google is not shallower than Meta', () => {
+  /* The gap that prompted the split: ad groups and keywords were pulled and
+     ads were not, so the Google screen could never show what Meta's showed. */
+  assert.ok(sources.get('google_ads').kinds.includes('ad_day'));
+  assert.match(QUERIES.ad_day, /FROM ad_group_ad/);
+});
+
+test('campaign rows carry the channel type the keyword view needs', () => {
+  /* App, Performance Max and Shopping campaigns have no keywords. Without this
+     field the screen cannot tell "no keywords" from "keywords do not apply". */
+  assert.match(QUERIES.campaign_day, /campaign\.advertising_channel_type/);
+});
+
+test('conversions can be split by the action that produced them', () => {
+  /* Undivided, metrics.conversions is a fractional double summed across every
+     action an account defines — the 18,395.989782 "leads" figure. */
+  assert.match(QUERIES.conversion_day, /segments\.conversion_action_name/);
+});
+
+test('a search term is identified by its text, ad group and day', () => {
+  /* Google gives search terms no id — the string is the identity — and the same
+     phrase in two ad groups is two rows of spend. */
+  const id = EXTERNAL_ID.search_term_day({
+    search_term_view: { search_term: 'munnar resort with pool' },
+    ad_group: { id: '123' },
+    segments: { date: '2026-08-13' },
+  });
+  assert.match(id, /munnar resort with pool/);
+  assert.match(id, /123/);
+  assert.match(id, /2026-08-13/);
+});
+
+test('two conversion actions on one campaign-day stay separate rows', () => {
+  /* If the action were left out of the key, the split this kind exists to make
+     would be undone by its own identity rule. */
+  const row = (name) => EXTERNAL_ID.conversion_day({
+    segments: { conversion_action_name: name, date: '2026-08-13' },
+    campaign: { id: '77' },
+  });
+  assert.notEqual(row('Booking enquiry'), row('Phone click'));
 });
