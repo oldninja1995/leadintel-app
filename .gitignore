@@ -1,17 +1,18 @@
-node_modules/
-npm-debug.log*
-
-# State, not source. `var/` is the raw store, run log, audit trail, dispatches,
+!.env.example
+# deploy resurrects one machine's data, including its audit trail.
 # evaluations and fired-rule history — everything the app writes and nothing it
 # reads from version control. Committing it would mean every clone and every
-# deploy resurrects one machine's data, including its audit trail.
+# secret.
+# Secrets. LEADINTEL_SECRET signs session cookies; a committed one is not a
+# State, not source. `var/` is the raw store, run log, audit trail, dispatches,
+*.log
+.env
+.env*
+.env.*
+.env.local
+.vercel
+.vercel
+node_modules/
+npm-debug.log*
 var/
 var-backups/
-
-# Secrets. LEADINTEL_SECRET signs session cookies; a committed one is not a
-# secret.
-.env
-.env.*
-!.env.example
-
-*.log
