@@ -655,7 +655,7 @@ app.post('/login',
 
   if (!user) {
     gatekeeper.audit.record({ user: null, action: 'auth.login', outcome: 'refused', workspace: null, detail: { attempted: body.user || null } });
-    if (wantsHtml) return res.redirect(`/login?error=${encodeURIComponent('That username and password do not match.')}`);
+    if (wantsHtml) return res.redirect(303, `/login?error=${encodeURIComponent('That username and password do not match.')}`);
     return res.status(401).json({ error: 'that username and password do not match' });
   }
 
@@ -668,13 +668,13 @@ app.post('/login',
     session = await gatekeeper.sessions.create(user);
   } catch (err) {
     console.error('login: the session store refused a write —', err.message);
-    if (wantsHtml) return res.redirect(`/login?error=${encodeURIComponent('Sign-in is unavailable right now.')}`);
+    if (wantsHtml) return res.redirect(303, `/login?error=${encodeURIComponent('Sign-in is unavailable right now.')}`);
     return res.status(503).json({ error: 'the session store is unavailable' });
   }
   res.setHeader('Set-Cookie', authSessions.cookieHeader(session.cookie, { secure: TLS }));
   gatekeeper.audit.record({ user, action: 'auth.login', outcome: 'allowed', workspace: user.workspace });
 
-  if (wantsHtml) return res.redirect(typeof body.next === 'string' && body.next.startsWith('/') ? body.next : '/');
+  if (wantsHtml) return res.redirect(303, typeof body.next === 'string' && body.next.startsWith('/') ? body.next : '/');
   return res.json({ user });
 });
 
@@ -687,7 +687,7 @@ app.post('/logout', async (req, res) => {
     console.error('logout: the session store refused a delete —', err.message);
   }
   res.setHeader('Set-Cookie', authSessions.clearHeader());
-  if ((req.get('accept') || '').includes('text/html')) return res.redirect('/login');
+  if ((req.get('accept') || '').includes('text/html')) return res.redirect(303, '/login');
   return res.json({ ok: true });
 });
 
@@ -1150,6 +1150,18 @@ app.post('/connections/:source',
         if (String(value || '').trim()) merged[key] = String(value).trim();
       }
 
+      /* Every redirect out of a POST here is an explicit 303.
+       *
+       * `res.redirect` defaults to 302, and a 302 answering a POST leaves the
+       * method up to the client. Vercel returns it as 307, which *preserves*
+       * the method — so the browser re-POSTed to /connections, a path with no
+       * POST route, and got a 404. The credential form looked simply broken:
+       * no Connections screen, no error, nothing saved, and the redirect that
+       * was carrying the explanation never rendered.
+       *
+       * 303 See Other is what POST-redirect-GET has always wanted — it tells
+       * the client to GET the target — and it is correct on every platform
+       * rather than a workaround for this one. */
       connections.set(req.workspace, source, merged, { by: req.user.name });
       /* Awaited before answering, and this is the whole reason `flush` exists.
          The write is issued by a synchronous method; a serverless function is
@@ -1160,11 +1172,11 @@ app.post('/connections/:source',
       /* Connecting a source retires its demo rows, so the entities change
          without a sync having written anything. */
       dropEntities(req.workspace);
-      return res.redirect(`/connections?saved=${encodeURIComponent(`${source} saved. The credential is encrypted and will not be shown again.`)}`);
+      return res.redirect(303, `/connections?saved=${encodeURIComponent(`${source} saved. The credential is encrypted and will not be shown again.`)}`);
     } catch (err) {
       /* The message names the field and what the value looked like — never the
          value itself, which must not travel in a URL. */
-      return res.redirect(`/connections?source=${encodeURIComponent(source)}&error=${encodeURIComponent(err.message)}`);
+      return res.redirect(303, `/connections?source=${encodeURIComponent(source)}&error=${encodeURIComponent(err.message)}`);
     }
   });
 
@@ -1217,7 +1229,7 @@ app.post('/connections/:source/remove',
     /* Disconnecting puts the source's fixtures back into the replay, which is
        the same change in the other direction. */
     dropEntities(req.workspace);
-    return res.redirect(`/connections?saved=${encodeURIComponent(`${req.params.source} disconnected — it will read fixtures again.`)}`);
+    return res.redirect(303, `/connections?saved=${encodeURIComponent(`${req.params.source} disconnected — it will read fixtures again.`)}`);
   });
 
 /* Tests the credential by asking the live transport for one record. It throws
@@ -1241,7 +1253,7 @@ app.post('/connections/:source/test',
     connections.recordTest(req.workspace, source, result);
     await connections.flush();
     const query = `${result.ok ? 'saved' : 'error'}=${encodeURIComponent(`${source}: ${result.detail}`)}`;
-    return res.redirect(`/connections?source=${encodeURIComponent(source)}&${query}`);
+    return res.redirect(303, `/connections?source=${encodeURIComponent(source)}&${query}`);
   });
 
 /* Mints the credential a pushing source uses to call `/ingest/webhook/:source`.
@@ -2035,12 +2047,12 @@ app.post('/workspace/attribution',
     const change = workspace.apply(body.model, { justification: body.justification });
     /* A form post redirects so a refresh does not re-apply; an API caller gets
        the change record back. */
-    if ((req.get('accept') || '').includes('text/html')) return res.redirect('/attribution');
+    if ((req.get('accept') || '').includes('text/html')) return res.redirect(303, '/attribution');
     return res.json(change);
   } catch (err) {
     if ((req.get('accept') || '').includes('text/html')) {
       const back = attribution.isModel(body.model) ? `/attribution?preview=${body.model}&err=${encodeURIComponent(err.message)}` : '/attribution';
-      return res.redirect(back);
+      return res.redirect(303, back);
     }
     return res.status(400).json({ error: err.message });
   }
