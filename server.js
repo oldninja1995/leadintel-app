@@ -210,10 +210,29 @@ const SYNC_LOOKBACK_DAYS = 90;
    `to` of "now" would ask for everything up to yesterday and today's spend
    would never arrive. The "Today" chip would then read ₹0 for ever, which is
    the same class of quiet wrongness this window exists to fix. */
-function syncWindow(now = new Date()) {
+/* How far back a *refresh* asks, once a source has pulled successfully before.
+ *
+ * The 90-day window above is what the period control needs the store to be able
+ * to answer, and it is the right ask exactly once — on a source's first pull.
+ * Asking for it every time is what made the sync exceed a serverless function's
+ * 60-second ceiling: Meta pages ad-level insights 100 rows at a time, so 90 days
+ * across six kinds is dozens of round trips, repeated in full every cycle to
+ * re-fetch days that had already been stored.
+ *
+ * A refresh only has to cover what can still change. Meta restates recent days
+ * as attribution windows close, so a fortnight is generous; anything older is
+ * already in the store and the store never forgets. The 90-day chip keeps
+ * working because history accumulates rather than being re-fetched. */
+const SYNC_REFRESH_DAYS = 14;
+
+function syncWindow(now = new Date(), sourceId = null) {
   const midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  /* A source that has never succeeded has nothing stored, so it gets the full
+     history. One that has is only catching up. */
+  const backfilled = sourceId ? Boolean(runner.log.lastSuccess(sourceId)) : false;
+  const days = backfilled ? SYNC_REFRESH_DAYS : SYNC_LOOKBACK_DAYS;
   return {
-    from: new Date(midnight - (SYNC_LOOKBACK_DAYS - 1) * 86400000).toISOString(),
+    from: new Date(midnight - (days - 1) * 86400000).toISOString(),
     to: new Date(midnight + 86400000).toISOString(),
   };
 }
@@ -810,11 +829,29 @@ app.all('/cron/sync', async (req, res) => {
       store.hydrateDocuments({ connections, workspace, webhookTokens, definitionLog: metrics.definitionLog }),
     ]);
 
-    const runs = await runner.runDue();
+    /* One source per invocation, not all eleven.
+     *
+     * `runDue()` walks every due source in turn, which is right for a process
+     * that owns its own time and wrong for a function with a hard 60-second
+     * ceiling — the first full run hit it and returned nothing at all, having
+     * done real work. A single source is bounded work, and the response says
+     * how many are still waiting so a caller can drain them.
+     *
+     * `?source=` targets one directly, which is what makes a first backfill
+     * drivable by hand. */
+    const due = runner.due();
+    const wanted = req.query.source
+      ? due.filter((s) => s.id === req.query.source)
+      : due.slice(0, 1);
+
+    const runs = [];
+    for (const source of wanted) runs.push(await runner.runOne(source.id));
     await runner.log.flush();
 
     return res.json({
       ran: runs.length,
+      due: due.length,
+      remaining: Math.max(0, due.length - runs.length),
       runs: runs.map((r) => ({
         source: r.source, ok: r.ok, pulled: r.pulled, written: r.written,
         partialFailures: r.partialFailures || [], error: r.error || null,
