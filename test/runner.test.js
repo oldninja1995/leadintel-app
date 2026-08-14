@@ -322,3 +322,113 @@ test('partial failures are read from the latest run, not the latest good one', a
   assert.deepEqual(meta.partialFailures, [], 'the older run’s partial state outlived it');
   assert.ok(meta.lastError, 'a wholesale failure should still be reported');
 });
+
+/* ── The scheduler's interval, and a fair queue ─────────────────────────── */
+
+/* A runner told how often it is actually invoked. Everything above leaves this
+   unset, which is what a process owning its own timer looks like. */
+function scheduled(every, { from = T0 } = {}) {
+  const root = tmpDir();
+  let now = new Date(from);
+  const runner = new SyncRunner({
+    store: new RawStore(path.join(root, 'raw')),
+    log: new RunLog(path.join(root, 'runs.jsonl')),
+    transport: fixtureTransport(),
+    clock: () => now,
+    scheduledEvery: every,
+  });
+  return { runner, tick: (seconds) => { now = new Date(now.getTime() + seconds * 1000); } };
+}
+
+test('a source is not down for missing a cadence the scheduler cannot offer', async () => {
+  /* Meta polls every 15 minutes and Vercel Hobby runs one cron a day. Seven
+     hours after a perfect sync the card read "not syncing"; the sync was fine
+     and the schedule was the constraint. */
+  const daily = 86400;
+  const { runner, tick } = scheduled(daily);
+  await runner.runOne('meta_ads');
+  tick(7 * 3600);
+
+  assert.equal(runner.health('meta_ads'), 'ok', 'a source was called unhealthy for its scheduler’s pace');
+  assert.equal(runner.intervalFor('meta_ads'), daily);
+});
+
+test('the scheduler loosens health but never tightens a slow cadence', async () => {
+  /* A scheduler faster than the cadence must not make a source *more* urgent
+     than it asked to be — a 15-minute source polled every minute is not
+     lagging fourteen minutes later. */
+  const { runner, tick } = scheduled(60);
+  await runner.runOne('meta_ads');
+  tick(14 * 60);
+
+  assert.equal(runner.intervalFor('meta_ads'), sources.get('meta_ads').cadence.every);
+  assert.equal(runner.health('meta_ads'), 'ok');
+});
+
+test('a genuinely stopped source still goes down under a slow schedule', async () => {
+  /* The forgiveness is bounded. Loosening this into "never red" would trade
+     one false alarm for a silent failure, which is the worse of the two. */
+  const daily = 86400;
+  const { runner, tick } = scheduled(daily);
+  await runner.runOne('meta_ads');
+  tick(daily * DOWN_AT + 1);
+
+  assert.equal(runner.health('meta_ads'), 'down');
+});
+
+test('health is judged as it always was when no schedule is declared', async () => {
+  const { runner, tick } = harness();
+  await runner.runOne('meta_ads');
+  tick(sources.get('meta_ads').cadence.every * DOWN_AT + 1);
+
+  assert.equal(runner.health('meta_ads'), 'down', 'the default behaviour moved');
+});
+
+test('status reports what health was measured against', async () => {
+  const { runner } = scheduled(86400);
+  await runner.runOne('meta_ads');
+  const meta = runner.status().find((s) => s.source === 'meta_ads');
+
+  assert.equal(meta.judgedEvery, 86400);
+  assert.equal(meta.judgedAgainst, 'schedule', 'a loosened threshold did not say so');
+  assert.equal(meta.cadence.every, 900, 'the declared cadence was overwritten rather than reported beside it');
+});
+
+test('the due queue puts the most starved source first', async () => {
+  /* The bug this exists to prevent: a caller that takes only the head of the
+     queue synced `meta_ads` every single tick and never reached the other ten,
+     because list order put it first and everything was always due. */
+  const { runner, tick } = harness();
+  await runner.runOne('meta_ads');
+  tick(60);
+  await runner.runOne('google_ads');
+  tick(sources.get('meta_ads').cadence.every + 1);
+
+  const order = runner.due().map((s) => s.id);
+  assert.equal(order[order.length - 1], 'google_ads', 'the most recently synced source was not last');
+  assert.ok(order.indexOf('meta_ads') < order.indexOf('google_ads'), 'the staler of two sources did not sort first');
+});
+
+test('a source that has never synced sorts ahead of one that is merely stale', async () => {
+  const { runner, tick } = harness();
+  await runner.runOne('meta_ads');
+  tick(sources.get('meta_ads').cadence.every * 100);
+
+  const order = runner.due().map((s) => s.id);
+  assert.notEqual(order[0], 'meta_ads', 'a synced source outranked ten that never have');
+  assert.equal(runner.lag(order[0]), null);
+});
+
+test('taking one source per tick eventually reaches every source', async () => {
+  /* What the daily cron does, eleven times over. Before the sort this loop
+     synced meta_ads eleven times and nothing else once. */
+  const { runner, tick } = harness();
+  const seen = new Set();
+  for (let i = 0; i < sources.list().length; i += 1) {
+    const [next] = runner.due();
+    await runner.runOne(next.id);
+    seen.add(next.id);
+    tick(86400);
+  }
+  assert.equal(seen.size, sources.list().length, 'the round robin starved a source');
+});

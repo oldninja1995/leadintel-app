@@ -231,6 +231,19 @@ const SYNC_REFRESH_DAYS = 14;
    forced backfill cannot widen every later tick. */
 let FORCED_DAYS = null;
 
+/* How long /cron/sync keeps starting new sources. Well under the 60s function
+   ceiling declared in vercel.json, because the check happens before a source
+   starts and the source that follows it still needs room to finish. */
+const SYNC_BUDGET_MS = 40_000;
+
+/* How often /cron/sync is genuinely called, in seconds — a fact about the
+   deployment, so it is read from the deployment. Vercel Hobby allows one cron a
+   day and vercel.json asks for `0 2 * * *`, so production sets 86400 and every
+   source stops being reported down for missing a 15-minute cadence nothing can
+   offer. Point a more frequent caller at the route and lower this with it; left
+   unset, health is judged exactly as it always was. */
+const SYNC_EVERY = Number(process.env.LEADINTEL_SYNC_EVERY) || null;
+
 function syncWindow(now = new Date(), sourceId = null) {
   const midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   /* A source that has never succeeded has nothing stored, so it gets the full
@@ -258,6 +271,7 @@ const runner = new SyncRunner({
   log: new RunLog(undefined, { backend: backends.runs }),
   transportFor,
   window: syncWindow,
+  scheduledEvery: SYNC_EVERY,
   /* The ingested driver caches its snapshot of the raw store, so newly synced
      records are invisible to every screen until something drops that cache.
      Dropped here, on write, rather than per request: replaying the whole store
@@ -856,27 +870,48 @@ app.all('/cron/sync', async (req, res) => {
       store.hydrateDocuments({ connections, workspace, webhookTokens, definitionLog: metrics.definitionLog }),
     ]);
 
-    /* One source per invocation, not all eleven.
+    /* As many due sources as fit the invocation, not all eleven and not one.
      *
      * `runDue()` walks every due source in turn, which is right for a process
      * that owns its own time and wrong for a function with a hard 60-second
      * ceiling — the first full run hit it and returned nothing at all, having
-     * done real work. A single source is bounded work, and the response says
-     * how many are still waiting so a caller can drain them.
+     * done real work. So this took exactly one source, which was bounded but
+     * starved the queue: on a daily cron every source is due at every tick, so
+     * "the first due source" was the same one every day and the other ten never
+     * synced from the schedule at all.
+     *
+     * `runner.due()` now returns most-starved-first, so taking what fits is
+     * fair over time. The budget is wall-clock: keep starting sources while
+     * there is comfortably room for another, and stop before the platform kills
+     * the invocation mid-write. `remaining` still tells a caller to come back.
      *
      * `?source=` targets one directly, which is what makes a first backfill
-     * drivable by hand. */
+     * drivable by hand, and `?only=N` caps the drain for a caller that would
+     * rather come back often than run long. */
     const due = runner.due();
     const wanted = req.query.source
       ? due.filter((s) => s.id === req.query.source)
-      : due.slice(0, 1);
+      : due;
 
     const asked = Number(req.query.days);
     FORCED_DAYS = Number.isFinite(asked) && asked > 0 ? Math.min(asked, 400) : null;
 
+    const cap = Number(req.query.only);
+    const limit = Number.isFinite(cap) && cap > 0 ? cap : wanted.length;
+    const startedAt = Date.now();
+
     const runs = [];
     try {
-      for (const source of wanted) runs.push(await runner.runOne(source.id));
+      for (const source of wanted) {
+        if (runs.length >= limit) break;
+        /* Checked before starting, never mid-source: a pull that is cut off
+           part way writes some kinds and not others, and a partial sync that
+           reports success is worse than one that never ran. A forced backfill
+           is the expensive case, so it gets the whole budget to itself. */
+        if (runs.length && Date.now() - startedAt > SYNC_BUDGET_MS) break;
+        runs.push(await runner.runOne(source.id));
+        if (FORCED_DAYS) break;
+      }
     } finally {
       FORCED_DAYS = null;
     }
