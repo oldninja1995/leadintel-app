@@ -324,3 +324,65 @@ test('a 404 points at the base URL rather than the token', () => {
 test('a clean payload raises nothing', () => {
   assert.doesNotThrow(() => telecrm.checkForError({ data: [], total_count: 0 }, { status: 200 }));
 });
+
+/* ── the shapes this account actually sends ─────────────────────────────── *
+ *
+ * Written from 779 real leads, not from the spec. Every assertion here is one
+ * the spec would have got wrong.
+ */
+
+test('stage comes from the top-level status, which is where the API puts it', () => {
+  /* The spec lists `status` inside LeadFields. The live API returns it beside
+     `fields`, so every lead read as stage: null — which also silently emptied
+     the deal derivation, since that reads stage. */
+  const body = telecrm.leadBody({ id: 'l1', status: 'Won/Converted', fields: { phone: '91' } });
+  assert.equal(body.stage, 'Won/Converted');
+});
+
+test('the campaign comes from facebook_campaign, the name this account uses', () => {
+  /* Not one of 779 leads carries `utm_campaign`. The lead forms write
+     `facebook_campaign`, and with it null the match rate was 0/0. */
+  const body = telecrm.leadBody({ id: 'l1', fields: { phone: '91', facebook_campaign: 'S1 Leads Prosp KL' } });
+  assert.equal(body.utm_campaign, 'S1 Leads Prosp KL');
+});
+
+test('the generic utm spellings still work for a workspace that uses them', () => {
+  const body = telecrm.leadBody({ id: 'l1', fields: { phone: '91', utm_campaign: 'Munnar JUL' } });
+  assert.equal(body.utm_campaign, 'Munnar JUL');
+});
+
+test('an ad set id is never passed off as an ad id', () => {
+  /* The ad_id rung matches Meta's *ad* ids. An ad set id there would never
+     match, or would match the wrong entity if an id ever collided. */
+  const body = telecrm.leadBody({ id: 'l1', fields: { phone: '91', facebook_ad_set_id: '120248447482340287', facebook_ad: 'Ad 1' } });
+  assert.equal(body.ad_id, null);
+  assert.equal(body.adset_id, '120248447482340287');
+});
+
+test('a won deal carries the reservation value the workspace reports', async () => {
+  telecrm.clearPipelineCache();
+  const fetchImpl = async () => json({
+    leadStages: [{ stageid: 's2', stageType: 'WON', activeStatuses: [{ statusid: 2, label: 'Won/Converted' }] }],
+  });
+  await telecrm.request({ kind: 'deal', window: WINDOW, credentials: CREDS, fetchImpl });
+
+  const { rows } = telecrm.extract({
+    data: [{ id: 'l1', status: 'Won/Converted', fields: { phone: '91', reservation_value: 14000, booking_id: '4367/2627', booking_status: 'Confirmed' } }],
+    total_count: 1,
+  }, { kind: 'deal' });
+
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].value, 14000, 'declined a figure the source actually reports');
+  assert.equal(rows[0].currency, 'INR');
+  assert.equal(rows[0].booking_ref, '4367/2627');
+});
+
+test('a won lead with no reservation value yields a deal with no amount, not a zero', () => {
+  telecrm.clearPipelineCache();
+  const { rows } = telecrm.extract({
+    data: [{ id: 'l1', status: 'Won/Converted', fields: { phone: '91' } }], total_count: 1,
+  }, { kind: 'deal' });
+  /* No pipeline loaded, so nothing is claimed at all — the cautious end of the
+     same rule that stops an open lead becoming a zero-value deal. */
+  assert.equal(rows.length, 0);
+});
