@@ -275,3 +275,29 @@ test('a card whose grain cannot be evaluated falls back rather than inventing on
   assert.equal(out[0].value, out[2].value, 'a card that could not be narrowed did not fall back');
   assert.equal(out[0].metricAt, undefined, 'a card claimed a grain it was never evaluated at');
 });
+
+test('an unscoped card holds the workspace total while its neighbours narrow', () => {
+  /* Selecting a channel narrows every tile, which is the point — and it also
+     takes the total off the screen, leaving nothing to read a share against. */
+  const out = resolve.resolve({
+    miniKpis: [
+      { metric: 'ads.spend', label: 'Ad spend' },
+      { metric: 'ads.spend', unscoped: true, label: 'Total ad spend' },
+    ],
+  }, {
+    values: { 'ads.spend': 100000 },
+    baseValues: { 'ads.spend': 900000 },
+    useRegistryValues: true,
+  }).miniKpis;
+
+  assert.equal(out[0].value, '₹1,000', 'the scoped card did not take the narrowed figure');
+  assert.equal(out[1].value, '₹9,000', 'the unscoped card followed the scope it was meant to ignore');
+  assert.equal(out[1].metricAt, undefined, 'a card about every grain was labelled with one');
+});
+
+test('an unscoped card is unaffected when the screen has no scope', () => {
+  const out = resolve.resolve({
+    miniKpis: [{ metric: 'ads.spend', unscoped: true, label: 'Total ad spend' }],
+  }, { values: { 'ads.spend': 100000 }, baseValues: { 'ads.spend': 100000 }, useRegistryValues: true }).miniKpis;
+  assert.equal(out[0].value, '₹1,000');
+});

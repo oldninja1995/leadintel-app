@@ -435,10 +435,18 @@ function resolveMetrics(payload, workspaceId, over = null) {
   const back = metrics.period.previous(over);
   const previous = back ? metricValues(workspaceId, at, back).values : null;
 
+  /* The same metrics with no grain applied, for cards marked `unscoped`. Free
+     when the screen has no scope — it is the identical cache entry — and one
+     extra evaluation per range when it does. */
+  const base = at ? metricValues(workspaceId, null, over) : { values, notApplicable };
+  const basePrevious = at && back ? metricValues(workspaceId, null, back).values : previous;
+
   return resolve.resolve(payload, {
     values,
     notApplicable,
     previous,
+    baseValues: base.values,
+    basePrevious,
     useRegistryValues: USE_REGISTRY_VALUES,
     valuesFor: (label) => periodValues(workspaceId, label, at),
     /* A card's own grain overrides the screen's. The dashboard is a workspace

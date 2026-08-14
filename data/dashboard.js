@@ -100,6 +100,12 @@ module.exports = {
        became interested, what an interested one cost, and how many closed.
        Every one narrows with the topbar, so "for Meta Ads" is a selection
        rather than four more tiles. */
+    /* The workspace total, held there whatever the topbar says.
+     *
+     * Selecting Meta narrows every other tile, which is the point — and it also
+     * takes the total off the screen, leaving nothing to read a channel's share
+     * against. ₹12.6L means one thing beside ₹2.03Cr and another thing alone. */
+    { metric: 'revenue.reservations', unscoped: true, label: 'Total reservation value', value: '₹11.2L', delta: '·', deltaColor: NA, tip: 'Every channel and every untagged lead — does not follow the channel filter', ...SRC.crm },
     { metric: 'leads.interested_rate', label: 'Interested rate', value: '18.4%', delta: '·', deltaColor: NA, tip: 'Share of leads that reached interested or better', ...SRC.crm },
     { metric: 'cost.per_interested_lead', label: 'Cost / interested lead', value: '₹1,240', delta: '·', deltaColor: NA, tip: 'Ad spend ÷ interested leads — the cost worth optimising', ...SRC.blended },
     { metric: 'leads.conversion_rate', label: 'Lead → won', value: '4.2%', delta: '·', deltaColor: NA, tip: 'Share of leads that became a won reservation', ...SRC.crm },
