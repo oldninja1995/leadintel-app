@@ -432,3 +432,47 @@ test('taking one source per tick eventually reaches every source', async () => {
   }
   assert.equal(seen.size, sources.list().length, 'the round robin starved a source');
 });
+
+test('a source failing every attempt is never ok, however slow the schedule', async () => {
+  /* The hole a loosened threshold opens: nine sources fail on every run, their
+     last success was a fixture replay a day old, and lag alone called them all
+     healthy. Meta's false red must not be paid for with their false green. */
+  const daily = 86400;
+  const root = tmpDir();
+  let now = new Date(T0);
+  const runner = new SyncRunner({
+    store: new RawStore(path.join(root, 'raw')),
+    log: new RunLog(path.join(root, 'runs.jsonl')),
+    transport: fixtureTransport(),
+    clock: () => now,
+    scheduledEvery: daily,
+  });
+
+  await runner.runOne('telecrm');
+  assert.equal(runner.health('telecrm'), 'ok', 'a fresh successful sync was not ok');
+
+  runner.transport = breaking(['telecrm']);
+  runner.transportFor = () => runner.transport;
+  now = new Date(now.getTime() + 3600 * 1000);
+  await runner.runOne('telecrm');
+
+  assert.notEqual(runner.health('telecrm'), 'ok', 'a source that just failed reported as healthy');
+  assert.equal(runner.health('telecrm'), 'lagging');
+
+  now = new Date(now.getTime() + daily * 1000);
+  assert.equal(runner.health('telecrm'), 'down', 'a persistently failing source never went down');
+});
+
+test('a recovered source stops being unhealthy on its next success', async () => {
+  const { runner, tick } = harness({ transport: breaking(['meta_ads']) });
+  await runner.runOne('google_ads');
+  tick(1);
+  await runner.runOne('meta_ads');
+  assert.equal(runner.health('meta_ads'), 'never-synced');
+
+  runner.transport = fixtureTransport();
+  runner.transportFor = () => runner.transport;
+  tick(1);
+  await runner.runOne('meta_ads');
+  assert.equal(runner.health('meta_ads'), 'ok', 'a recovered source kept its failure');
+});
