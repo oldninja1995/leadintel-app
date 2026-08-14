@@ -18,6 +18,7 @@ const assert = require('node:assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const pg = require('../lib/store/pg');
 
 const { RawStore } = require('../lib/ingest/raw-store');
 const { PgRawStore } = require('../lib/store/pg-raw-store');
@@ -321,4 +322,22 @@ test('appends are visible to the same instance before they are flushed', opts, a
   await fresh.hydrate();
   assert.equal(fresh.all().length, 1, 'the write did not reach Postgres');
   await backend.clear();
+});
+
+/* ── which driver, chosen from the URL ──────────────────────────────────── */
+
+/* Neon's HTTP endpoint serves Neon and nothing else, so a Supabase URL handed
+   to it fails at connect time with something that reads like a credential
+   problem. The choice has to be made from the URL, before either driver is
+   asked to do anything. */
+test('a Neon URL picks the HTTP driver', () => {
+  assert.equal(pg.isNeon('postgresql://u:p@ep-cool-1.us-east-2.aws.neon.tech/db?sslmode=require'), true);
+});
+
+test('a Supabase pooler URL does not', () => {
+  assert.equal(pg.isNeon('postgresql://postgres.abc:p@aws-0-ap-south-1.pooler.supabase.com:6543/postgres'), false);
+});
+
+test('a plain Postgres URL does not', () => {
+  assert.equal(pg.isNeon('postgresql://user:pass@db.internal:5432/leadintel'), false);
 });
