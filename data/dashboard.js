@@ -76,6 +76,12 @@ module.exports = {
        organic, and putting it in a bucket would move a cost per lead without
        anyone deciding to. */
     { metric: 'cost.per_lead', label: 'CPL', value: '₹427', delta: '−18%', deltaColor: UP, tip: 'Paid spend ÷ leads — pick a channel in the topbar for that platform’s own CPL', ...SRC.blended },
+    /* The CRM's reservation value, which is the only revenue figure that exists
+       while no PMS is connected. Narrows with the topbar like everything else,
+       so choosing Meta shows the reservation value of leads Meta produced.
+       Labelled as the CRM's, never as collected revenue — see the registry
+       entry for why it is not folded into `revenue.net`. */
+    { metric: 'revenue.reservations', label: 'Reservation value', value: '₹11.2L', delta: '·', deltaColor: NA, tip: 'What the CRM records on won leads — not settled folio revenue', ...SRC.crm },
     { metric: 'cost.per_booking', label: 'Cost per booking', value: '₹3,480', delta: '−11%', deltaColor: UP, tip: 'Paid spend per confirmed booking', ...SRC.blended },
     { metric: 'rate.adr', label: 'ADR', value: '₹8,940', delta: '+6.0%', deltaColor: UP, tip: 'Average daily rate', ...SRC.pms },
     { metric: 'rate.revpar', label: 'RevPAR', value: '₹6,973', delta: '+9.2%', deltaColor: UP, tip: 'Revenue per available room', ...SRC.pms },

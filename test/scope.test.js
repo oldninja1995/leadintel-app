@@ -236,3 +236,25 @@ test('an untagged lead belongs to no channel at all', () => {
   assert.deepEqual(scope.scope(entities, 'channel', 'meta').leads.map((l) => l.id), ['a']);
   assert.deepEqual(scope.scope(entities, 'channel', 'google').leads.map((l) => l.id), ['c']);
 });
+
+test('a deal carries the channel of the lead it came from, and narrows by it', () => {
+  /* A deal has no channel of its own, and without one "revenue from Meta"
+     cannot mean anything. */
+  const entities = {
+    campaignDays: [], leads: [], bookings: [], leadEvents: [], inventoryDays: [], payments: [], problems: [],
+    deals: [{ id: 'd1', channel: 'meta', revenue: 14000 }, { id: 'd2', channel: null, revenue: 9000 }, { id: 'd3', channel: 'google', revenue: 5000 }],
+  };
+  assert.deepEqual(scope.scope(entities, 'channel', 'meta').deals.map((d) => d.id), ['d1']);
+  /* Untagged counts under no channel, the same rule the leads follow. */
+  assert.equal(scope.scope(entities, 'channel', 'google').deals.length, 1);
+  assert.equal(scope.supports('revenue.reservations', 'channel'), true);
+});
+
+test('reservation value is not folded into net revenue', () => {
+  /* The precedence table gives settled revenue to the PMS folio. A CRM figure
+     answering a question about settled revenue is the merge this avoids. */
+  const registry = require('../lib/metrics/registry');
+  assert.deepEqual(registry.get('revenue.reservations').sources, ['crm']);
+  assert.ok(!registry.get('revenue.net').sources.includes('crm')
+    || registry.get('revenue.net').id !== 'revenue.reservations');
+});
