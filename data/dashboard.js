@@ -108,6 +108,10 @@ module.exports = {
     { metric: 'revenue.reservations', unscoped: true, hideWhenScoped: true, label: 'Total reservation value', value: '₹11.2L', delta: '·', deltaColor: NA, tip: 'Every channel and every untagged lead — does not follow the channel filter', ...SRC.crm },
     { metric: 'revenue.per_reservation', label: 'Avg reservation value', value: '₹28,400', delta: '·', deltaColor: NA, tip: 'Reservation value ÷ reservations — a mix measure, not a volume one', ...SRC.crm },
     { metric: 'leads.response_rate', label: 'Lead response rate', value: '91.2%', delta: '·', deltaColor: NA, tip: 'Share of leads worked rather than left at first contact — status movement, not reply events', ...SRC.crm },
+    /* The count beside the rate. A rate alone cannot be acted on — 34.7% of a
+       hundred leads and of ten thousand are different situations and the same
+       number, and the channel filter moves both halves at once. */
+    { metric: 'leads.interested', label: 'Interested leads', value: '1,187', delta: '·', deltaColor: NA, tip: 'Leads that reached interested or better', ...SRC.crm },
     { metric: 'leads.interested_rate', label: 'Interested rate', value: '18.4%', delta: '·', deltaColor: NA, tip: 'Share of leads that reached interested or better', ...SRC.crm },
     { metric: 'cost.per_interested_lead', label: 'Cost / interested lead', value: '₹1,240', delta: '·', deltaColor: NA, tip: 'Ad spend ÷ interested leads — the cost worth optimising', ...SRC.blended },
     { metric: 'leads.conversion_rate', label: 'Lead → won', value: '4.2%', delta: '·', deltaColor: NA, tip: 'Share of leads that became a won reservation', ...SRC.crm },
