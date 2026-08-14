@@ -97,9 +97,14 @@ test('the live transport says which half is missing, not just that it failed', a
 
 test('a stored credential does not make a connector', async () => {
   /* The distinction the Connections screen must not blur: a key that is saved
-     and a source that can actually be read are different states. */
+     and a source that can actually be read are different states.
+
+     Asserted against Razorpay now that TeleCRM has a request shape. TeleCRM was
+     the example here for months, and the error it produced was accurate but
+     misleading in one word: it said the vendor's documentation was what was
+     missing, when the documentation existed and had not been found. */
   await assert.rejects(
-    () => httpTransport({ credentials: { apiKey: 'x' } }).fetch({ source: sources.get('telecrm') }),
+    () => httpTransport({ credentials: { apiKey: 'x' } }).fetch({ source: sources.get('razorpay') }),
     /needs that vendor's API documentation, not another key/s
   );
 });

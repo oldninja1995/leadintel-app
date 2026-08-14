@@ -254,12 +254,18 @@ test('a credential missing a required field says which', async () => {
 });
 
 /* The registry is deliberately sparse — a source absent from it still gets the
-   "no connector" error rather than a guessed request. */
-test('the three sources with no request shape are still absent', () => {
-  for (const id of ['telecrm', 'pms', 'razorpay']) {
+   "no connector" error rather than a guessed request.
+
+   TeleCRM left this list once its Sync API turned out to be published after
+   all (lib/ingest/http/telecrm.js). The PMS has no vendor chosen and Razorpay
+   simply is not written yet, so both stay. */
+test('the sources with no request shape are still absent', () => {
+  for (const id of ['pms', 'razorpay']) {
     assert.equal(httpConnectors.has(id), false, `${id} must not claim a connector it does not have`);
   }
-  assert.equal(httpConnectors.has('meta_ads'), true);
+  for (const id of ['meta_ads', 'google_ads', 'telecrm']) {
+    assert.equal(httpConnectors.has(id), true, `${id} should have a request shape`);
+  }
 });
 
 /* ── the shape reaching the rest of the pipeline ────────────────────────── */

@@ -286,8 +286,8 @@ test('a metric absent entirely is unknown, not zero', () => {
   assert.equal(mapped.leads.value, null);
 });
 
-test('both ad platforms now have a request shape', () => {
-  assert.deepEqual(httpConnectors.list().sort(), ['google_ads', 'meta_ads']);
+test('both ad platforms and the CRM now have a request shape', () => {
+  assert.deepEqual(httpConnectors.list().sort(), ['google_ads', 'meta_ads', 'telecrm']);
 });
 
 /* ── OAuth refusals, each of which is repaired somewhere different ────────
