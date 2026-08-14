@@ -52,14 +52,14 @@ test('the half-open window becomes GA4\'s inclusive range', () => {
   assert.deepEqual(ga.dateRange(WINDOW), { startDate: '2026-08-01', endDate: '2026-08-07' });
 });
 
-test('a pull with no window is refused rather than asking for all time', async () => {
-  /* The Data API has no "all time" — a report without a date range is an
-     error there, and a silent default here would be a different window from
-     the one every other source used. */
-  await assert.rejects(
-    ga.request({ kind: 'session_day', window: null, credentials: CREDS, fetchImpl: withToken() }),
-    /date range/
-  );
+test('a pull with no window falls back to a short recent range, for the Test button', async () => {
+  /* The Connections screen tests a credential with window: null. Refusing
+     failed every test with 'needs a date range', which reads as a broken
+     connector rather than a check that was never given a window. */
+  const req = await ga.request({ kind: 'session_day', window: null, credentials: CREDS, fetchImpl: withToken() });
+  const body = JSON.parse(req.body);
+  assert.equal(body.dateRanges.length, 1);
+  assert.match(body.dateRanges[0].startDate, /^\d{4}-\d{2}-\d{2}$/);
 });
 
 /* ── the request ────────────────────────────────────────────────────────── */

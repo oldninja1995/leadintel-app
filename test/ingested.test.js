@@ -565,7 +565,10 @@ test('the funnel is computed from the same rows as the tiles above it', () => {
 });
 
 test('the funnel empties with the date range instead of standing still', () => {
-  const empty = { ...entities(), campaignDays: [], bookings: [] };
+  /* Leads and deals are emptied too: the funnel's middle now counts the CRM's
+     own rows rather than the platforms' reported conversions, so a window with
+     no ad days but every lead still in it is not an empty window. */
+  const empty = { ...entities(), campaignDays: [], bookings: [], leads: [], deals: [] };
   const { mktFunnel } = PROJECTIONS.marketing(empty);
 
   for (const s of mktFunnel) {
@@ -578,8 +581,81 @@ test('stages no source defines decline rather than reading zero', () => {
   const { mktFunnel } = PROJECTIONS.marketing(entities());
   const by = Object.fromEntries(mktFunnel.map((s) => [s.label, s]));
 
-  /* A lead stage is a CRM concept and no registry metric filters by one. */
-  assert.equal(by.Qualified.n, NONE);
+  /* Qualified used to decline — nothing knew what it meant. It now uses the
+     same INTERESTED rule the dashboard's interested-rate tile does, imported
+     from the registry so the two screens cannot drift apart. */
+  assert.notEqual(by.Qualified.n, NONE, 'qualified went back to declining');
   /* One booking in the fixture entities, reached through its lead. */
   assert.equal(by.Bookings.n, '1');
+});
+
+/* ── the platform comparison table ──────────────────────────────────────── */
+
+const platformEntities = () => ({
+  campaignDays: [
+    { platform: 'meta_ads', date: '2026-08-01', spend: 100000, impressions: 5000, clicks: 100 },
+    { platform: 'meta_ads', date: '2026-08-02', spend: 100000, impressions: 5000, clicks: 100 },
+    { platform: 'google_ads', date: '2026-08-01', spend: 400000, impressions: 2000, clicks: 40 },
+  ],
+  leads: [
+    { id: 'l1', channel: 'meta', stage: 'Interested' },
+    { id: 'l2', channel: 'meta', stage: 'Fresh' },
+    { id: 'l3', channel: 'google', stage: 'Fresh' },
+    { id: 'l4', channel: null, stage: 'Fresh' },
+  ],
+  deals: [
+    { id: 'd1', channel: 'meta', outcome: 'won', revenue: 900000, bookingStatus: 'Confirmed' },
+    { id: 'd2', channel: 'meta', outcome: 'won', revenue: 500000, bookingStatus: 'Cancelled' },
+    { id: 'd3', channel: 'google', outcome: 'lost', revenue: 0, bookingStatus: null },
+  ],
+  bookings: [], payments: [], inventoryDays: [], leadEvents: [], problems: [],
+});
+
+test('the platform table is derived from the rows, not authored', () => {
+  /* It used to read ₹6.42L against ₹19.8L with a written-out recommendation
+     beside figures nobody measured, under a heading claiming CRM attribution. */
+  const { platforms } = PROJECTIONS.marketing(platformEntities());
+  const meta = platforms.find((p) => p.name === 'Meta Ads');
+
+  assert.equal(meta.spend, '₹2,000', 'spend is summed from the platform’s own days');
+  assert.equal(meta.leads, '2', 'leads come from the CRM, keyed by channel');
+  assert.equal(meta.bookings, '1', 'the cancelled deal was counted as a reservation');
+  assert.equal(meta.rev, '₹9,000', 'the cancelled deal’s money was counted');
+});
+
+test('a platform with spend and no tagged leads says so instead of scoring itself', () => {
+  const entities = platformEntities();
+  entities.leads = entities.leads.filter((l) => l.channel !== 'google');
+  const google = PROJECTIONS.marketing(entities).platforms.find((p) => p.name === 'Google Ads');
+
+  assert.match(google.rec, /field mapping/, 'a platform with no attribution was given a verdict anyway');
+  assert.equal(google.cpl, NONE, 'a cost per lead was computed with no leads');
+});
+
+test('MER and net ROAS are declined rather than left to the authored values', () => {
+  /* The driver merges a projection over the authored module, so an undefined
+     field renders the invented figure underneath rather than a blank. */
+  const { platforms } = PROJECTIONS.marketing(platformEntities());
+  for (const p of platforms) {
+    assert.equal(p.mer, NONE, `${p.name} let the authored MER through`);
+    assert.equal(p.netRoas, NONE, `${p.name} let the authored net ROAS through`);
+  }
+});
+
+test('the recommendation is a rule over this row, not a sentence about nothing', () => {
+  const { platforms } = PROJECTIONS.marketing(platformEntities());
+  const meta = platforms.find((p) => p.name === 'Meta Ads');
+  /* ₹9,000 returned on ₹2,000 spent, and the cheaper leads of the two. */
+  assert.match(meta.rec, /budget|target/);
+  assert.ok(!/Scale — CPL falling with volume holding/.test(meta.rec), 'the authored sentence survived');
+});
+
+test('the funnel counts CRM leads, never a fractional platform conversion', () => {
+  /* It summed `leads` off campaignDays and printed 2,466.83 — Google reports
+     conversions as a double and it was being added to Meta's integers. */
+  const { mktFunnel } = PROJECTIONS.marketing(platformEntities());
+  const by = Object.fromEntries(mktFunnel.map((s) => [s.label, s]));
+  assert.equal(by.Leads.n, '4');
+  assert.ok(!String(by.Leads.n).includes('.'), 'a lead count printed with decimals');
+  assert.equal(by.Qualified.n, '1', 'qualified uses the registry’s own INTERESTED rule');
 });
