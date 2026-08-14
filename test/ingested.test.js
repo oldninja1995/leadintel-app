@@ -659,3 +659,11 @@ test('the funnel counts CRM leads, never a fractional platform conversion', () =
   assert.ok(!String(by.Leads.n).includes('.'), 'a lead count printed with decimals');
   assert.equal(by.Qualified.n, '1', 'qualified uses the registry’s own INTERESTED rule');
 });
+
+test('the platform ROAS is a figure, not a dash', () => {
+  /* `ratio` divides for you. Handing it the quotient made every row dash,
+     because the denominator it checks was undefined. */
+  const { platforms } = PROJECTIONS.marketing(platformEntities());
+  const meta = platforms.find((p) => p.name === 'Meta Ads');
+  assert.equal(meta.roas, '4.5x', '₹9,000 returned on ₹2,000 spent');
+});
