@@ -231,6 +231,15 @@ const SYNC_REFRESH_DAYS = 14;
    forced backfill cannot widen every later tick. */
 let FORCED_DAYS = null;
 
+/* An explicit window, for a backfill that cannot be expressed as "the last N
+   days". `days=N` always ends at today, so widening it re-fetches everything
+   already held and the invocation gets longer every time — which is exactly how
+   a 30-day TeleCRM backfill hit the function ceiling twice, since its API caps
+   a page at 100 rows and this account creates ~260 leads a day. Chunking
+   backwards a week at a time is bounded work per call, and the raw store
+   deduplicates the overlaps. Same latch discipline as FORCED_DAYS. */
+let FORCED_WINDOW = null;
+
 /* How long /cron/sync keeps starting new sources. Well under the 60s function
    ceiling declared in vercel.json, because the check happens before a source
    starts and the source that follows it still needs room to finish. */
@@ -245,6 +254,7 @@ const SYNC_BUDGET_MS = 40_000;
 const SYNC_EVERY = Number(process.env.LEADINTEL_SYNC_EVERY) || null;
 
 function syncWindow(now = new Date(), sourceId = null) {
+  if (FORCED_WINDOW) return FORCED_WINDOW;
   const midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   /* A source that has never succeeded has nothing stored, so it gets the full
      history. One that has is only catching up. */
@@ -908,12 +918,34 @@ app.all('/cron/sync', async (req, res) => {
      * drivable by hand, and `?only=N` caps the drain for a caller that would
      * rather come back often than run long. */
     const due = runner.due();
+    /* A named source with an explicit window is a backfill, and due-ness is not
+       the question — it asks about *staleness*, and a chunk of March is not
+       stale because a chunk of April was fetched a minute ago. Without this the
+       second chunk of any backfill answers `ran: 0` and the operator has to
+       wait out a cadence between every call. A named source with no window is
+       still gated, so this cannot become a way to hammer a vendor. */
+    const backfilling = Boolean(req.query.source && (req.query.from || req.query.days));
     const wanted = req.query.source
-      ? due.filter((s) => s.id === req.query.source)
+      ? (backfilling
+        ? ingest.sources.list().filter((s) => s.id === req.query.source)
+        : due.filter((s) => s.id === req.query.source))
       : due;
 
     const asked = Number(req.query.days);
     FORCED_DAYS = Number.isFinite(asked) && asked > 0 ? Math.min(asked, 400) : null;
+
+    /* An explicit window wins over a day count — a caller that names both meant
+       the specific one. Both bounds are required and must parse, because half a
+       window silently becoming "the default" is the kind of backfill that looks
+       done and is not. */
+    const from = Date.parse(req.query.from);
+    const to = Date.parse(req.query.to);
+    if (req.query.from || req.query.to) {
+      if (Number.isNaN(from) || Number.isNaN(to) || from >= to) {
+        return res.status(400).json({ error: 'from and to must both be parseable dates with from before to' });
+      }
+      FORCED_WINDOW = { from: new Date(from).toISOString(), to: new Date(to).toISOString() };
+    }
 
     const cap = Number(req.query.only);
     const limit = Number.isFinite(cap) && cap > 0 ? cap : wanted.length;
@@ -929,10 +961,11 @@ app.all('/cron/sync', async (req, res) => {
            is the expensive case, so it gets the whole budget to itself. */
         if (runs.length && Date.now() - startedAt > SYNC_BUDGET_MS) break;
         runs.push(await runner.runOne(source.id));
-        if (FORCED_DAYS) break;
+        if (FORCED_DAYS || FORCED_WINDOW) break;
       }
     } finally {
       FORCED_DAYS = null;
+      FORCED_WINDOW = null;
     }
     await runner.log.flush();
 
