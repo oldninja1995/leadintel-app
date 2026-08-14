@@ -2613,10 +2613,14 @@ function screenRoute(screen) {
        * than quietly reusing the workspace figure. A screen that names its own
        * scope keeps it: a drill-down is already about one campaign. */
       if (!payload.metricScope) {
-        const chosen = metrics.scope.DIMENSIONS
-          .map((dimension) => ({ dimension, value: req.query[dimension] }))
-          .find((d) => d.value);
-        if (chosen) payload.metricScope = { dimension: chosen.dimension, value: String(chosen.value).toLowerCase() };
+        /* Read through `filters.selected` rather than off `req.query` directly,
+           because the chips are named `f_channel`, not `channel` — a detail
+           that made this work when the URL was typed by hand and do nothing at
+           all when the chip was clicked. One reader for one convention is what
+           stops those two drifting apart again. */
+        const active = filters.selected(req.query);
+        const chosen = metrics.scope.DIMENSIONS.find((dimension) => active[dimension]);
+        if (chosen) payload.metricScope = { dimension: chosen, value: String(active[chosen]).toLowerCase() };
       }
 
       const unfiltered = resolveMetrics(payload, req.workspace, params.over);
