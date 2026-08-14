@@ -543,6 +543,7 @@
     if (trigger) {
       const action = trigger.getAttribute('data-action');
       if (action === 'openPalette') { ev.preventDefault(); openPalette(); return; }
+      if (action === 'toggleTheme') { ev.preventDefault(); toggleTheme(); return; }
       if (action === 'toggleNotif') { ev.preventDefault(); toggleNotif(); return; }
       if (action === 'toggleProfile') {
         ev.preventDefault();
@@ -564,6 +565,60 @@
     }
     if (ev.key === 'Escape') closeOverlays();
   });
+
+  /* ── Theme ──────────────────────────────────────────────────────────────
+   *
+   * Three states, not two: an explicit light, an explicit dark, and no choice
+   * at all — which follows the operating system. A toggle that only knew light
+   * and dark would have to pick one as the default and would then ignore a
+   * machine already set to light.
+   *
+   * The choice is stored per browser rather than per user. It is a preference
+   * about a screen, not about an account: the same person on a bright phone
+   * and a dim desk monitor wants different answers.
+   *
+   * The class is set on <html> before first paint by the inline-free bootstrap
+   * at the top of this file — the CSP forbids inline scripts, so a brief flash
+   * of dark is possible on a light-preferring machine. It is one frame and the
+   * alternative is a cookie round trip on every request.
+   */
+  const THEME_KEY = 'leadintel.theme';
+
+  function systemPrefersLight() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+  }
+
+  function currentTheme() {
+    const stored = (() => { try { return localStorage.getItem(THEME_KEY); } catch (e) { return null; } })();
+    if (stored === 'light' || stored === 'dark') return stored;
+    return systemPrefersLight() ? 'light' : 'dark';
+  }
+
+  function paintTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    /* The icon shows what a click would DO, not what is on — a moon while dark
+       is already on invites the reader to think they are in light mode. */
+    for (const toggle of document.querySelectorAll('[data-li-theme-toggle] i')) {
+      toggle.className = theme === 'light' ? 'ph ph-moon' : 'ph ph-sun';
+    }
+  }
+
+  function applyTheme() { paintTheme(currentTheme()); }
+
+  function toggleTheme() {
+    const next = currentTheme() === 'light' ? 'dark' : 'light';
+    try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* private mode: the toggle still works for this page */ }
+    paintTheme(next);
+  }
+
+  applyTheme();
+  /* A machine that changes theme while the page is open follows, unless the
+     reader has made a choice of their own. */
+  if (window.matchMedia) {
+    const query = window.matchMedia('(prefers-color-scheme: light)');
+    const onChange = () => { try { if (!localStorage.getItem(THEME_KEY)) applyTheme(); } catch (e) { applyTheme(); } };
+    if (query.addEventListener) query.addEventListener('change', onChange);
+  }
 
   syncBadge();
   enhanceChips();

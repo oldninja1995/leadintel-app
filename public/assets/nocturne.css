@@ -291,3 +291,156 @@ textarea.input { min-height: 90px; resize: vertical; }
 }
 .dialog-body { font-size: 14px; opacity: 0.85; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); }
+
+/* ── Light mode ───────────────────────────────────────────────────────────
+ *
+ * A palette swap, not a second stylesheet. The system was already fully
+ * tokenised — 1,188 `var(--color-*)` references across the views against 18
+ * hardcoded values — so light mode is a redefinition of the same tokens and
+ * every component follows without being touched.
+ *
+ * **The neutral ramp is inverted, not re-picked.** 100 is the lightest step in
+ * dark mode and is used for primary text; in light mode it has to be the
+ * darkest, or every `--color-neutral-100` in the app turns white-on-white. So
+ * the ramp reverses end for end and the *semantic* steps keep their meaning:
+ * 500 stays the muted label colour, 800 stays the hairline border. Nothing that
+ * reads `--color-neutral-500` needs to know which theme is on.
+ *
+ * The accent ramp is NOT inverted. An accent's job is to stand out against the
+ * ground, and both grounds are neutral — so the mid steps hold and only the
+ * extremes are retuned for contrast on white.
+ *
+ * Three ways a theme can be chosen, in this order:
+ *   [data-theme="light"]   an explicit choice, which always wins
+ *   prefers-color-scheme   the system setting, when nothing was chosen
+ *   (nothing)              dark, which is what this product has always been
+ */
+
+:root[data-theme='light'] {
+  --color-bg: #f4f5f9;
+  --color-surface: #ffffff;
+  --color-text: #1c1e2a;
+  --color-divider: color-mix(in srgb, #1c1e2a 12%, transparent);
+
+  /* Reversed, so a step means the same thing in both themes. */
+  --color-neutral-100: #1c1e2a;
+  --color-neutral-200: #292b31;
+  --color-neutral-300: #3f424d;
+  --color-neutral-400: #595d6c;
+  --color-neutral-500: #75798c;
+  --color-neutral-600: #9397ab;
+  --color-neutral-700: #cfd3e5;
+  --color-neutral-800: #e4e7f5;
+  --color-neutral-900: #f3f5fe;
+
+  /* Held, apart from the extremes: on white the palest steps vanish and the
+     darkest are heavier than they need to be. */
+  --color-accent: #5d52c4;
+  --color-accent-2: #6f68b8;
+  --color-accent-100: #2b2741;
+  --color-accent-200: #423a6a;
+  --color-accent-300: #5d5294;
+  --color-accent-400: #796cbf;
+  --color-accent-500: #6f61d4;
+  --color-accent-600: #8d82e4;
+  --color-accent-700: #b5abfc;
+  --color-accent-800: #e7e5fe;
+  --color-accent-900: #f5f4ff;
+
+  --color-accent-2-100: #2b293a;
+  --color-accent-2-200: #423e5d;
+  --color-accent-2-300: #5c5783;
+  --color-accent-2-400: #7972a9;
+  --color-accent-2-500: #7b74c0;
+  --color-accent-2-600: #9690c9;
+  --color-accent-2-700: #b5afe8;
+  --color-accent-2-800: #e7e5fe;
+  --color-accent-2-900: #f5f4ff;
+
+  --color-section: #e6e8fb;
+  --color-section-glow: #d3d7f6;
+  --color-section-ghost: #b9bfef;
+
+  /* The eighteen hardcoded panel grounds in the views are all near-black
+     indigos chosen to sit *under* a surface. There is no token to redefine for
+     them, so they are neutralised here and the surface tokens do the work —
+     see the `[style*=]` rules below. */
+  --color-panel-sunk: #eef0f8;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    --color-bg: #f4f5f9;
+    --color-surface: #ffffff;
+    --color-text: #1c1e2a;
+    --color-divider: color-mix(in srgb, #1c1e2a 12%, transparent);
+
+    --color-neutral-100: #1c1e2a;
+    --color-neutral-200: #292b31;
+    --color-neutral-300: #3f424d;
+    --color-neutral-400: #595d6c;
+    --color-neutral-500: #75798c;
+    --color-neutral-600: #9397ab;
+    --color-neutral-700: #cfd3e5;
+    --color-neutral-800: #e4e7f5;
+    --color-neutral-900: #f3f5fe;
+
+    --color-accent: #5d52c4;
+    --color-accent-2: #6f68b8;
+    --color-accent-100: #2b2741;
+    --color-accent-200: #423a6a;
+    --color-accent-300: #5d5294;
+    --color-accent-400: #796cbf;
+    --color-accent-500: #6f61d4;
+    --color-accent-600: #8d82e4;
+    --color-accent-700: #b5abfc;
+    --color-accent-800: #e7e5fe;
+    --color-accent-900: #f5f4ff;
+
+    --color-accent-2-100: #2b293a;
+    --color-accent-2-200: #423e5d;
+    --color-accent-2-300: #5c5783;
+    --color-accent-2-400: #7972a9;
+    --color-accent-2-500: #7b74c0;
+    --color-accent-2-600: #9690c9;
+    --color-accent-2-700: #b5afe8;
+    --color-accent-2-800: #e7e5fe;
+    --color-accent-2-900: #f5f4ff;
+
+    --color-section: #e6e8fb;
+    --color-section-glow: #d3d7f6;
+    --color-section-ghost: #b9bfef;
+    --color-panel-sunk: #eef0f8;
+  }
+}
+
+/* The hardcoded grounds, neutralised.
+ *
+ * Eighteen inline `background:#1c1f3d`-style values survive in the views from
+ * the original conversion. Editing them all would be the better fix and is a
+ * larger change than this one; overriding by attribute selector is exact —
+ * these strings appear nowhere else — and leaves dark mode byte-identical. */
+:root[data-theme='light'] [style*='#1c1f3d'],
+:root[data-theme='light'] [style*='#1e202c'],
+:root[data-theme='light'] [style*='#14161f'],
+:root[data-theme='light'] [style*='#1a1c28'],
+:root[data-theme='light'] [style*='#191b28'],
+:root[data-theme='light'] [style*='#1b1d29'] {
+  background: var(--color-panel-sunk) !important;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) [style*='#1c1f3d'],
+  :root:not([data-theme='dark']) [style*='#1e202c'],
+  :root:not([data-theme='dark']) [style*='#14161f'],
+  :root:not([data-theme='dark']) [style*='#1a1c28'],
+  :root:not([data-theme='dark']) [style*='#191b28'],
+  :root:not([data-theme='dark']) [style*='#1b1d29'] {
+    background: var(--color-panel-sunk) !important;
+  }
+}
+
+/* Charts and sparklines are drawn with the accent and neutral tokens, so they
+   follow — except the SVG gradient stops, which resolve against the token at
+   paint time and want a touch more presence on white. */
+:root[data-theme='light'] svg polyline { stroke-width: 1.8; }
