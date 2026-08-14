@@ -176,3 +176,91 @@ test('the three cuts stay separate collections', () => {
   assert.equal(entities.webChannelDays[0].channelGroup, 'Paid Search');
   assert.equal(entities.webChannelDays[0].sessions, 421);
 });
+
+/* ── a measurement id is resolved, not refused ──────────────────────────── */
+
+/* `G-XXXXXXX` is what everybody has to hand — it is in the tag and in every
+   setup guide. The numeric id is three clicks deeper. Refusing it is accurate
+   and still leaves the reader to go and find the right one. */
+const adminStub = ({ summaries, streams, failSummaries = false }) => async (url, init) => {
+  if (String(url).includes('oauth2')) {
+    return { ok: true, status: 200, async json() { return { access_token: 'at', expires_in: 3600 }; } };
+  }
+  if (String(url).includes('accountSummaries')) {
+    if (failSummaries) return { ok: false, status: 403, async json() { return { error: { message: 'Admin API has not been used' } }; } };
+    return { ok: true, status: 200, async json() { return summaries; } };
+  }
+  if (String(url).includes('/dataStreams')) {
+    const id = String(url).match(/properties\/(\d+)\/dataStreams/)[1];
+    return { ok: true, status: 200, async json() { return { dataStreams: streams[id] || [] }; } };
+  }
+  return { ok: true, status: 200, async json() { return {}; } };
+};
+
+const SUMMARIES = {
+  accountSummaries: [{
+    propertySummaries: [
+      { property: 'properties/111', displayName: 'Old site' },
+      { property: 'properties/222', displayName: 'Resort site' },
+    ],
+  }],
+};
+const STREAMS = {
+  111: [{ webStreamData: { measurementId: 'G-OTHER11' } }],
+  222: [{ webStreamData: { measurementId: 'G-KVJESX8NT5' } }],
+};
+
+test('a measurement id resolves to the property that carries it', async () => {
+  ga.clearPropertyCache();
+  const id = await ga.resolveProperty({ ...CREDS, propertyId: 'G-KVJESX8NT5' },
+    adminStub({ summaries: SUMMARIES, streams: STREAMS }));
+  assert.equal(id, '222');
+});
+
+test('the resolved property is what the report is addressed to', async () => {
+  ga.clearPropertyCache();
+  const req = await ga.request({
+    kind: 'session_day', window: WINDOW, credentials: { ...CREDS, propertyId: 'G-KVJESX8NT5' },
+    fetchImpl: adminStub({ summaries: SUMMARIES, streams: STREAMS }),
+  });
+  assert.ok(req.url.includes('/properties/222:runReport'), req.url);
+});
+
+test('a numeric id is used directly, with no lookup', async () => {
+  ga.clearPropertyCache();
+  let calls = 0;
+  const counting = async (url, init) => { calls += 1; return adminStub({ summaries: SUMMARIES, streams: STREAMS })(url, init); };
+  await ga.resolveProperty(CREDS, counting);
+  assert.equal(calls, 0, 'a numeric property id triggered an Admin API walk');
+});
+
+test('a property the credential cannot read does not stop the search', async () => {
+  /* An account often holds properties this user was never granted. */
+  ga.clearPropertyCache();
+  const stub = async (url, init) => {
+    if (String(url).includes('properties/111/dataStreams')) {
+      return { ok: false, status: 403, async json() { return { error: { message: 'no access' } }; } };
+    }
+    return adminStub({ summaries: SUMMARIES, streams: STREAMS })(url, init);
+  };
+  assert.equal(await ga.resolveProperty({ ...CREDS, propertyId: 'G-KVJESX8NT5' }, stub), '222');
+});
+
+test('a failed lookup names both fixes rather than repeating the mistake', async () => {
+  /* The Admin API is a separate API and needs enabling in the same project. */
+  ga.clearPropertyCache();
+  await assert.rejects(
+    ga.resolveProperty({ ...CREDS, propertyId: 'G-KVJESX8NT5' },
+      adminStub({ summaries: SUMMARIES, streams: STREAMS, failSummaries: true })),
+    /Admin API|numeric property id/
+  );
+});
+
+test('a measurement id no readable property carries says which were checked', async () => {
+  ga.clearPropertyCache();
+  await assert.rejects(
+    ga.resolveProperty({ ...CREDS, propertyId: 'G-NOTHERE99' },
+      adminStub({ summaries: SUMMARIES, streams: STREAMS })),
+    /Resort site/
+  );
+});
