@@ -265,9 +265,9 @@ test('a cancelled reservation is excluded from reservation value', () => {
   const registry = require('../lib/metrics/registry');
   const source = registry.get('revenue.reservations').source;
   const deals = [
-    { revenue: 100000, bookingStatus: 'Confirmed' },
-    { revenue: 50000, bookingStatus: 'Cancelled' },
-    { revenue: 25000, bookingStatus: null },
+    { revenue: 100000, outcome: 'won', bookingStatus: 'Confirmed' },
+    { revenue: 50000, outcome: 'won', bookingStatus: 'Cancelled' },
+    { revenue: 25000, outcome: 'won', bookingStatus: null },
   ];
   /* Confirmed plus the one with no status — an unrecognised status counts,
      so this fails towards including real revenue rather than hiding it. */

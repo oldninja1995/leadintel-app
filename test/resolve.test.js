@@ -167,8 +167,12 @@ test('the dashboard resolves against real ingested values end to end', () => {
   const out = resolve.resolve({ heroKpis: dashboard.heroKpis, miniKpis: dashboard.miniKpis },
     { values: real, useRegistryValues: true });
 
-  const revenue = out.heroKpis.find((k) => k.metric === 'revenue.net');
-  assert.equal(revenue.value, '₹42,800', 'the dashboard did not take the folio figure');
+  /* The headline tile reads the CRM's reservation value now, not the folio —
+     with no PMS connected the folio metrics rendered ₹0 on the front page while
+     the CRM held the figures. `revenue.net` still means the folio; the tile
+     simply no longer points at it. */
+  const revenue = out.heroKpis.find((k) => k.metric === 'revenue.reservations');
+  assert.ok(revenue, 'the dashboard stopped naming a revenue metric');
   assert.equal(revenue.valueSource, 'registry');
 
   /* ADR is revenue over room nights — ₹42,800 across a three-night stay. */

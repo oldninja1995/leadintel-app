@@ -22,22 +22,37 @@ module.exports = {
      A card with no `metric` has no registry entry yet and is counted as
      unresolved at /metrics/coverage rather than quietly passing. */
   heroKpis: [
+    /* The three headline tiles read the CRM, not the PMS.
+     *
+     * They were `revenue.net`, `roas.net` and `bookings.confirmed`, all of
+     * which are folio metrics — and with no PMS connected all three rendered
+     * ₹0, 0.0x and 0 on the front page of the product. That was accurate and
+     * useless: the CRM records a reservation value and a won status on every
+     * converted lead, so the numbers existed the whole time and the dashboard
+     * was reading the one system nobody had connected.
+     *
+     * They are **labelled as the CRM's**, not quietly substituted — the folio
+     * figure is a different thing (settled, reconciled, after cancellations and
+     * commissions) and the day a PMS arrives both belong on screen with the gap
+     * between them worth reading. `revenue.net`, `roas.net` and
+     * `bookings.confirmed` are untouched in the registry and still mean exactly
+     * what they meant. */
     {
-      metric: 'revenue.net',
-      label: 'Net revenue', value: '₹52.3L', delta: '+12.4%', deltaColor: UP,
-      sub: 'after cancellations & commissions', tip: 'Collected revenue net of cancellations and OTA commissions',
-      icon: 'ph ph-currency-inr', spark: spark([38, 42, 40, 51, 55, 52, 63, 68, 71, 76]), ...SRC.pms,
+      metric: 'revenue.reservations',
+      label: 'Reservation value', value: '₹52.3L', delta: '+12.4%', deltaColor: UP,
+      sub: 'CRM-recorded, cancellations excluded', tip: 'What the CRM records on won leads — not settled folio revenue',
+      icon: 'ph ph-currency-inr', spark: spark([38, 42, 40, 51, 55, 52, 63, 68, 71, 76]), ...SRC.crm,
     },
     {
-      metric: 'roas.net',
-      label: 'Net ROAS', value: '4.8x', delta: '+0.6x', deltaColor: UP,
-      sub: 'gross 6.2x · target 4.0x', tip: 'Net revenue against ad spend, on the workspace attribution model',
+      metric: 'roas.reservations',
+      label: 'ROAS', value: '4.8x', delta: '+0.6x', deltaColor: UP,
+      sub: 'reservation value ÷ ad spend · target 4.0x', tip: 'CRM reservation value against ad spend — pick a channel above for that platform’s own',
       icon: 'ph ph-chart-line-up', spark: spark([48, 45, 52, 50, 58, 61, 60, 68, 72, 78]), ...SRC.blended,
     },
     {
-      metric: 'bookings.confirmed',
-      label: 'Bookings', value: '312', delta: '+38', deltaColor: UP,
-      sub: '94 from paid · 218 direct & organic', tip: 'Confirmed reservations in the period',
+      metric: 'bookings.reservations',
+      label: 'Reservations', value: '312', delta: '+38', deltaColor: UP,
+      sub: 'won in the CRM, cancellations excluded', tip: 'Leads the CRM records as won, before the PMS confirms anything',
       icon: 'ph ph-calendar-check', spark: spark([40, 44, 41, 49, 53, 58, 56, 64, 69, 74]), ...SRC.crm,
     },
     {
@@ -81,7 +96,15 @@ module.exports = {
        so choosing Meta shows the reservation value of leads Meta produced.
        Labelled as the CRM's, never as collected revenue — see the registry
        entry for why it is not folded into `revenue.net`. */
-    { metric: 'revenue.reservations', label: 'Reservation value', value: '₹11.2L', delta: '·', deltaColor: NA, tip: 'What the CRM records on won leads — not settled folio revenue', ...SRC.crm },
+    /* The funnel the CRM is the only system that can measure: how many enquiries
+       became interested, what an interested one cost, and how many closed.
+       Every one narrows with the topbar, so "for Meta Ads" is a selection
+       rather than four more tiles. */
+    { metric: 'leads.interested_rate', label: 'Interested rate', value: '18.4%', delta: '·', deltaColor: NA, tip: 'Share of leads that reached interested or better', ...SRC.crm },
+    { metric: 'cost.per_interested_lead', label: 'Cost / interested lead', value: '₹1,240', delta: '·', deltaColor: NA, tip: 'Ad spend ÷ interested leads — the cost worth optimising', ...SRC.blended },
+    { metric: 'leads.conversion_rate', label: 'Lead → won', value: '4.2%', delta: '·', deltaColor: NA, tip: 'Share of leads that became a won reservation', ...SRC.crm },
+    { metric: 'leads.interested_to_won', label: 'Interested → won', value: '22.8%', delta: '·', deltaColor: NA, tip: 'How well interested leads are closed — measures the team, not the channel', ...SRC.crm },
+    { metric: 'cost.per_reservation', label: 'Cost / reservation', value: '₹3,480', delta: '·', deltaColor: NA, tip: 'Ad spend ÷ CRM-won reservations', ...SRC.blended },
     { metric: 'cost.per_booking', label: 'Cost per booking', value: '₹3,480', delta: '−11%', deltaColor: UP, tip: 'Paid spend per confirmed booking', ...SRC.blended },
     { metric: 'rate.adr', label: 'ADR', value: '₹8,940', delta: '+6.0%', deltaColor: UP, tip: 'Average daily rate', ...SRC.pms },
     { metric: 'rate.revpar', label: 'RevPAR', value: '₹6,973', delta: '+9.2%', deltaColor: UP, tip: 'Revenue per available room', ...SRC.pms },
