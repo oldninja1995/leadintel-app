@@ -190,7 +190,8 @@ test('an unscoped evaluation marks nothing inapplicable', () => {
 test('only grains the entities actually hold are offered', () => {
   const grains = scope.available(entities());
   assert.deepEqual(grains.campaign.map((c) => c.key).sort(), ['brand', 'munnar']);
-  assert.deepEqual(grains.channel.map((c) => c.key), ['google', 'meta']);
+  /* 'non-ad' is offered beside them — a grain matched by what a row is not. */
+  assert.deepEqual(grains.channel.map((c) => c.key), ['google', 'meta', 'non-ad']);
 });
 
 test('a property with no resolved name is not offered as a grain', () => {
@@ -272,4 +273,67 @@ test('a cancelled reservation is excluded from reservation value', () => {
   /* Confirmed plus the one with no status — an unrecognised status counts,
      so this fails towards including real revenue rather than hiding it. */
   assert.equal(source({ deals }), 125000);
+});
+
+/* ── the non-ad channel ─────────────────────────────────────────────────── */
+
+/* Defined by absence: no row carries it, so it is offered explicitly and
+   matched by what a row is *not*. The question it answers is "how much of this
+   did we not pay for". */
+const mixed = () => ({
+  campaignDays: [
+    { id: 'cd1', platform: 'meta_ads', spend: 100000 },
+    { id: 'cd2', platform: 'google_ads', spend: 50000 },
+  ],
+  leads: [
+    { id: 'l1', channel: 'meta' }, { id: 'l2', channel: 'google' },
+    { id: 'l3', channel: 'other' }, { id: 'l4', channel: null },
+  ],
+  deals: [
+    { id: 'd1', channel: 'meta', revenue: 100 }, { id: 'd2', channel: null, revenue: 200 },
+    { id: 'd3', channel: 'other', revenue: 300 },
+  ],
+  bookings: [], leadEvents: [], inventoryDays: [], payments: [], problems: [],
+});
+
+test('non-ad gathers every lead no paid platform is credited with', () => {
+  /* Both halves — a source the CRM recorded as something else, and no source at
+     all. Splitting them would offer a chip whose meaning depends on how
+     diligently somebody filled in a form. */
+  const leads = scope.scope(mixed(), 'channel', 'non-ad').leads.map((l) => l.id);
+  assert.deepEqual(leads, ['l3', 'l4']);
+});
+
+test('non-ad has no ad spend, and that is the answer rather than a gap', () => {
+  /* A campaign day is ad spend by definition. Zero beside real leads is
+     correct: that demand cost nothing in media. */
+  assert.equal(scope.scope(mixed(), 'channel', 'non-ad').campaignDays.length, 0);
+});
+
+test('non-ad reservations are the ones no platform can claim', () => {
+  const deals = scope.scope(mixed(), 'channel', 'non-ad').deals.map((d) => d.id);
+  assert.deepEqual(deals, ['d2', 'd3']);
+});
+
+test('the paid channels are unaffected by the new one', () => {
+  assert.deepEqual(scope.scope(mixed(), 'channel', 'meta').leads.map((l) => l.id), ['l1']);
+  assert.equal(scope.scope(mixed(), 'channel', 'meta').campaignDays.length, 1);
+});
+
+test('meta plus google plus non-ad accounts for every lead exactly once', () => {
+  /* The property that makes the chip trustworthy: no lead counted twice, none
+     dropped. */
+  const e = mixed();
+  const total = ['meta', 'google', 'non-ad']
+    .flatMap((c) => scope.scope(e, 'channel', c).leads.map((l) => l.id));
+  assert.equal(new Set(total).size, e.leads.length);
+  assert.equal(total.length, e.leads.length);
+});
+
+test('non-ad is offered as a grain only where there is paid spend to exclude', () => {
+  const keys = scope.available(mixed()).channel.map((c) => c.key);
+  assert.ok(keys.includes('non-ad'));
+
+  const noAds = { ...mixed(), campaignDays: [] };
+  assert.ok(!scope.available(noAds).channel.map((c) => c.key).includes('non-ad'));
 });

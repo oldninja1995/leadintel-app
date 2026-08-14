@@ -92,7 +92,9 @@ test('"All" is not a filter', () => {
 test('options come from the rows, not from a hardcoded list', () => {
   const options = filters.optionsFor(payload());
   assert.deepEqual(options.property, ['Alleppey Lake Villas', 'Munnar Hillside']);
-  assert.deepEqual(options.channel, ['Google', 'Meta']);
+  /* Plus one the rows do not carry: 'not an ad platform' is defined by
+     absence, so it has to be offered explicitly. */
+  assert.deepEqual(options.channel, ['Google', 'Meta', 'Non-ad']);
   assert.equal(options.room, undefined, 'offered a dimension no row carries');
 });
 
