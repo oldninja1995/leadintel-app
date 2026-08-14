@@ -102,7 +102,9 @@ test('a relative window needs a reference instant, never the clock', () => {
 
 test('the named windows resolve against the reference', () => {
   assert.deepEqual(period.fromLabel('last-24h', NOW), { from: '2026-08-05T12:00:00.000Z', to: NOW, label: 'last-24h' });
-  assert.deepEqual(period.fromLabel('this-month', NOW), { from: '2026-08-01T00:00:00.000Z', to: NOW, label: 'this-month' });
+  /* `calendar` marks a window that steps back a month or a year rather than
+     its own length — see `previous`. */
+  assert.deepEqual(period.fromLabel('this-month', NOW), { from: '2026-08-01T00:00:00.000Z', to: NOW, label: 'this-month', calendar: 'month' });
   assert.equal(period.fromLabel('all', NOW), null);
 });
 
@@ -309,4 +311,56 @@ test('two picked ranges are not the same window', () => {
      the first one's figures, to the rupee. */
   assert.notEqual(june.label, july.label);
   assert.notEqual(`${june.from}..${june.to}`, `${july.from}..${july.to}`);
+});
+
+/* ── calendar windows ───────────────────────────────────────────────────── */
+
+const REF = '2026-08-14T09:30:00.000Z';
+
+test('last month is the whole of it, not a month ending today', () => {
+  /* A window that stopped at the 14th of July would be a figure nobody asked
+     for, and would keep changing after July had ended. */
+  const w = period.fromLabel('last-month', REF);
+  assert.equal(w.from, '2026-07-01T00:00:00.000Z');
+  assert.equal(w.to, '2026-08-01T00:00:00.000Z');
+});
+
+test('this month runs from the first to now', () => {
+  const w = period.fromLabel('this-month', REF);
+  assert.equal(w.from, '2026-08-01T00:00:00.000Z');
+  assert.equal(w.to, REF);
+});
+
+test('this year runs from January the first', () => {
+  const w = period.fromLabel('this-year', REF);
+  assert.equal(w.from, '2026-01-01T00:00:00.000Z');
+  assert.equal(w.to, REF);
+});
+
+test('a calendar month compares against the previous calendar month', () => {
+  /* July is 31 days, so subtracting its own span lands on 31 May and compares
+     July against one day of May plus all of June. Small, wrong, and different
+     every month — which is how it would have survived. */
+  const july = period.fromLabel('last-month', REF);
+  const before = period.previous(july);
+  assert.equal(before.from, '2026-06-01T00:00:00.000Z');
+  assert.equal(before.to, '2026-07-01T00:00:00.000Z');
+});
+
+test('a calendar year compares against the previous calendar year', () => {
+  const before = period.previous(period.fromLabel('this-year', REF));
+  assert.equal(before.from, '2025-01-01T00:00:00.000Z');
+  assert.equal(before.to, '2026-01-01T00:00:00.000Z');
+});
+
+test('a rolling window still steps back by its own span', () => {
+  const before = period.previous(period.fromLabel('7d', REF));
+  assert.equal(before.to, period.fromLabel('7d', REF).from);
+  assert.equal(Date.parse(before.to) - Date.parse(before.from), 7 * 86400000);
+});
+
+test('January steps back into December of the year before', () => {
+  const jan = period.fromLabel('last-month', '2026-01-14T00:00:00.000Z');
+  assert.equal(jan.from, '2025-12-01T00:00:00.000Z');
+  assert.equal(period.previous(jan).from, '2025-11-01T00:00:00.000Z');
 });

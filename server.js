@@ -388,6 +388,12 @@ const PERIOD_CHIPS = [
   { id: '7d', label: '7d' },
   { id: '30d', label: '30d' },
   { id: '90d', label: '90d' },
+  /* Calendar windows beside the rolling ones. A month-on-month comparison is
+     the question every operator actually asks, and a rolling 30 days cannot
+     answer it — it straddles two months for all but one day of the year. */
+  { id: 'this-month', label: 'This month' },
+  { id: 'last-month', label: 'Last month' },
+  { id: 'this-year', label: 'This year' },
 ];
 
 /* Matches the chip the design draws as selected. Stated once: the default and
