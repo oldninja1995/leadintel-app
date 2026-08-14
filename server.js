@@ -1494,10 +1494,15 @@ app.post('/connections/:source/backfill',
 
     const reached = new Date(cursor).toISOString().slice(0, 10);
     const done = cursor <= floor;
+    /* How much is left, because "press again to continue" without a number is
+       an unbounded ask. A source with six kinds fits about one week into an
+       invocation and a light one fits ten, so the count is the only honest way
+       to say how long this is going to take. */
+    const weeksLeft = Math.max(0, Math.ceil((cursor - floor) / (BACKFILL_CHUNK_DAYS * 86400000)));
     const detail = failure
       ? `${source}: stopped at ${reached} — ${failure}`
       : `${source}: ${written} row(s) written from ${chunks} week(s), back to ${reached}`
-        + (done ? '' : ' — press again to continue');
+        + (done ? ' — complete' : ` — ${weeksLeft} week(s) left, press again to continue`);
 
     const key = failure ? 'error' : 'saved';
     return res.redirect(303, `/connections?source=${encodeURIComponent(source)}`
