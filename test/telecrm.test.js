@@ -222,12 +222,7 @@ test('a deal never carries an invented amount', async () => {
 
 /* ── errors name the right half of the credential ───────────────────────── */
 
-test('a refusal says a Sync token is needed, since that was the actual mistake', () => {
-  assert.throws(
-    () => telecrm.checkForError({ message: 'invalid token' }, { status: 401 }),
-    /Sync/
-  );
-});
+
 
 test('a 404 points at the base URL rather than the token', () => {
   assert.throws(
@@ -283,4 +278,49 @@ test('an error body that is an object is serialised, not stringified to [object 
     () => telecrm.checkForError({ error: { code: 'TOKEN_TYPE', detail: 'async token' } }, { status: 401 }),
     /TOKEN_TYPE/
   );
+});
+
+/* ── a refusal must name the right half of the credential ───────────────── */
+
+/* TeleCRM returns one code, NOT_AUTHORIZED, for two unrelated mistakes. Which
+   hint it produces decides whether somebody fixes a field or burns one of their
+   three allowed tokens regenerating a credential that was never wrong. */
+
+/* `assert.throws` does not hand the error back, and its wording is the whole
+   subject of these. */
+const refusal = (payload, status) => {
+  try {
+    telecrm.checkForError(payload, { status });
+  } catch (err) {
+    return err;
+  }
+  throw new Error('checkForError did not throw');
+};
+
+test('a refusal that names the enterprise id points at the enterprise id', () => {
+  /* The live failure: TeleCRM said it could not find the enterprise, and the
+     stored id was a token pasted into the wrong field. An error blaming the
+     token would have sent somebody to regenerate a perfectly good one — and
+     TeleCRM only issues three. */
+  const err = refusal({
+    error: { code: 'NOT_AUTHORIZED', message: 'Enterprise with id "abc:def" not found or invalid access token.' },
+  }, 401);
+  assert.match(err.message, /enterprise id/i);
+  assert.doesNotMatch(err.message, /created with type/i, 'blamed the token for an enterprise id TeleCRM could not find');
+});
+
+test('a refusal that names nothing specific falls back to the token type', () => {
+  assert.match(refusal({ message: 'invalid token' }, 401).message, /Sync/);
+});
+
+test('the vendor\'s own sentence survives into the error either way', () => {
+  assert.match(refusal({ message: 'invalid token' }, 401).message, /invalid token/);
+});
+
+test('a 404 points at the base URL rather than the token', () => {
+  assert.throws(() => telecrm.checkForError({}, { status: 404 }), /base URL/);
+});
+
+test('a clean payload raises nothing', () => {
+  assert.doesNotThrow(() => telecrm.checkForError({ data: [], total_count: 0 }, { status: 200 }));
 });
