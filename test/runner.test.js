@@ -476,3 +476,16 @@ test('a recovered source stops being unhealthy on its next success', async () =>
   await runner.runOne('meta_ads');
   assert.equal(runner.health('meta_ads'), 'ok', 'a recovered source kept its failure');
 });
+
+test('a slow schedule does not stop a source being due', async () => {
+  /* Due-ness is what a source wants; the schedule is what it gets. Judged
+     against a daily interval, a cron arriving nineteen hours after a manual
+     sync found nothing due, wasted the tick and let the source drift another
+     full day. */
+  const { runner, tick } = scheduled(86400);
+  await runner.runOne('meta_ads');
+  tick(sources.get('meta_ads').cadence.every + 1);
+
+  assert.ok(runner.due().some((s) => s.id === 'meta_ads'), 'the schedule suppressed due-ness');
+  assert.equal(runner.health('meta_ads'), 'ok', 'being due was confused with being unhealthy');
+});
