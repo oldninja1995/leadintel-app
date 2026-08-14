@@ -49,30 +49,33 @@ module.exports = {
   ],
 
   miniKpis: [
-    /* One metric, two grains — `ads.spend` at `channel:meta` and
-       `channel:google`. Split because the blended tile answered a question
-       nobody asks: the two platforms are bought, budgeted and judged
-       separately, and a single figure moving tells you nothing about which one
-       moved. The combined total is still on the Marketing dashboard, which
-       says so in its own tooltip; adding the platforms together is that
-       screen's job and not this one's.
+    /* One tile, governed by the topbar.
+     *
+     * This was briefly two — "Meta spend" and "Google spend" side by side —
+     * which answered the question but answered it *permanently*: selecting
+     * Google in the topbar still showed Meta's tile beside it, because a card
+     * carrying its own `at:` grain overrides the screen's scope by design.
+     * A dashboard filtered to one platform that keeps a rival's number on it is
+     * the same failure the split was meant to fix, one level up.
+     *
+     * So the grain comes from the chip instead: no selection is Meta and Google
+     * combined, choosing one rescopes this and every other card with it. The
+     * per-card `at:` support stays in lib/metrics/resolve.js — a drill-down
+     * about one campaign still needs it — it is simply not what a dashboard
+     * tile should be pinned to. */
+    { metric: 'ads.spend', label: 'Ad spend', value: '₹10.9L', delta: '+3.1%', deltaColor: NA, tip: 'Meta and Google combined — pick a channel in the topbar to narrow it', ...SRC.ads },
+    /* Blended until the topbar says otherwise — and blended here means
+       something specific and easy to misread: **the CRM holds organic and
+       referral leads beside the paid ones**, so this divides paid spend by
+       every lead in it. That figure falls whenever the website has a good week,
+       which looks like advertising getting cheaper. Choosing a channel above
+       narrows both halves of the division at once — that channel's spend over
+       the leads tagged to it — which is the number worth acting on.
 
-       These stay two cards over one registry entry rather than becoming
-       `ads.spend.meta` and `ads.spend.google` — see lib/metrics/resolve.js.
-       The authored figures still sum to the ₹10.9L this tile used to show. */
-    { metric: 'ads.spend', at: { dimension: 'channel', value: 'meta' }, label: 'Meta spend', value: '₹7.6L', delta: '+2.4%', deltaColor: NA, tip: 'Meta Ads only — Google is the tile beside it', ...SRC.ads },
-    { metric: 'ads.spend', at: { dimension: 'channel', value: 'google' }, label: 'Google spend', value: '₹3.3L', delta: '+4.7%', deltaColor: NA, tip: 'Google Ads only — Meta is the tile beside it', ...SRC.ads },
-    /* Split for the same reason spend is, and one more: **the CRM holds organic
-       and referral leads beside the paid ones.** Blended CPL divided paid spend
-       by every lead in the CRM — 2,554 of them — which is not a cost per lead
-       at all. It reads ₹53 and falls whenever the website has a good week,
-       which looks like advertising getting cheaper.
-
-       Each tile now divides a channel's spend by the leads that channel is
-       tagged with. An untagged lead counts toward neither: it is unattributed,
-       not organic, and guessing would move both figures. */
-    { metric: 'cost.per_lead', at: { dimension: 'channel', value: 'meta' }, label: 'Meta CPL', value: '₹352', delta: '−12%', deltaColor: UP, tip: 'Meta spend ÷ leads tagged to Meta', ...SRC.ads },
-    { metric: 'cost.per_lead', at: { dimension: 'channel', value: 'google' }, label: 'Google CPL', value: '₹541', delta: '−6%', deltaColor: UP, tip: 'Google spend ÷ leads tagged to Google', ...SRC.ads },
+       An untagged lead is counted in neither channel: it is unattributed, not
+       organic, and putting it in a bucket would move a cost per lead without
+       anyone deciding to. */
+    { metric: 'cost.per_lead', label: 'CPL', value: '₹427', delta: '−18%', deltaColor: UP, tip: 'Paid spend ÷ leads — pick a channel in the topbar for that platform’s own CPL', ...SRC.blended },
     { metric: 'cost.per_booking', label: 'Cost per booking', value: '₹3,480', delta: '−11%', deltaColor: UP, tip: 'Paid spend per confirmed booking', ...SRC.blended },
     { metric: 'rate.adr', label: 'ADR', value: '₹8,940', delta: '+6.0%', deltaColor: UP, tip: 'Average daily rate', ...SRC.pms },
     { metric: 'rate.revpar', label: 'RevPAR', value: '₹6,973', delta: '+9.2%', deltaColor: UP, tip: 'Revenue per available room', ...SRC.pms },
