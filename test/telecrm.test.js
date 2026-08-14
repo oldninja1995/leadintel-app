@@ -275,3 +275,12 @@ test('a missing credential field is named rather than sent empty', async () => {
 test('the base URL is not required, so a connection predating this file still works', () => {
   assert.equal(telecrm.requires.includes('baseUrl'), false);
 });
+
+test('an error body that is an object is serialised, not stringified to [object Object]', () => {
+  /* TeleCRM answers 401 with an object under `error`. Concatenating it printed
+     "[object Object]" and threw away the only diagnostic in the response. */
+  assert.throws(
+    () => telecrm.checkForError({ error: { code: 'TOKEN_TYPE', detail: 'async token' } }, { status: 401 }),
+    /TOKEN_TYPE/
+  );
+});
