@@ -773,6 +773,18 @@ app.post('/ingest/webhook/:source', express.json({ limit: '1mb' }), async (req, 
 
   if (!presented) return next();
 
+  /* Hydrated here, because this route runs BEFORE the request-edge middleware
+     that hydrates everything else — it has to, since it authenticates by token
+     rather than session and must not sit behind the session gate.
+   *
+   * On a file store that middleware's absence cost nothing and this route
+   * worked. On Postgres it meant `webhookTokens` was an empty in-memory map on
+   * every fresh instance, so a token minted seconds earlier came back
+   * "not recognised" and the whole push intake had never once worked on
+   * Vercel. The audit trail said the tokens were unverifiable, which reads like
+   * a forged credential rather than an unread store. */
+  await webhookTokens.hydrate();
+
   const claim = webhookTokens.verify(presented);
   if (!claim) {
     /* Audited with no user, because there is no user — an unverifiable token is
@@ -813,12 +825,19 @@ app.post('/ingest/webhook/:source', express.json({ limit: '1mb' }), async (req, 
       workspace: claim.workspace,
       detail: { source: req.params.source, received: result && result.received },
     });
+    /* Awaited before answering, because a function is frozen the moment it
+       responds — the delivery count would be stranded in a promise that never
+       settles, and the Connections card would go on saying "stored, no data
+       yet" while records were arriving. Same reason `gate()` does it for every
+       session-authenticated write. */
+    await webhookTokens.flush();
     return res.json(result);
   } catch (err) {
     /* Still counted as a delivery: a source that is reaching us with a payload
        we cannot read is a different problem from one that is not reaching us at
        all, and the Connections screen has to be able to say which. */
     webhookTokens.recordDelivery(claim.id, { records: 0 });
+    await webhookTokens.flush();
     return res.status(400).json({ error: err.message });
   }
 });
