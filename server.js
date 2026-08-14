@@ -1520,8 +1520,17 @@ app.post('/layout/:screen', express.urlencoded({ extended: false }), async (req,
   const offered = [].concat(req.body.offered || []);
   const visible = [].concat(req.body.visible || []);
 
-  layouts.set(req.workspace, req.user && req.user.id, screen, { offered, visible });
-  await layouts.flush();
+  /* Wrapped, because Express 4 answers a rejected async handler by never
+     answering: a thrown error here hung the request for a full minute instead
+     of failing. A layout that will not save is worth an error; it is not worth
+     a page that never loads. */
+  try {
+    layouts.set(req.workspace, req.user && req.user.id, screen, { offered, visible });
+    await layouts.flush();
+  } catch (err) {
+    console.warn('layout: could not be saved —', err.message);
+    return res.status(500).json({ error: `the layout could not be saved: ${err.message}` });
+  }
 
   gatekeeper.audit.record({
     user: req.user, action: 'layout.set', outcome: 'allowed', workspace: req.workspace,

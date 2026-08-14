@@ -12,7 +12,12 @@
 const test = require('node:test');
 const assert = require('node:assert');
 
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'leadintel-layout-'));
 const filters = require('../lib/filters');
+const resolve = require('../lib/metrics/resolve');
 const alerts = require('../lib/alerts');
 const palette = require('../lib/palette');
 
@@ -247,4 +252,55 @@ test('an unassigned lead still gets a circle, since it is the one to chase', () 
   const unowned = newStage.cards.find((c) => c.name === 'Rahul Menon');
 
   assert.equal(unowned.own, '—', 'the avatar disappeared instead of saying it is empty');
+});
+
+/* ── which cards a person keeps ─────────────────────────────────────────── */
+
+const { Layouts } = require('../lib/layout');
+
+test('an unticked card is remembered as hidden', () => {
+  const l = new Layouts(path.join(tmp(), 'layouts.json'));
+  l.set('parakkat', 'anand', 'dashboard', { offered: ['a', 'b', 'c'], visible: ['a', 'c'] });
+  assert.deepEqual(l.hidden('parakkat', 'anand', 'dashboard'), ['b']);
+});
+
+test('hidden is stored rather than visible, so a new card appears for everybody', () => {
+  /* The alternative silently withholds every card added later from every
+     existing user. */
+  const l = new Layouts(path.join(tmp(), 'layouts.json'));
+  l.set('parakkat', 'anand', 'dashboard', { offered: ['a', 'b'], visible: ['a'] });
+  /* 'c' did not exist when they chose, and is not hidden. */
+  assert.equal(l.hidden('parakkat', 'anand', 'dashboard').includes('c'), false);
+});
+
+test('one person tidying their dashboard does not rearrange another\'s', () => {
+  const l = new Layouts(path.join(tmp(), 'layouts.json'));
+  l.set('parakkat', 'anand', 'dashboard', { offered: ['a', 'b'], visible: ['a'] });
+  assert.deepEqual(l.hidden('parakkat', 'reshma', 'dashboard'), []);
+});
+
+test('screens are kept apart', () => {
+  const l = new Layouts(path.join(tmp(), 'layouts.json'));
+  l.set('parakkat', 'anand', 'dashboard', { offered: ['a'], visible: [] });
+  assert.deepEqual(l.hidden('parakkat', 'anand', 'marketing'), []);
+});
+
+test('re-ticking everything forgets the preference rather than storing an empty one', () => {
+  const l = new Layouts(path.join(tmp(), 'layouts.json'));
+  l.set('parakkat', 'anand', 'dashboard', { offered: ['a', 'b'], visible: ['a'] });
+  l.set('parakkat', 'anand', 'dashboard', { offered: ['a', 'b'], visible: ['a', 'b'] });
+  assert.deepEqual(l.hidden('parakkat', 'anand', 'dashboard'), []);
+});
+
+test('a hidden card is removed by resolve, and not while editing', () => {
+  /* Not while editing, or the control that unhides it would have nothing to
+     unhide. */
+  const cards = () => ({ miniKpis: [{ metric: 'ads.spend', label: 'Ad spend', value: '1' }, { metric: 'leads.count', label: 'Leads', value: '2' }] });
+  const hidden = ['ads.spend'];
+
+  const shown = resolve.resolve(cards(), { hidden }).miniKpis;
+  assert.deepEqual(shown.map((c) => c.label), ['Leads']);
+
+  const editing = resolve.resolve(cards(), { hidden, editing: true }).miniKpis;
+  assert.equal(editing.length, 2);
 });
