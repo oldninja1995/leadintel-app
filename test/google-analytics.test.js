@@ -264,3 +264,20 @@ test('a measurement id no readable property carries says which were checked', as
     /Resort site/
   );
 });
+
+test('a scope failure says the token is wrong, not the property id', async () => {
+  /* Insufficient scopes means the *token* is wrong — almost always the Google
+     Ads one. Pasting the numeric property id would hit the identical wall one
+     call later, so offering it as a fix sends someone to do work that cannot
+     possibly help. */
+  ga.clearPropertyCache();
+  const scopeFail = async (url) => {
+    if (String(url).includes('oauth2')) return { ok: true, status: 200, async json() { return { access_token: 'at', expires_in: 3600 }; } };
+    return { ok: false, status: 403, async json() { return { error: { message: 'Request had insufficient authentication scopes.' } }; } };
+  };
+
+  const err = await ga.resolveProperty({ ...CREDS, propertyId: 'G-KVJESX8NT5' }, scopeFail).catch((e) => e);
+  assert.match(err.message, /analytics\.readonly/);
+  assert.match(err.message, /adwords/);
+  assert.doesNotMatch(err.message, /Either enable/, 'offered a fix that cannot help');
+});
