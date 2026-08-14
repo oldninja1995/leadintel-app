@@ -337,3 +337,25 @@ test('non-ad is offered as a grain only where there is paid spend to exclude', (
   const noAds = { ...mixed(), campaignDays: [] };
   assert.ok(!scope.available(noAds).channel.map((c) => c.key).includes('non-ad'));
 });
+
+test('house metrics survive non-ad but not a paid channel', () => {
+  /* Occupancy under Meta would claim Meta caused it. Under non-ad the reading
+     is different in kind: the house figure sitting beside the demand no ad
+     platform is credited with. */
+  assert.equal(scope.supports('occupancy.rate', 'channel', 'non-ad'), true);
+  assert.equal(scope.supports('occupancy.rate', 'channel', 'meta'), false);
+  assert.equal(scope.supports('occupancy.rate', 'channel', 'google'), false);
+});
+
+test('the house figure under non-ad is the whole property, not a narrowed one', () => {
+  /* Stated rather than smoothed over: there is no channel-shaped version of
+     occupancy, so this still includes stays the ads sold. */
+  const e = { ...mixed(), inventoryDays: [{ property: 'P1', available: 10 }, { property: 'P2', available: 5 }] };
+  assert.equal(scope.scope(e, 'channel', 'non-ad').inventoryDays.length, 2);
+  assert.equal(scope.scope(e, 'channel', 'meta').inventoryDays.length, 0);
+});
+
+test('an ad metric is unaffected by the house exemption', () => {
+  assert.equal(scope.supports('ads.spend', 'channel', 'non-ad'), true);
+  assert.equal(scope.supports('ads.spend', 'channel', 'meta'), true);
+});

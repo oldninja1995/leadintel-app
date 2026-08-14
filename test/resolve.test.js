@@ -320,3 +320,34 @@ test('a card marked hideWhenScoped disappears once a channel is chosen', () => {
   assert.equal(filtered.length, 1);
   assert.equal(filtered[0].label, 'Ad spend');
 });
+
+test('ad-based cards disappear on the non-ad view', () => {
+  /* Spend there is zero by definition, so every one of these is a zero or a
+     division by zero wearing a KPI's clothes. */
+  const cards = () => ({
+    miniKpis: [
+      { metric: 'ads.spend', label: 'Ad spend' },
+      { metric: 'cost.per_lead', label: 'CPL' },
+      { metric: 'leads.count', label: 'Leads' },
+      { label: 'MER', value: '4.8x' },
+    ],
+  });
+  const opts = { values: { 'ads.spend': 1, 'cost.per_lead': 1, 'leads.count': 5 }, useRegistryValues: true };
+
+  const nonAd = resolve.resolve(cards(), { ...opts, at: { dimension: 'channel', value: 'non-ad' } }).miniKpis;
+  assert.deepEqual(nonAd.map((c) => c.label), ['Leads', 'MER'], 'an ad metric survived the non-ad view');
+
+  const meta = resolve.resolve(cards(), { ...opts, at: { dimension: 'channel', value: 'meta' } }).miniKpis;
+  assert.equal(meta.length, 4);
+
+  const all = resolve.resolve(cards(), opts).miniKpis;
+  assert.equal(all.length, 4, 'the unfiltered view lost a card');
+});
+
+test('a card with no metric is never removed as ad-based', () => {
+  /* It carries no derivable meaning either way, so it stays where the design
+     put it. */
+  const out = resolve.resolve({ kpis: [{ label: 'MER', value: '4.8x' }] },
+    { at: { dimension: 'channel', value: 'non-ad' }, useRegistryValues: true }).kpis;
+  assert.equal(out.length, 1);
+});

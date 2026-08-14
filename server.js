@@ -496,6 +496,7 @@ function resolveMetrics(payload, workspaceId, over = null) {
     baseValues: base.values,
     basePrevious,
     scoped: Boolean(at),
+    at,
     useRegistryValues: USE_REGISTRY_VALUES,
     valuesFor: (label) => periodValues(workspaceId, label, at),
     /* A card's own grain overrides the screen's. The dashboard is a workspace
