@@ -7,6 +7,35 @@
             <div class="hv-3" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-neutral-500); border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; cursor:pointer;"><i class="ph ph-export" style="font-size:13px;"></i>Share</div>
           </div>
 
+          <%# The edit panel. A list of what this screen offers, ticked for what
+              is on it — not drag-to-reorder, which the CSS grid reflows anyway
+              and which cannot be stored as a fact. Hiding is the part people
+              want and the part that can be persisted honestly. Kept per person:
+              two people reading the same business want different dashboards. %>
+          <% if (editing && locals.layoutCards) { %>
+            <form method="post" action="/layout/<%= locals.layoutScreen || 'dashboard' %>" style="background:var(--color-surface); border:1px solid var(--color-accent-800); border-radius:12px; padding:14px 16px; margin-bottom:12px;">
+              <input type="hidden" name="back" value="<%= locals.currentUrl || '/?edit=1' %>">
+              <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
+                <i class="ph ph-squares-four" style="font-size:14px; color:var(--color-accent-400);"></i>
+                <strong style="font-size:13px;">Cards on this dashboard</strong>
+                <span style="font-size:11.5px; color:var(--color-neutral-600);">untick to put one away · saved for you only</span>
+                <div style="flex:1;"></div>
+                <button type="submit" style="font-size:11.5px; border:1px solid var(--color-accent-600); background:transparent; color:var(--color-accent-300); border-radius:7px; padding:5px 13px; cursor:pointer;">Save</button>
+                <a href="<%= (locals.currentUrl || '/').replace(/[?&]edit=1/, '') || '/' %>" style="font-size:11.5px; color:var(--color-neutral-500); border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 13px; text-decoration:none;">Done</a>
+              </div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:6px 14px;">
+                <% locals.layoutCards.forEach(function (c) { %>
+                  <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:var(--color-neutral-300); cursor:pointer;">
+                    <input type="hidden" name="offered" value="<%= c.id %>">
+                    <input type="checkbox" name="visible" value="<%= c.id %>" <%= (locals.hiddenCards || []).indexOf(c.id) === -1 ? 'checked' : '' %>>
+                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><%= c.label %></span>
+                    <% if (c.source) { %><span style="font-size:8px; border:1px solid var(--color-neutral-800); border-radius:4px; padding:0.5px 4px; color:var(--color-neutral-600);"><%= c.source %></span><% } %>
+                  </label>
+                <% }); %>
+              </div>
+            </form>
+          <% } %>
+
           <!-- Hero KPIs -->
           <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:12px;">
             <% (heroKpis || []).forEach(function (k) { %>

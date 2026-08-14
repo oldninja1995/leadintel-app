@@ -43,6 +43,7 @@ const hardening = require('./lib/http/hardening');
 const observability = require('./lib/http/observability');
 const store = require('./lib/store');
 const snapshot = require('./lib/store/snapshot');
+const { Layouts } = require('./lib/layout');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -188,6 +189,8 @@ const backends = store.backends();
 const workspace = new attribution.Workspace(undefined, { backend: backends.docs });
 const dispatches = new reports.Dispatches(undefined, { backend: backends.dispatches });
 const connections = new Connections({ backend: backends.docs });
+/* Which cards each person keeps on each screen — see lib/layout.js. */
+const layouts = new Layouts(undefined, { backend: backends.docs });
 
 /* Three stores are constructed inside the modules that own them rather than
    here — the definition log and the evaluation store by lib/metrics, the audit
@@ -466,10 +469,32 @@ function periodFor(query) {
    because one is a label and the other is a resolved window. */
 const readParams = (query) => ({ ...(query || {}), model: workspace.model(), over: periodFor(query).over });
 
+/* Every KPI card a screen offers, flattened for the edit panel.
+ *
+ * Read from the resolved payload rather than from the view, so the panel lists
+ * exactly what the screen would draw — including cards the reader has hidden,
+ * which is the whole point of a panel they use to bring one back. The
+ * collection travels with each card because two collections can hold a card of
+ * the same name and the reader should be able to tell them apart. */
+function offeredCards(payload) {
+  const cards = [];
+  for (const [collection, rows] of Object.entries(payload || {})) {
+    if (!Array.isArray(rows)) continue;
+    for (const row of rows) {
+      if (!row || typeof row !== 'object') continue;
+      if (!('label' in row) || !('value' in row)) continue;
+      const id = row.metric || row.label;
+      if (!id) continue;
+      cards.push({ id, label: row.label, collection, source: row.src || null });
+    }
+  }
+  return cards;
+}
+
 /* A screen may declare the grain its KPI cards are about — Campaign Analytics'
    drill-down is one campaign, not the workspace — and the registry is then
    evaluated there. See lib/metrics/scope.js. */
-function resolveMetrics(payload, workspaceId, over = null) {
+function resolveMetrics(payload, workspaceId, over = null, { hidden = null, editing = false } = {}) {
   const at = payload && payload.metricScope ? payload.metricScope : null;
   /* Evaluated over the selected range. A card that names its own period —
      "New leads today" — still carries that period through `valuesFor`, and
@@ -497,6 +522,8 @@ function resolveMetrics(payload, workspaceId, over = null) {
     basePrevious,
     scoped: Boolean(at),
     at,
+    hidden,
+    editing,
     useRegistryValues: USE_REGISTRY_VALUES,
     valuesFor: (label) => periodValues(workspaceId, label, at),
     /* A card's own grain overrides the screen's. The dashboard is a workspace
@@ -1080,6 +1107,7 @@ app.use((req, res, next) => {
   Promise.all([
     store.hydrateDocuments({ connections, workspace, webhookTokens, definitionLog: metrics.definitionLog }),
     runner.log.hydrate(),
+    layouts.hydrate(),
     gatekeeper.audit.hydrate(),
     fires.hydrate(),
     dispatches.hydrate(),
@@ -1476,6 +1504,34 @@ app.post('/connections/:source/test',
     const query = `${result.ok ? 'saved' : 'error'}=${encodeURIComponent(`${source}: ${result.detail}`)}`;
     return res.redirect(303, `/connections?source=${encodeURIComponent(source)}&${query}`);
   });
+
+/* Which cards this person keeps on a screen.
+ *
+ * Not gated by `connection.manage` or anything else: it changes what one reader
+ * sees and nothing about what anything means. The session is the whole of the
+ * authorisation, and the workspace and user come from it rather than the form —
+ * the same rule that keeps `?workspace=` from existing anywhere in this app.
+ */
+app.post('/layout/:screen', express.urlencoded({ extended: false }), async (req, res) => {
+  const screen = String(req.params.screen || 'dashboard');
+  /* An unticked checkbox submits nothing, so the form carries what was offered
+     as well as what was kept — otherwise "unticked" and "not on this form" are
+     the same absence. */
+  const offered = [].concat(req.body.offered || []);
+  const visible = [].concat(req.body.visible || []);
+
+  layouts.set(req.workspace, req.user && req.user.id, screen, { offered, visible });
+  await layouts.flush();
+
+  gatekeeper.audit.record({
+    user: req.user, action: 'layout.set', outcome: 'allowed', workspace: req.workspace,
+    detail: { screen, hidden: offered.length - visible.length },
+  });
+
+  /* Back where they were, still editing, so several changes are one visit. */
+  const back = String(req.body.back || `/${screen === 'dashboard' ? '' : screen}`);
+  return res.redirect(303, back.startsWith('/') ? back : '/');
+});
 
 /* Fetch a year of history for one source, from the screen.
  *
@@ -2739,6 +2795,15 @@ function screenRoute(screen) {
       const params = readParams(req.query);
       const payload = (await repo.read(screen.view, params)) || {};
 
+      /* Which cards this reader keeps, and whether they are choosing right now.
+         Hidden cards are removed in `resolve` rather than in the view, so
+         coverage and every other consumer sees the same screen the reader
+         does — and are *not* removed while editing, or the control that
+         unhides one would have nothing to unhide. */
+      const editing = 'edit' in req.query;
+      const screenSlug = screen.slug || 'dashboard';
+      const hiddenCards = layouts.hidden(req.workspace, req.user && req.user.id, screenSlug);
+
       /* A topbar chip narrows the *metrics*, not only the rows.
        *
        * The chips were row filters: choosing Google left every KPI above the
@@ -2763,7 +2828,7 @@ function screenRoute(screen) {
         if (chosen) payload.metricScope = { dimension: chosen, value: String(active[chosen]).toLowerCase() };
       }
 
-      const unfiltered = resolveMetrics(payload, req.workspace, params.over);
+      const unfiltered = resolveMetrics(payload, req.workspace, params.over, { hidden: hiddenCards, editing });
 
       /* Filtering sits between the repository and the view: it narrows rows the
          repository returned rather than asking it a narrower question, because
@@ -2776,7 +2841,16 @@ function screenRoute(screen) {
         ...flags,
         ...tabLists,
         /* Dashboard edit mode is a display flag, not a sub-view. */
-        editing: 'edit' in req.query,
+        editing,
+        /* Every card the screen offers and which of them are put away, so the
+           edit panel is built from the payload rather than scraped from the
+           rendered DOM. Only while editing — it is a list nobody else needs. */
+        layoutCards: editing ? offeredCards(result.payload) : null,
+        hiddenCards,
+        layoutScreen: screenSlug,
+        /* So saving returns to the same range and channel the reader was
+           looking at, rather than to a bare dashboard. */
+        currentUrl: req.originalUrl,
       };
       schema.audit(screen.view, data, { requireAll: true, label: `the ${screen.slug || 'dashboard'} view payload` });
 
