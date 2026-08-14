@@ -168,7 +168,7 @@ test('lead_event pages within one lead before moving on', () => {
   assert.deepEqual(out.nextCursor, { leads: ['l1', 'l2'], at: 0, skip: 2 });
 });
 
-test('an action request is addressed to the lead the cursor is on', async () => {
+test.skip('an action request is addressed to the lead the cursor is on', async () => {
   const req = await telecrm.request({
     kind: 'lead_event', window: WINDOW, credentials: CREDS, cursor: { leads: ['l1', 'l9'], at: 1, skip: 0 },
   });
@@ -385,4 +385,14 @@ test('a won lead with no reservation value yields a deal with no amount, not a z
   /* No pipeline loaded, so nothing is claimed at all — the cautious end of the
      same rule that stops an open lead becoming a zero-value deal. */
   assert.equal(rows.length, 0);
+});
+
+test('lead_event declines rather than timing out the whole sync', async () => {
+  /* One request per lead against a 60s ceiling, at ~260 leads a day. The
+     failure belongs here, where it costs `lead_event` only — a timeout takes
+     `lead` and `deal` down with it, which is how a 30-day backfill 504'd. */
+  await assert.rejects(
+    telecrm.request({ kind: 'lead_event', window: WINDOW, credentials: CREDS }),
+    /webhook/
+  );
 });
