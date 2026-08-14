@@ -301,3 +301,22 @@ test('an unscoped card is unaffected when the screen has no scope', () => {
   }, { values: { 'ads.spend': 100000 }, baseValues: { 'ads.spend': 100000 }, useRegistryValues: true }).miniKpis;
   assert.equal(out[0].value, '₹1,000');
 });
+
+test('a card marked hideWhenScoped disappears once a channel is chosen', () => {
+  /* A large figure labelled "Total" on a dashboard filtered to Google reads as
+     Google's, whatever the label says. */
+  const payload = () => ({
+    miniKpis: [
+      { metric: 'ads.spend', label: 'Ad spend' },
+      { metric: 'ads.spend', unscoped: true, hideWhenScoped: true, label: 'Total ad spend' },
+    ],
+  });
+  const opts = { values: { 'ads.spend': 100000 }, baseValues: { 'ads.spend': 900000 }, useRegistryValues: true };
+
+  const unfiltered = resolve.resolve(payload(), opts).miniKpis;
+  assert.equal(unfiltered.length, 2, 'the total was hidden with nothing selected');
+
+  const filtered = resolve.resolve(payload(), { ...opts, scoped: true }).miniKpis;
+  assert.equal(filtered.length, 1);
+  assert.equal(filtered[0].label, 'Ad spend');
+});

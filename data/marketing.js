@@ -5,14 +5,14 @@ const { UP, DOWN, WARN, NA, SRC, spark } = require('./_tokens');
 
 module.exports = {
   mktHero: [
-    { metric: 'ads.spend', label: 'Ad spend', value: '₹10.9L', delta: '+3.1%', deltaColor: NA, sub: 'Meta ₹6.4L · Google ₹4.5L', tip: 'Total paid media in the period', icon: 'ph ph-megaphone', spark: spark([55, 58, 54, 60, 62, 59, 64, 63, 67, 66]), ...SRC.ads },
-    /* Attributed revenue is net revenue *filtered to paid media*, and the
-       registry has no such filter yet — `revenue.net` is every booking, paid
-       or not. Mapping it here would overstate paid performance by the whole
-       direct and organic contribution, so it stays unresolved. */
-    { label: 'Attributed revenue', value: '₹32.5L', delta: '+18.2%', deltaColor: UP, sub: '62% of net revenue', tip: 'Revenue credited to paid media on the workspace model', icon: 'ph ph-currency-inr', spark: spark([40, 44, 47, 52, 51, 58, 62, 66, 71, 75]), ...SRC.blended },
-    { metric: 'cost.per_lead', label: 'Blended CPL', value: '₹427', delta: '−18.0%', deltaColor: UP, sub: '2,554 leads', tip: 'Paid spend per qualified lead', icon: 'ph ph-user-focus', spark: spark([78, 74, 72, 68, 64, 61, 58, 54, 50, 47]), ...SRC.blended },
-    { metric: 'roas.net', label: 'Net ROAS', value: '4.8x', delta: '+0.6x', deltaColor: UP, sub: 'gross 6.2x', tip: 'Net of cancellations and commissions', icon: 'ph ph-chart-line-up', spark: spark([48, 46, 52, 55, 54, 61, 63, 68, 73, 78]), ...SRC.blended },
+    { metric: 'ads.spend', label: 'Ad spend', value: '₹10.9L', delta: '+3.1%', deltaColor: NA, sub: '', tip: 'Total paid media in the period', icon: 'ph ph-megaphone', spark: spark([55, 58, 54, 60, 62, 59, 64, 63, 67, 66]), ...SRC.ads },
+    /* Now derived. The old note was right at the time —  is every
+       booking, paid or not, so pointing this card at it would have credited
+       paid media with the whole direct and organic contribution. Leads carry a
+       channel now and deals inherit it, so the question is answerable. */
+    { metric: 'revenue.attributed', label: 'Attributed revenue', value: '₹32.5L', delta: '+18.2%', deltaColor: UP, sub: 'leads tagged to a paid channel only', tip: 'Revenue credited to paid media on the workspace model', icon: 'ph ph-currency-inr', spark: spark([40, 44, 47, 52, 51, 58, 62, 66, 71, 75]), ...SRC.blended },
+    { metric: 'cost.per_lead', label: 'Blended CPL', value: '₹427', delta: '−18.0%', deltaColor: UP, sub: '', tip: 'Paid spend per lead — pick a channel above for that platform', icon: 'ph ph-user-focus', spark: spark([78, 74, 72, 68, 64, 61, 58, 54, 50, 47]), ...SRC.blended },
+    { metric: 'roas.reservations', label: 'ROAS', value: '4.8x', delta: '+0.6x', deltaColor: UP, sub: 'CRM reservation value ÷ ad spend', tip: 'Net of cancellations and commissions', icon: 'ph ph-chart-line-up', spark: spark([48, 46, 52, 55, 54, 61, 63, 68, 73, 78]), ...SRC.blended },
   ],
 
   mktKpis: [
@@ -24,7 +24,7 @@ module.exports = {
        platform's campaign_day payload carries. No registry entry, and no
        invented formula to make the coverage figure look better. */
     { label: 'Frequency', value: '2.4', delta: '+0.3', deltaColor: WARN, tip: 'Average impressions per person', ...SRC.ads },
-    { metric: 'cost.per_booking', label: 'Cost per booking', value: '₹3,480', delta: '−11.0%', deltaColor: UP, tip: 'Paid spend per confirmed booking', ...SRC.blended },
+    { metric: 'cost.per_reservation', label: 'Cost per reservation', value: '₹3,480', delta: '−11.0%', deltaColor: UP, tip: 'Paid spend per CRM-won reservation', ...SRC.blended },
   ],
 
   mktFunnel: [
