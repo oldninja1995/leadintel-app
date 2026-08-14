@@ -107,14 +107,15 @@ function snapshotFor(workspaceId) {
  * the document stores: `hydrateEntities` is awaited by the middleware and every
  * synchronous reader afterwards finds a resolved value. */
 async function hydrateEntities(workspaceId) {
-  if (entityCache.has(workspaceId)) return entityCache.get(workspaceId);
+  if (!shouldRebuild(workspaceId)) return entityCache.get(workspaceId);
   const entities = await snapshotFor(workspaceId);
   entityCache.set(workspaceId, entities);
+  staleAt.delete(workspaceId);
   return entities;
 }
 
 function entitiesFor(workspaceId) {
-  if (entityCache.has(workspaceId)) return entityCache.get(workspaceId);
+  if (!shouldRebuild(workspaceId)) return entityCache.get(workspaceId);
 
   const entities = snapshotFor(workspaceId);
   /* Against a file store this is already a value and nothing had to be
@@ -126,6 +127,7 @@ function entitiesFor(workspaceId) {
     throw new Error(`entities for "${workspaceId}" were not hydrated for this request`);
   }
   entityCache.set(workspaceId, entities);
+  staleAt.delete(workspaceId);
   return entities;
 }
 
@@ -133,9 +135,39 @@ function entitiesFor(workspaceId) {
    writing new rows, and a credential being stored or removed — the latter
    because `connected` decides whether a source's demo rows are still replayed,
    so connecting a source changes the entities without writing anything. */
-function dropEntities(workspaceId = null) {
-  if (workspaceId) entityCache.delete(workspaceId);
-  else entityCache.clear();
+/* A write marks the snapshot stale; it does not throw it away.
+ *
+ * Deleting it outright is correct and was ruinously expensive. `replay()`
+ * transfers **every current row's body** — ~25,000 of them once the CRM was
+ * backfilled — so a rebuild is tens of megabytes off the database. A backfill
+ * writes on every chunk, so thirteen chunks dropped the cache thirteen times
+ * and every page view in between paid for a full replay. That is what exhausted
+ * the Neon transfer quota and took the whole app down with HTTP 402: not one
+ * expensive query, but a cheap one made unboundedly often.
+ *
+ * So a stale snapshot keeps being served until `MIN_REBUILD_MS` has passed.
+ * The cost is freshness measured in minutes on a screen whose sources poll
+ * every fifteen; the alternative is a rebuild per write, which is what the
+ * quota actually bought. `dropEntities(id, { now: true })` still forces one
+ * where a reader must not see stale data — storing a credential changes which
+ * demo rows replay, and the operator is looking at the result. */
+const MIN_REBUILD_MS = 5 * 60_000;
+const staleAt = new Map();
+
+function dropEntities(workspaceId = null, { now = false } = {}) {
+  const ids = workspaceId ? [workspaceId] : [...entityCache.keys()];
+  for (const id of ids) {
+    if (now) { entityCache.delete(id); staleAt.delete(id); continue; }
+    if (!staleAt.has(id)) staleAt.set(id, Date.now());
+  }
+  if (!workspaceId && now) entityCache.clear();
+}
+
+/* Whether the snapshot for a workspace should be rebuilt now. */
+function shouldRebuild(workspaceId) {
+  if (!entityCache.has(workspaceId)) return true;
+  const since = staleAt.get(workspaceId);
+  return Boolean(since) && Date.now() - since >= MIN_REBUILD_MS;
 }
 
 /* Which medium the stores run on is decided once, in lib/store, from whether
@@ -1347,8 +1379,9 @@ app.post('/connections/:source',
          is told it was saved, and the next request finds nothing there. */
       await connections.flush();
       /* Connecting a source retires its demo rows, so the entities change
-         without a sync having written anything. */
-      dropEntities(req.workspace);
+         without a sync having written anything — and the operator is looking
+         straight at the result, so this one rebuilds immediately. */
+      dropEntities(req.workspace, { now: true });
       return res.redirect(303, `/connections?saved=${encodeURIComponent(`${source} saved. The credential is encrypted and will not be shown again.`)}`);
     } catch (err) {
       /* The message names the field and what the value looked like — never the
@@ -1405,7 +1438,7 @@ app.post('/connections/:source/remove',
     await connections.flush();
     /* Disconnecting puts the source's fixtures back into the replay, which is
        the same change in the other direction. */
-    dropEntities(req.workspace);
+    dropEntities(req.workspace, { now: true });
     return res.redirect(303, `/connections?saved=${encodeURIComponent(`${req.params.source} disconnected — it will read fixtures again.`)}`);
   });
 
