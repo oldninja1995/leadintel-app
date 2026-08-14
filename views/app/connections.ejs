@@ -327,6 +327,12 @@ const openSource = canManage
                 </button>
                 <% if (c.configured) { %>
                   <button type="submit" formaction="/connections/<%= c.source %>/test" class="li-conn-secondary"><i class="ph ph-pulse"></i>Test</button>
+                  <%# A year of history, a week per round trip. The window is
+                      too wide for one request — see the backfill route — so the
+                      button carries where the last press stopped and continues
+                      from there. %>
+                  <button type="submit" formaction="/connections/<%= c.source %>/backfill" name="days" value="365" class="li-conn-secondary" title="Fetch a year of history, continuing from where the last press stopped"><i class="ph ph-clock-counter-clockwise"></i>Fetch 365 days</button>
+                  <input type="hidden" name="before" value="<%= locals.before || '' %>">
                   <% if (c.source === 'google_ads') { %>
                     <button type="submit" formaction="/connections/<%= c.source %>/accounts" class="li-conn-secondary" title="Ask Google which accounts these credentials can reach"><i class="ph ph-list-magnifying-glass"></i>List accounts</button>
                   <% } %>

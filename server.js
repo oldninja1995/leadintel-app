@@ -1227,7 +1227,7 @@ app.post('/schedules/run', express.json(), gatekeeper.gate('schedule.run'), (req
    connector read fixtures. Owner only: a credential can read a whole external
    system. */
 async function renderConnections(req, res, {
-  error = null, saved = null, mintedToken = null, errorSource = null, accounts = null,
+  error = null, saved = null, mintedToken = null, errorSource = null, accounts = null, before = null,
 } = {}) {
   const screen = (await repo.screens()).find((s) => s.slug === 'connections');
 
@@ -1277,6 +1277,7 @@ async function renderConnections(req, res, {
       errorSource,
       /* The account list, only for the source it was fetched for. */
       accounts,
+      before,
       workspaceName: auth.identity.workspace(req.workspace).name,
       canManage: auth.permissions.can(req.user, 'connection.manage'),
       secretSet: Boolean(process.env.LEADINTEL_SECRET),
@@ -1297,6 +1298,9 @@ app.get('/connections', (req, res, next) => {
     error: req.query.error || null,
     saved: req.query.saved || null,
     errorSource: req.query.source || null,
+    /* Where a part-finished backfill stopped, so the button continues rather
+       than starting the year again. */
+    before: req.query.before || null,
   }).catch(next);
 });
 
@@ -1427,6 +1431,78 @@ app.post('/connections/:source/test',
     await connections.flush();
     const query = `${result.ok ? 'saved' : 'error'}=${encodeURIComponent(`${source}: ${result.detail}`)}`;
     return res.redirect(303, `/connections?source=${encodeURIComponent(source)}&${query}`);
+  });
+
+/* Fetch a year of history for one source, from the screen.
+ *
+ * Backfills were a curl with the cron secret, which is fine for me and not a
+ * feature. The reason it needed one at all is that a wide window cannot be
+ * asked for in a single request: TeleCRM caps a page at 100 rows and this
+ * workspace creates ~260 leads a day, so a year is thousands of sequential
+ * round trips against a 60-second function ceiling. Two attempts at
+ * `days=365` simply timed out.
+ *
+ * So this walks **backwards a week at a time** and stops when the invocation
+ * budget is nearly spent, reporting the date it reached. Pressing the button
+ * again continues from there — the `before` field carries the position, and
+ * the raw store deduplicates the overlap, so a double press costs time and
+ * never correctness.
+ */
+const BACKFILL_CHUNK_DAYS = 7;
+
+app.post('/connections/:source/backfill',
+  express.urlencoded({ extended: false }), express.json(),
+  gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'backfill' })),
+  async (req, res) => {
+    const source = req.params.source;
+    const definition = ingest.sources.get(source);
+    if (!definition) return res.redirect(303, `/connections?error=${encodeURIComponent(`unknown source "${source}"`)}`);
+
+    const asked = Math.min(Number(req.body.days) || 365, 400);
+    /* Where this press starts. Absent means today; the button carries the last
+       date reached so a second press does not re-fetch what the first got. */
+    const startAt = Date.parse(req.body.before);
+    let cursor = Number.isFinite(startAt) ? startAt : Date.now();
+    const floor = (Number.isFinite(startAt) ? startAt : Date.now()) - asked * 86400000;
+
+    const startedAt = Date.now();
+    let pulled = 0;
+    let written = 0;
+    let chunks = 0;
+    let failure = null;
+
+    while (cursor > floor && Date.now() - startedAt < SYNC_BUDGET_MS) {
+      const to = new Date(cursor).toISOString();
+      const from = new Date(Math.max(cursor - BACKFILL_CHUNK_DAYS * 86400000, floor)).toISOString();
+      FORCED_WINDOW = { from, to };
+      let run;
+      try {
+        run = await runner.runOne(source);
+      } finally {
+        FORCED_WINDOW = null;
+      }
+      pulled += run.pulled || 0;
+      written += run.written || 0;
+      chunks += 1;
+      /* A chunk that fails wholesale stops the walk: continuing would burn the
+         budget repeating one error a week at a time. */
+      if (!run.ok) { failure = run.error; break; }
+      cursor = Date.parse(from);
+    }
+
+    await runner.log.flush();
+
+    const reached = new Date(cursor).toISOString().slice(0, 10);
+    const done = cursor <= floor;
+    const detail = failure
+      ? `${source}: stopped at ${reached} — ${failure}`
+      : `${source}: ${written} row(s) written from ${chunks} week(s), back to ${reached}`
+        + (done ? '' : ' — press again to continue');
+
+    const key = failure ? 'error' : 'saved';
+    return res.redirect(303, `/connections?source=${encodeURIComponent(source)}`
+      + `&${key}=${encodeURIComponent(detail)}`
+      + (done || failure ? '' : `&before=${encodeURIComponent(new Date(cursor).toISOString())}`));
   });
 
 /* Mints the credential a pushing source uses to call `/ingest/webhook/:source`.
