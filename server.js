@@ -42,6 +42,7 @@ const ota = require('./lib/ota');
 const hardening = require('./lib/http/hardening');
 const observability = require('./lib/http/observability');
 const store = require('./lib/store');
+const snapshot = require('./lib/store/snapshot');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -89,10 +90,19 @@ const entityCache = new Map();
    it must see the same entities the screens do or a headline could be computed
    over invented rows the table below it no longer shows. */
 function snapshotFor(workspaceId) {
-  return ingest.snapshot({
-    store: ingest.storeFor(workspaceId),
-    connected: ingest.liveSources({ connections, workspace: workspaceId, httpConnectors }),
-  });
+  const connected = ingest.liveSources({ connections, workspace: workspaceId, httpConnectors });
+  const build = () => ingest.snapshot({ store: ingest.storeFor(workspaceId), connected });
+
+  /* On Postgres the built snapshot is materialised and read back as one
+     compressed row — see lib/store/snapshot.js. Replaying 25,000 envelopes to
+     draw a dashboard is what exhausted a transfer quota and took the app down;
+     a cache in front of it makes that read rarer, not cheaper, and every cold
+     instance still paid full price.
+
+     On the file store nothing changes: the replay is a local read, there is no
+     transfer to save, and every test exercises this path. */
+  if (!store.usingPostgres()) return build();
+  return snapshot.through(workspaceId, { connected: [...connected], build });
 }
 
 /* Filling the cache is the async half; reading it is not.
