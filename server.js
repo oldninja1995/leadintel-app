@@ -417,6 +417,17 @@ function resolveMetrics(payload, workspaceId, over = null) {
     previous,
     useRegistryValues: USE_REGISTRY_VALUES,
     valuesFor: (label) => periodValues(workspaceId, label, at),
+    /* A card's own grain overrides the screen's. The dashboard is a workspace
+       screen carrying two tiles about one channel each, so the narrowing has to
+       come from the card rather than the payload. `metricValues` is keyed by
+       grain *and* window, so the two extra tiles cost two cached evaluations
+       per range, not two per request. */
+    valuesAt: (cardAt, label) => (label
+      ? periodValues(workspaceId, label, cardAt)
+      : {
+        ...metricValues(workspaceId, cardAt, over),
+        previous: back ? metricValues(workspaceId, cardAt, back).values : null,
+      }),
   });
 }
 

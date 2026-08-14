@@ -175,3 +175,99 @@ test('the dashboard resolves against real ingested values end to end', () => {
   const adr = out.miniKpis.find((k) => k.metric === 'rate.adr');
   assert.equal(adr.value, '₹14,267');
 });
+
+/* ── a card about one grain ─────────────────────────────────────────────── */
+
+/* The screen is the workspace; the tile is one channel. Evaluated the way
+   server.js does it, so what these assert is what renders. */
+const atPayload = () => ({
+  miniKpis: [
+    { metric: 'ads.spend', at: { dimension: 'channel', value: 'meta' }, label: 'Meta spend', value: '₹7.6L' },
+    { metric: 'ads.spend', at: { dimension: 'channel', value: 'google' }, label: 'Google spend', value: '₹3.3L' },
+    { metric: 'ads.spend', label: 'Ad spend', value: '₹10.9L' },
+  ],
+});
+
+const entities = () => ingest.snapshot({ store: ingest.storeFor('parakkat') });
+
+const scopedResolve = (extra = {}) => {
+  const e = entities();
+  const workspace = metrics.evaluate(e);
+  return resolve.resolve(atPayload(), {
+    values: workspace.values,
+    notApplicable: workspace.notApplicable,
+    useRegistryValues: true,
+    valuesAt: (at) => metrics.evaluate(e, { at }),
+    ...extra,
+  });
+};
+
+test('a card declaring a grain takes that grain\'s figure, not the workspace\'s', () => {
+  const out = scopedResolve().miniKpis;
+  const meta = out[0];
+  const google = out[1];
+  const blended = out[2];
+
+  assert.equal(meta.valueSource, 'registry');
+  assert.equal(google.valueSource, 'registry');
+  assert.notEqual(meta.value, blended.value, 'the Meta tile printed the workspace total');
+  assert.notEqual(google.value, blended.value, 'the Google tile printed the workspace total');
+  assert.equal(meta.metricAt, 'channel:meta', 'the tile did not state which slice it is');
+  assert.equal(google.metricAt, 'channel:google');
+});
+
+test('the split adds back up to the blended figure', () => {
+  /* The reason this metric could be split at all: `ads.spend` sums campaign
+     days, every campaign day carries a platform, and the two channels
+     partition them. A tile pair that did not reconcile with the total on the
+     Marketing dashboard would be worse than the one tile it replaced. */
+  const e = entities();
+  const total = metrics.evaluate(e).values['ads.spend'];
+  const meta = metrics.evaluate(e, { at: { dimension: 'channel', value: 'meta' } }).values['ads.spend'];
+  const google = metrics.evaluate(e, { at: { dimension: 'channel', value: 'google' } }).values['ads.spend'];
+
+  assert.equal(meta + google, total, 'Meta and Google spend do not sum to total ad spend');
+});
+
+test('a card with a grain keeps its definition and the one registry entry', () => {
+  const out = scopedResolve().miniKpis;
+  /* Two cards, one definition — that is the whole point of not minting
+     `ads.spend.meta`. */
+  assert.equal(out[0].metric, 'ads.spend');
+  assert.equal(out[1].metric, 'ads.spend');
+  assert.equal(out[0].metricName, out[1].metricName);
+  assert.equal(out[0].metricOwner, 'Marketing Director');
+});
+
+test('the previous-period comparison is narrowed to the same grain', () => {
+  /* Meta this period against the workspace last period would report a change
+     nobody made — and would do it in the direction that flatters whichever
+     platform is smaller. */
+  const seen = [];
+  scopedResolve({
+    valuesAt: (at) => {
+      seen.push(at.value);
+      return {
+        ...metrics.evaluate(entities(), { at }),
+        /* A deliberately distinctive figure: if the card compares against the
+           workspace's previous instead, the delta cannot come out at this. */
+        previous: { 'ads.spend': 0 },
+      };
+    },
+  });
+  assert.deepEqual(seen, ['meta', 'google'], 'the scoped evaluation was not asked for per card');
+});
+
+test('a card whose grain cannot be evaluated falls back rather than inventing one', () => {
+  /* `valuesAt` returning null is a screen that could not narrow — the card
+     drops to the workspace evaluation it would have had before, never to a
+     blank or a zero. */
+  const out = resolve.resolve(atPayload(), {
+    values: { 'ads.spend': 27991774 },
+    useRegistryValues: true,
+    valuesAt: () => null,
+  }).miniKpis;
+
+  assert.equal(out[0].value, out[2].value, 'a card that could not be narrowed did not fall back');
+  assert.equal(out[0].metricAt, undefined, 'a card claimed a grain it was never evaluated at');
+});

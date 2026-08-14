@@ -49,7 +49,19 @@ module.exports = {
   ],
 
   miniKpis: [
-    { metric: 'ads.spend', label: 'Ad spend', value: '₹10.9L', delta: '+3.1%', deltaColor: NA, tip: 'Meta and Google combined', ...SRC.ads },
+    /* One metric, two grains — `ads.spend` at `channel:meta` and
+       `channel:google`. Split because the blended tile answered a question
+       nobody asks: the two platforms are bought, budgeted and judged
+       separately, and a single figure moving tells you nothing about which one
+       moved. The combined total is still on the Marketing dashboard, which
+       says so in its own tooltip; adding the platforms together is that
+       screen's job and not this one's.
+
+       These stay two cards over one registry entry rather than becoming
+       `ads.spend.meta` and `ads.spend.google` — see lib/metrics/resolve.js.
+       The authored figures still sum to the ₹10.9L this tile used to show. */
+    { metric: 'ads.spend', at: { dimension: 'channel', value: 'meta' }, label: 'Meta spend', value: '₹7.6L', delta: '+2.4%', deltaColor: NA, tip: 'Meta Ads only — Google is the tile beside it', ...SRC.ads },
+    { metric: 'ads.spend', at: { dimension: 'channel', value: 'google' }, label: 'Google spend', value: '₹3.3L', delta: '+4.7%', deltaColor: NA, tip: 'Google Ads only — Meta is the tile beside it', ...SRC.ads },
     { metric: 'cost.per_lead', label: 'CPL', value: '₹427', delta: '−18%', deltaColor: UP, tip: 'Cost per qualified lead', ...SRC.blended },
     { metric: 'cost.per_booking', label: 'Cost per booking', value: '₹3,480', delta: '−11%', deltaColor: UP, tip: 'Paid spend per confirmed booking', ...SRC.blended },
     { metric: 'rate.adr', label: 'ADR', value: '₹8,940', delta: '+6.0%', deltaColor: UP, tip: 'Average daily rate', ...SRC.pms },
