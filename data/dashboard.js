@@ -62,7 +62,17 @@ module.exports = {
        The authored figures still sum to the ₹10.9L this tile used to show. */
     { metric: 'ads.spend', at: { dimension: 'channel', value: 'meta' }, label: 'Meta spend', value: '₹7.6L', delta: '+2.4%', deltaColor: NA, tip: 'Meta Ads only — Google is the tile beside it', ...SRC.ads },
     { metric: 'ads.spend', at: { dimension: 'channel', value: 'google' }, label: 'Google spend', value: '₹3.3L', delta: '+4.7%', deltaColor: NA, tip: 'Google Ads only — Meta is the tile beside it', ...SRC.ads },
-    { metric: 'cost.per_lead', label: 'CPL', value: '₹427', delta: '−18%', deltaColor: UP, tip: 'Cost per qualified lead', ...SRC.blended },
+    /* Split for the same reason spend is, and one more: **the CRM holds organic
+       and referral leads beside the paid ones.** Blended CPL divided paid spend
+       by every lead in the CRM — 2,554 of them — which is not a cost per lead
+       at all. It reads ₹53 and falls whenever the website has a good week,
+       which looks like advertising getting cheaper.
+
+       Each tile now divides a channel's spend by the leads that channel is
+       tagged with. An untagged lead counts toward neither: it is unattributed,
+       not organic, and guessing would move both figures. */
+    { metric: 'cost.per_lead', at: { dimension: 'channel', value: 'meta' }, label: 'Meta CPL', value: '₹352', delta: '−12%', deltaColor: UP, tip: 'Meta spend ÷ leads tagged to Meta', ...SRC.ads },
+    { metric: 'cost.per_lead', at: { dimension: 'channel', value: 'google' }, label: 'Google CPL', value: '₹541', delta: '−6%', deltaColor: UP, tip: 'Google spend ÷ leads tagged to Google', ...SRC.ads },
     { metric: 'cost.per_booking', label: 'Cost per booking', value: '₹3,480', delta: '−11%', deltaColor: UP, tip: 'Paid spend per confirmed booking', ...SRC.blended },
     { metric: 'rate.adr', label: 'ADR', value: '₹8,940', delta: '+6.0%', deltaColor: UP, tip: 'Average daily rate', ...SRC.pms },
     { metric: 'rate.revpar', label: 'RevPAR', value: '₹6,973', delta: '+9.2%', deltaColor: UP, tip: 'Revenue per available room', ...SRC.pms },

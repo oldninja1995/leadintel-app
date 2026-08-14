@@ -396,3 +396,23 @@ test('lead_event declines rather than timing out the whole sync', async () => {
     /webhook/
   );
 });
+
+/* ── which channel produced a lead ──────────────────────────────────────── */
+
+test('a lead with a facebook campaign is tagged to meta', () => {
+  assert.equal(telecrm.leadBody({ id: 'l1', fields: { phone: '91', facebook_campaign: 'S1 Leads Prosp KL' } }).channel, 'meta');
+});
+
+test('a lead whose source names Google is tagged to google', () => {
+  assert.equal(telecrm.leadBody({ id: 'l1', fields: { phone: '91', source: 'Google Ads' } }).channel, 'google');
+});
+
+test('an untagged lead is null, never organic', () => {
+  /* Nothing can tell a genuinely organic lead from one whose campaign field was
+     never filled in. Calling it organic credits paid demand to the website. */
+  assert.equal(telecrm.leadBody({ id: 'l1', fields: { phone: '91' } }).channel, null);
+});
+
+test('a source that is neither is "other" rather than forced into one', () => {
+  assert.equal(telecrm.leadBody({ id: 'l1', fields: { phone: '91', source: 'Walk-in' } }).channel, 'other');
+});

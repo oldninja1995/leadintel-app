@@ -218,3 +218,21 @@ test('the real fixtures scope to a property with inventory attached', () => {
   assert.equal(report.metrics.find((m) => m.id === 'inventory.available').display, '42');
   assert.equal(report.metrics.find((m) => m.id === 'occupancy.rate').display, '79%');
 });
+
+test('leads narrow by channel, so a cost per lead can be per platform', () => {
+  /* The CRM holds organic leads beside paid ones, so blended CPL divided paid
+     spend by all of them — a figure that improves when the website has a good
+     week. */
+  assert.ok(scope.SCOPEABLE.leads.includes('channel'));
+  assert.equal(scope.supports('cost.per_lead', 'channel'), true);
+});
+
+test('an untagged lead belongs to no channel at all', () => {
+  const entities = {
+    campaignDays: [], leads: [
+      { id: 'a', channel: 'meta' }, { id: 'b', channel: null }, { id: 'c', channel: 'google' },
+    ], bookings: [], leadEvents: [], inventoryDays: [], payments: [], problems: [],
+  };
+  assert.deepEqual(scope.scope(entities, 'channel', 'meta').leads.map((l) => l.id), ['a']);
+  assert.deepEqual(scope.scope(entities, 'channel', 'google').leads.map((l) => l.id), ['c']);
+});
