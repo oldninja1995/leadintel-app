@@ -34,7 +34,7 @@ test('every source is registered with a connector', () => {
      something a number quietly absorbs. */
   assert.deepEqual(sources.list().map((s) => s.id).sort(), [
     'agoda', 'airbnb', 'booking_com', 'expedia', 'goibibo', 'google_ads',
-    'makemytrip', 'meta_ads', 'pms', 'razorpay', 'telecrm',
+    'google_analytics', 'makemytrip', 'meta_ads', 'pms', 'razorpay', 'telecrm',
   ]);
   for (const s of sources.list()) assert.ok(connectors.get(s.id), `${s.id} has no connector`);
 });
