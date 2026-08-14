@@ -2597,7 +2597,29 @@ function screenRoute(screen) {
       /* 6.4 — every KPI card that names a registry metric carries its
          definition from here on, whichever driver supplied the payload. */
       const params = readParams(req.query);
-      const unfiltered = resolveMetrics((await repo.read(screen.view, params)) || {}, req.workspace, params.over);
+      const payload = (await repo.read(screen.view, params)) || {};
+
+      /* A topbar chip narrows the *metrics*, not only the rows.
+       *
+       * The chips were row filters: choosing Google left every KPI above the
+       * table reading the blended figure, so a screen could say "Google" at the
+       * top and show Meta's spend underneath. Whatever the reader concluded
+       * from that was wrong, and nothing on the page said so.
+       *
+       * A chosen dimension the scope layer understands now becomes the screen's
+       * `metricScope`, which `resolveMetrics` already knows how to evaluate at —
+       * the same machinery a campaign drill-down uses. A metric that is not
+       * meaningful at that grain reports itself as not measured there rather
+       * than quietly reusing the workspace figure. A screen that names its own
+       * scope keeps it: a drill-down is already about one campaign. */
+      if (!payload.metricScope) {
+        const chosen = metrics.scope.DIMENSIONS
+          .map((dimension) => ({ dimension, value: req.query[dimension] }))
+          .find((d) => d.value);
+        if (chosen) payload.metricScope = { dimension: chosen.dimension, value: String(chosen.value).toLowerCase() };
+      }
+
+      const unfiltered = resolveMetrics(payload, req.workspace, params.over);
 
       /* Filtering sits between the repository and the view: it narrows rows the
          repository returned rather than asking it a narrower question, because
