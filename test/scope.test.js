@@ -258,3 +258,18 @@ test('reservation value is not folded into net revenue', () => {
   assert.ok(!registry.get('revenue.net').sources.includes('crm')
     || registry.get('revenue.net').id !== 'revenue.reservations');
 });
+
+test('a cancelled reservation is excluded from reservation value', () => {
+  /* A won lead whose booking was later cancelled keeps its value in the CRM.
+     Summing every deal counted money nobody is going to receive. */
+  const registry = require('../lib/metrics/registry');
+  const source = registry.get('revenue.reservations').source;
+  const deals = [
+    { revenue: 100000, bookingStatus: 'Confirmed' },
+    { revenue: 50000, bookingStatus: 'Cancelled' },
+    { revenue: 25000, bookingStatus: null },
+  ];
+  /* Confirmed plus the one with no status — an unrecognised status counts,
+     so this fails towards including real revenue rather than hiding it. */
+  assert.equal(source({ deals }), 125000);
+});
