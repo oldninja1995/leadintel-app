@@ -124,6 +124,12 @@ module.exports = {
      * one unreachable number that writes in every day would otherwise read as a
      * month of unreachable customers and send somebody to argue with the
      * agency. Hidden under Non-ad, where they are a structural zero. */
+    /* The same pair, counted the same way, for the other end of the funnel.
+       Beside the lead-level Interested tiles above on purpose: the gap between
+       them IS the repeat rate, and seeing both is how anybody notices that one
+       person wrote in four times. */
+    { metric: 'leads.interested_customers', label: 'Interested customers', value: '—', delta: '·', deltaColor: NA, tip: 'People from Meta and Google leads who reached interested or better — one person counts once, however many times they enquired', ...SRC.crm },
+    { metric: 'leads.interested_customer_rate', label: 'Interested customer rate', value: '—', delta: '·', deltaColor: NA, tip: 'Interested customers ÷ every customer paid media produced — both sides are people, so it reads above the lead-level rate', ...SRC.crm },
     { metric: 'leads.nc_customers', label: 'NC customers', value: '—', delta: '·', deltaColor: NA, tip: 'People from Meta and Google leads the phone never reached — ringing no answer, not available, busy or switched off. One person counts once', ...SRC.crm },
     { metric: 'leads.nc_rate', label: 'NC rate', value: '—', delta: '·', deltaColor: NA, tip: 'NC customers ÷ every customer paid media produced — both sides are people, not enquiries', ...SRC.crm },
     { metric: 'leads.conversion_rate', label: 'Lead → won', value: '4.2%', delta: '·', deltaColor: NA, tip: 'Share of leads that became a won reservation', ...SRC.crm },

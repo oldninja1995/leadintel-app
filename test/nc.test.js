@@ -177,6 +177,69 @@ test('the channel chip narrows it further, so Meta alone is a selection', () => 
   assert.equal(meta['leads.ad_customers'], 2);
 });
 
+/* ── interested, counted in people ──────────────────────────────────────── */
+
+test('interested customers counts the person once however often they enquired', () => {
+  /* The gap against `leads.interested` IS the repeat rate, and the two are not
+     a discrepancy: one counts enquiries showing interest, the other the people
+     behind them. */
+  const leads = stamped([
+    lead({ id: 'L-1', phone: '9000000001', stage: 'Interested', createdAt: iso(9 * DAY) }),
+    lead({ id: 'L-2', phone: '9000000001', stage: 'Interested', createdAt: iso(5 * DAY) }),
+    lead({ id: 'L-3', phone: '9000000001', stage: 'Hot', createdAt: iso(1 * DAY) }),
+    lead({ id: 'L-4', phone: '9000000002', stage: 'Fresh' }),
+  ]);
+  const { values } = metrics.evaluate({ leads, campaignDays: [], bookings: [], payments: [], deals: [] });
+
+  assert.equal(values['leads.interested'], 3, 'three enquiries showed interest');
+  assert.equal(values['leads.interested_customers'], 1, 'one person did');
+  assert.equal(values['leads.ad_customers'], 2);
+  assert.equal(values['leads.interested_customer_rate'], 0.5);
+});
+
+test('interest shown once and gone quiet later still counts', () => {
+  /* Same rule NC uses — any enquiry of the customer's matching is enough. A
+     person who was interested in June and unreachable in August is both an
+     interested customer and an NC customer, and that is the truth about them. */
+  const leads = stamped([
+    lead({ id: 'L-1', phone: '9000000001', stage: 'Interested', createdAt: iso(60 * DAY) }),
+    lead({ id: 'L-2', phone: '9000000001', stage: 'Ringing no answer', createdAt: iso(1 * DAY) }),
+  ]);
+  const { values } = metrics.evaluate({ leads, campaignDays: [], bookings: [], payments: [], deals: [] });
+
+  assert.equal(values['leads.interested_customers'], 1);
+  assert.equal(values['leads.nc_customers'], 1);
+  assert.equal(values['leads.ad_customers'], 1, 'one person, counted once in the base');
+});
+
+test('the customer rate falls below the lead rate when the KEEN are the repeaters', () => {
+  /* Two interested enquiries from one person become one interested customer,
+     so the numerator halves while the base only drops a third. */
+  const keen = stamped([
+    lead({ id: 'L-1', phone: '9000000001', stage: 'Interested', createdAt: iso(9 * DAY) }),
+    lead({ id: 'L-2', phone: '9000000001', stage: 'Interested', createdAt: iso(5 * DAY) }),
+    lead({ id: 'L-3', phone: '9000000002', stage: 'Fresh' }),
+  ]);
+  const { values } = metrics.evaluate({ leads: keen, campaignDays: [], bookings: [], payments: [], deals: [] });
+
+  assert.equal(values['leads.interested_rate'], 2 / 3);
+  assert.equal(values['leads.interested_customer_rate'], 1 / 2);
+});
+
+test('and rises above it when the UNREACHABLE are the repeaters', () => {
+  /* The mirror, and the reason the metric refuses to claim a direction: here
+     it is the base that collapses, not the numerator. */
+  const noisy = stamped([
+    lead({ id: 'L-1', phone: '9000000001', stage: 'Busy', createdAt: iso(9 * DAY) }),
+    lead({ id: 'L-2', phone: '9000000001', stage: 'Busy', createdAt: iso(5 * DAY) }),
+    lead({ id: 'L-3', phone: '9000000002', stage: 'Interested' }),
+  ]);
+  const { values } = metrics.evaluate({ leads: noisy, campaignDays: [], bookings: [], payments: [], deals: [] });
+
+  assert.equal(values['leads.interested_rate'], 1 / 3);
+  assert.equal(values['leads.interested_customer_rate'], 1 / 2);
+});
+
 test('every ad-only metric really does filter on a paid channel', () => {
   /* What keeps the hand-written list in resolve.js honest: each id named there
      must ignore a lead with no channel. Without this the list rots into ids
