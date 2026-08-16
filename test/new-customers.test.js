@@ -242,3 +242,55 @@ test('the metrics are answerable at every grain the leads collection supports', 
     assert.equal(scope.supports(id, 'campaign', 'monsoon'), true);
   }
 });
+
+/* ── RC, the returning half ─────────────────────────────────────────────── */
+
+test('a returning customer is RC and their first enquiry is not', () => {
+  const leads = stamped([
+    lead({ id: 'L-1', phone: '9876543210', createdAt: iso(200 * DAY) }),
+    lead({ id: 'L-2', phone: '9876543210', createdAt: iso(1 * DAY) }),
+  ]);
+  const values = evaluate(leads);
+
+  assert.equal(values['leads.repeat_customers'], 1);
+  assert.equal(values['leads.new_customers'], 1, 'the same person, seen both ways');
+  assert.equal(values['leads.ad_customers'], 1);
+});
+
+test('NC % and RC % do NOT sum to 100 — the two overlap', () => {
+  /* One person, first and second enquiry both inside the window. They are a
+     new customer AND a returning one, so drawing these as two halves of a bar
+     would claim 200% of the base. */
+  const leads = stamped([
+    lead({ id: 'L-1', phone: '9876543210', createdAt: iso(20 * DAY) }),
+    lead({ id: 'L-2', phone: '9876543210', createdAt: iso(1 * DAY) }),
+  ]);
+  const values = evaluate(leads);
+
+  assert.equal(values['leads.new_customer_rate'], 1);
+  assert.equal(values['leads.repeat_customer_rate'], 1);
+  assert.equal(
+    values['leads.new_customer_rate'] + values['leads.repeat_customer_rate'],
+    2,
+    'they overlap by construction; nothing may present them as a split',
+  );
+});
+
+test('RC is zero when nobody has enquired before, rather than unknown', () => {
+  const leads = stamped([
+    lead({ id: 'L-1', phone: '9000000001' }),
+    lead({ id: 'L-2', phone: '9000000002' }),
+  ]);
+  const values = evaluate(leads);
+
+  assert.equal(values['leads.repeat_customers'], 0);
+  assert.equal(values['leads.repeat_customer_rate'], 0);
+  assert.equal(values['leads.new_customer_rate'], 1);
+});
+
+test('an unstamped lead is neither new nor returning', () => {
+  /* `repeat` undefined is an absent measurement. It must not fall into either
+     bucket, or one of the two rates starts counting missing data. */
+  assert.equal(registry.isNewCustomer({ id: 'X' }), false);
+  assert.equal(registry.isReturningCustomer({ id: 'X' }), false);
+});

@@ -132,8 +132,19 @@ module.exports = {
      *
      * All four are PEOPLE rather than enquiries, and all four are paid leads
      * only. Hidden under Non-ad, where they are a structural zero. */
-    { metric: 'leads.new_customers', label: 'NC customers', value: '—', delta: '·', deltaColor: NA, tip: 'New customers — people from Meta and Google leads with no earlier enquiry in the last 365 days. One person counts once', ...SRC.crm },
+    { metric: 'leads.new_customers', label: 'NC leads', value: '—', delta: '·', deltaColor: NA, tip: 'New customers — people from Meta and Google leads with no earlier enquiry in the last 365 days. One person counts once', ...SRC.crm },
     { metric: 'leads.new_customer_rate', label: 'NC %', value: '—', delta: '·', deltaColor: NA, tip: 'New customers ÷ every customer paid media produced — both sides are people, not enquiries', ...SRC.crm },
+    /* RC beside NC, and NOT as its complement — the two overlap, because
+       somebody whose first and second enquiries both land in the window is in
+       both. Never draw these as two halves of one bar.
+
+       Expect RC to read near zero here: of 475 Meta leads sampled from this
+       workspace, none shared a phone with another Meta lead. Returning guests
+       call, walk in or come through an agency; they do not fill the ad form
+       again. So this measures re-engagement BY ADVERTISING, which is a real and
+       much smaller thing than the resort's repeat business. */
+    { metric: 'leads.repeat_customers', label: 'RC count', value: '—', delta: '·', deltaColor: NA, tip: 'Returning customers — people from Meta and Google leads who had enquired before within 365 days. Reads low because repeat guests rarely re-submit an ad form', ...SRC.crm },
+    { metric: 'leads.repeat_customer_rate', label: 'RC %', value: '—', delta: '·', deltaColor: NA, tip: 'Returning customers ÷ every customer paid media produced — does not sum with NC % to 100, since one person can be in both', ...SRC.crm },
     { metric: 'leads.new_customers_interested', label: 'NC interested leads', value: '—', delta: '·', deltaColor: NA, tip: 'New customers who reached interested or better — both conditions are about the person, so Fresh on the first enquiry and Interested on the second still counts', ...SRC.crm },
     { metric: 'leads.new_customers_interested_rate', label: 'NC interested leads %', value: '—', delta: '·', deltaColor: NA, tip: 'Interested new customers ÷ new customers — the quality of newly acquired demand, not of every customer', ...SRC.crm },
     { metric: 'leads.conversion_rate', label: 'Lead → won', value: '4.2%', delta: '·', deltaColor: NA, tip: 'Share of leads that became a won reservation', ...SRC.crm },
