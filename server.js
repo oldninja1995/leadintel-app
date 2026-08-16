@@ -1578,9 +1578,36 @@ app.post('/connections/:source/backfill',
     let written = 0;
     let chunks = 0;
     let failure = null;
+    /* The longest chunk this press has taken, and it is the reason the walk
+       stops when it does — see `roomForAnother`. */
+    let slowest = 0;
 
-    while (!backfill.done(cursor, floor) && Date.now() - startedAt < SYNC_BUDGET_MS) {
+    /* Whether there is time for ANOTHER chunk, not merely whether the budget
+     * has already run out.
+     *
+     * Checking elapsed time alone is what produced the 504s: a chunk that
+     * starts at 39s against a 40s budget passes the check and is then killed
+     * at 60s by the platform, mid-flight. The press returns nothing at all —
+     * no redirect, no cursor, no message — so the operator sees a spinner turn
+     * into an error page and the walk loses its position.
+     *
+     * A chunk is the unit of work that can overrun, so the budget has to be
+     * read against a chunk rather than against the clock. The longest one seen
+     * so far is the estimate; there is no prior for the first, which is why
+     * one chunk is always attempted — a press that walks nowhere is worse than
+     * one that risks the ceiling.
+     *
+     * A quarter is added because these get slower as the walk goes back: the
+     * history is denser and the pages are fuller. */
+    const roomForAnother = () => {
+      const elapsed = Date.now() - startedAt;
+      if (!chunks) return elapsed < SYNC_BUDGET_MS;
+      return elapsed + slowest * 1.25 < SYNC_BUDGET_MS;
+    };
+
+    while (!backfill.done(cursor, floor) && roomForAnother()) {
       const window = backfill.chunk(cursor, floor);
+      const chunkAt = Date.now();
       FORCED_WINDOW = window;
       let run;
       try {
@@ -1588,6 +1615,7 @@ app.post('/connections/:source/backfill',
       } finally {
         FORCED_WINDOW = null;
       }
+      slowest = Math.max(slowest, Date.now() - chunkAt);
       pulled += run.pulled || 0;
       written += run.written || 0;
       chunks += 1;
@@ -1616,11 +1644,11 @@ app.post('/connections/:source/backfill',
 
     const reached = new Date(cursor).toISOString().slice(0, 10);
     const done = backfill.done(cursor, floor);
-    const weeksLeft = backfill.weeksLeft(cursor, floor);
+    const daysLeft = backfill.daysLeft(cursor, floor);
     const detail = failure
       ? `${source}: stopped at ${reached} — ${failure}`
-      : `${source}: ${written} row(s) written from ${chunks} week(s), back to ${reached}`
-        + (done ? ' — complete' : ` — ${weeksLeft} week(s) left, press again to continue`);
+      : `${source}: ${written} row(s) written from ${chunks} step(s), back to ${reached}`
+        + (done ? ` — complete, ${asked} days of history` : ` — ${daysLeft} more day(s) of history to fetch, press again to continue`);
 
     const key = failure ? 'error' : 'saved';
     return res.redirect(303, `/connections?source=${encodeURIComponent(source)}`

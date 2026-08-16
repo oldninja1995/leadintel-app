@@ -36,7 +36,7 @@ function press(before, days, chunks = 3, now = NOW) {
   }
   return {
     before: new Date(cursor).toISOString(),
-    weeksLeft: backfill.weeksLeft(cursor, floor),
+    stepsLeft: backfill.stepsLeft(cursor, floor), daysLeft: backfill.daysLeft(cursor, floor),
     done: backfill.done(cursor, floor),
   };
 }
@@ -44,7 +44,7 @@ function press(before, days, chunks = 3, now = NOW) {
 /* ── the property ───────────────────────────────────────────────────────── */
 
 test('repeated presses converge — the walk finishes', () => {
-  let state = { before: null, weeksLeft: Infinity, done: false };
+  let state = { before: null, stepsLeft: Infinity, daysLeft: Infinity, done: false };
   let presses = 0;
 
   while (!state.done) {
@@ -56,20 +56,22 @@ test('repeated presses converge — the walk finishes', () => {
   assert.ok(presses > 1, 'a year cannot fit in one press; this test would prove nothing');
 });
 
-test('weeks left never increases between presses', () => {
+test('the work remaining never increases between presses', () => {
   /* The exact shape of the production bug: it went 31 → 31 → 32 → 32. */
   let state = press(null, 365);
   let guard = 0;
 
-  while (!state.done && guard < 100) {
+  while (!state.done && guard < 200) {
     const next = press(state.before, 365);
     assert.ok(
-      next.weeksLeft <= state.weeksLeft,
-      `weeks left rose from ${state.weeksLeft} to ${next.weeksLeft} after walking back to ${next.before}`,
+      next.daysLeft <= state.daysLeft,
+      `days left rose from ${state.daysLeft} to ${next.daysLeft} after walking back to ${next.before}`,
     );
+    assert.ok(next.stepsLeft <= state.stepsLeft);
     state = next;
     guard += 1;
   }
+  assert.equal(state.done, true, 'the walk did not converge inside the guard');
 });
 
 test('the floor is anchored to now, not to where the press resumed', () => {
@@ -89,8 +91,8 @@ test('a press resumes where the last one stopped rather than starting over', () 
 
 test('the last chunk stops at the floor instead of overshooting it', () => {
   const floor = NOW - 10 * DAY;
-  const cursor = NOW - 8 * DAY;
-  /* Two days short of the floor, with a seven-day chunk: it must clamp, or the
+  const cursor = NOW - 9 * DAY;
+  /* One day short of the floor, with a multi-day chunk: it must clamp, or the
      walk fetches history nobody asked for and the store pays for it. */
   assert.equal(backfill.chunk(cursor, floor).from, new Date(floor).toISOString());
 });
@@ -118,5 +120,6 @@ test('a walk already past its floor is done, not negative', () => {
   const floor = NOW - 30 * DAY;
   const cursor = NOW - 400 * DAY;
   assert.equal(backfill.done(cursor, floor), true);
-  assert.equal(backfill.weeksLeft(cursor, floor), 0);
+  assert.equal(backfill.stepsLeft(cursor, floor), 0);
+  assert.equal(backfill.daysLeft(cursor, floor), 0);
 });

@@ -67,6 +67,39 @@
             <% }); %>
           </div>
 
+          <!--
+            What NC means, on the screen rather than in a tooltip.
+
+            It is a coined term, it is derived from four status words a human
+            chose in the CRM, and it is counted in people where every tile
+            beside it is counted in leads. A number like that read off a
+            dashboard without its definition gets quoted in a meeting as
+            something else — usually as "junk leads", which it is not: a lead
+            that answered and said no is not in here.
+
+            Rendered only when the tiles are, so it cannot outlive them on a
+            view where they have been hidden.
+          -->
+          <% var ncShown = (miniKpis || []).some(function (k) { return k.metric === 'leads.nc_customers' || k.metric === 'leads.nc_rate'; }); %>
+          <% if (ncShown) { %>
+            <div style="background:var(--color-surface); border-radius:10px; box-shadow:var(--shadow-sm); padding:10px 13px; margin-bottom:12px; display:flex; gap:9px; align-items:flex-start;">
+              <i class="ph ph-phone-x" style="font-size:14px; color:var(--color-accent-400); margin-top:1px;"></i>
+              <div style="font-size:11px; line-height:1.55; color:var(--color-neutral-400);">
+                <span style="color:var(--color-neutral-300); font-weight:500;">NC — not connected.</span>
+                A lead the phone never reached: <span style="color:var(--color-neutral-300);">ringing no answer</span>,
+                <span style="color:var(--color-neutral-300);">not available</span>,
+                <span style="color:var(--color-neutral-300);">busy</span> or
+                <span style="color:var(--color-neutral-300);">switched off</span>.
+                Counted as <span style="color:var(--color-neutral-300);">people, not enquiries</span> — one number that
+                writes in five times is one customer, matched on the phone across 365 days.
+                Paid leads only, so an untagged walk-in is in neither the count nor the rate.
+                <span style="color:var(--color-neutral-500);">Not interested</span> means the lead
+                <em>was</em> reached and is not counted here; <span style="color:var(--color-neutral-500);">fresh</span>
+                means nobody has dialled it yet and is in the rate's base but not its numerator.
+              </div>
+            </div>
+          <% } %>
+
           <!-- Row: revenue chart + funnel -->
           <div style="display:grid; grid-template-columns:2fr 1fr; gap:12px; margin-bottom:12px;">
             <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
