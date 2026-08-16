@@ -294,3 +294,101 @@ test('an unstamped lead is neither new nor returning', () => {
   assert.equal(registry.isNewCustomer({ id: 'X' }), false);
   assert.equal(registry.isReturningCustomer({ id: 'X' }), false);
 });
+
+/* ── NC ROAS ────────────────────────────────────────────────────────────── */
+
+/* Deals go through the real build too, so the first-time flag they carry is
+   whatever canonical inherits from the lead rather than a hand-set field. */
+function stampedWith(leads, deals) {
+  const records = [
+    ...leads.map((l, i) => ({
+      source: 'telecrm', kind: 'lead', externalId: l.id || `L-${i}`, checksum: 'x', transport: 'fixture',
+      body: {
+        lead_id: l.id, name: 'Guest', phone: l.phone, email: null, created_at: l.createdAt,
+        stage: l.stage, owner: null, utm_campaign: null, ad_id: null, property: null, channel: l.channel,
+      },
+    })),
+    ...deals.map((d) => ({
+      source: 'telecrm', kind: 'deal', externalId: d.id, checksum: 'x', transport: 'fixture',
+      body: {
+        /* `value`, not `revenue` — the deal mapper reads `b.value` through
+           n.money. Writing the wrong key here produces a null reservation
+           value and a silent zero, which is the same shape as the bug these
+           tests exist to catch. */
+        deal_id: d.id, lead_id: d.leadId, value: d.revenue, currency: 'INR', stage: d.stage || 'Won',
+        outcome: d.outcome || 'won', booking_status: d.bookingStatus || 'Confirmed',
+        updated_at: d.updatedAt || iso(1 * DAY), booking_ref: null,
+      },
+    })),
+  ];
+  const built = canonical.build(records);
+  return { leads: built.leads, deals: built.deals || [] };
+}
+
+test('a deal inherits the first-time flag from its lead', () => {
+  const { deals } = stampedWith(
+    [
+      lead({ id: 'L-1', phone: '9000000001', createdAt: iso(200 * DAY) }),
+      lead({ id: 'L-2', phone: '9000000001', createdAt: iso(2 * DAY) }),
+    ],
+    [{ id: 'D-1', leadId: 'L-1', revenue: 100000 }, { id: 'D-2', leadId: 'L-2', revenue: 200000 }],
+  );
+
+  assert.equal(deals.find((d) => d.id === 'D-1').repeat, false, 'first enquiry');
+  assert.equal(deals.find((d) => d.id === 'D-2').repeat, true, 'the same person, returning');
+});
+
+test('a deal whose lead cannot be found is unclassified, not new', () => {
+  /* null, never false. Reading an unknown as "new" would move revenue INTO the
+     NC figure on the strength of a missing join. */
+  const { deals } = stampedWith([], [{ id: 'D-9', leadId: 'GONE', revenue: 5000 }]);
+  assert.equal(deals[0].repeat, null);
+
+  const values = metrics.evaluate({
+    leads: [], deals, campaignDays: [{ spend: 100000 }], bookings: [], payments: [],
+  }).values;
+  assert.equal(values['revenue.new_customers'], 0);
+});
+
+test('NC ROAS divides first-time reservation value by all ad spend', () => {
+  const { leads, deals } = stampedWith(
+    [
+      lead({ id: 'L-1', phone: '9000000001', createdAt: iso(200 * DAY) }),
+      lead({ id: 'L-2', phone: '9000000001', createdAt: iso(2 * DAY) }),
+    ],
+    /* Rupees in, paise out — `n.money` multiplies by 100, and every figure the
+       registry handles is in paise. ₹4,000 becomes 400000. */
+    [{ id: 'D-1', leadId: 'L-1', revenue: 4000 }, { id: 'D-2', leadId: 'L-2', revenue: 6000 }],
+  );
+  const values = metrics.evaluate({
+    leads, deals, campaignDays: [{ spend: 200000, platform: 'meta_ads' }], bookings: [], payments: [],
+  }).values;
+
+  assert.equal(values['revenue.new_customers'], 400000, 'only the first-timer\'s deal, in paise');
+  assert.equal(values['roas.new_customers'], 2, '400000 paise / 200000 paise');
+  /* The asymmetry, stated as a test: the denominator keeps the spend that
+     produced the returning customer, so this is a floor. */
+  assert.equal(values['ads.spend'], 200000);
+});
+
+test('a cancelled first-time deal is excluded from NC revenue', () => {
+  const { deals } = stampedWith(
+    [lead({ id: 'L-1', phone: '9000000001' })],
+    [{ id: 'D-1', leadId: 'L-1', revenue: 4000, bookingStatus: 'Cancelled' }],
+  );
+  const values = metrics.evaluate({
+    leads: [], deals, campaignDays: [{ spend: 100000 }], bookings: [], payments: [],
+  }).values;
+  assert.equal(values['revenue.new_customers'], 0);
+});
+
+test('NC ROAS is unknown rather than zero when there is no spend', () => {
+  const { deals } = stampedWith(
+    [lead({ id: 'L-1', phone: '9000000001' })],
+    [{ id: 'D-1', leadId: 'L-1', revenue: 4000 }],
+  );
+  const values = metrics.evaluate({
+    leads: [], deals, campaignDays: [], bookings: [], payments: [],
+  }).values;
+  assert.equal(values['roas.new_customers'], null);
+});

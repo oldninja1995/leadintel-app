@@ -143,6 +143,7 @@ module.exports = {
        call, walk in or come through an agency; they do not fill the ad form
        again. So this measures re-engagement BY ADVERTISING, which is a real and
        much smaller thing than the resort's repeat business. */
+    { metric: 'roas.new_customers', label: 'NC ROAS', value: '—', delta: '·', deltaColor: NA, tip: 'Reservation value from first-time customers ÷ all ad spend — a floor on acquisition return, since only tagged first-time won deals are on top while every rupee of spend is underneath', ...SRC.blended },
     { metric: 'leads.repeat_customers', label: 'RC count', value: '—', delta: '·', deltaColor: NA, tip: 'Returning customers — people from Meta and Google leads who had enquired before within 365 days. Reads low because repeat guests rarely re-submit an ad form', ...SRC.crm },
     { metric: 'leads.repeat_customer_rate', label: 'RC %', value: '—', delta: '·', deltaColor: NA, tip: 'Returning customers ÷ every customer paid media produced — does not sum with NC % to 100, since one person can be in both', ...SRC.crm },
     { metric: 'leads.new_customers_interested', label: 'NC interested leads', value: '—', delta: '·', deltaColor: NA, tip: 'New customers who reached interested or better — both conditions are about the person, so Fresh on the first enquiry and Interested on the second still counts', ...SRC.crm },
