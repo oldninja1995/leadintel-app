@@ -108,6 +108,14 @@ module.exports = {
     { metric: 'revenue.reservations', unscoped: true, hideWhenScoped: true, label: 'Total reservation value', value: '₹11.2L', delta: '·', deltaColor: NA, tip: 'Every channel and every untagged lead — does not follow the channel filter', ...SRC.crm },
     { metric: 'revenue.per_reservation', label: 'Avg reservation value', value: '₹28,400', delta: '·', deltaColor: NA, tip: 'Reservation value ÷ reservations — a mix measure, not a volume one', ...SRC.crm },
     { metric: 'leads.response_rate', label: 'Lead response rate', value: '91.2%', delta: '·', deltaColor: NA, tip: 'Share of leads worked rather than left at first contact — status movement, not reply events', ...SRC.crm },
+    /* Every enquiry, which is the figure the rest of this row is a fraction of.
+     *
+     * It counts LEADS and it counts them across every channel, so it is
+     * deliberately NOT the base of the NC and RC tiles below — those count
+     * PEOPLE and only paid ones. The two will never reconcile and should not:
+     * 23,812 leads and 9,438 ad customers are different questions, and the
+     * tooltip says so rather than leaving somebody to subtract them. */
+    { metric: 'leads.count', label: 'Total leads', value: '—', delta: '·', deltaColor: NA, tip: 'Every enquiry in the CRM — paid, organic and untagged alike, counted as enquiries rather than people. Not the base of NC or RC, which count people from paid leads only', ...SRC.crm },
     /* The count beside the rate. A rate alone cannot be acted on — 34.7% of a
        hundred leads and of ten thousand are different situations and the same
        number, and the channel filter moves both halves at once. */
