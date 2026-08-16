@@ -12,7 +12,7 @@ module.exports = {
        channel now and deals inherit it, so the question is answerable. */
     { metric: 'revenue.attributed', label: 'Attributed revenue', value: '₹32.5L', delta: '+18.2%', deltaColor: UP, sub: 'leads tagged to a paid channel only', tip: 'Revenue credited to paid media on the workspace model', icon: 'ph ph-currency-inr', spark: spark([40, 44, 47, 52, 51, 58, 62, 66, 71, 75]), ...SRC.blended },
     { metric: 'cost.per_lead', label: 'Blended CPL', value: '₹427', delta: '−18.0%', deltaColor: UP, sub: '', tip: 'Paid spend per lead — pick a channel above for that platform', icon: 'ph ph-user-focus', spark: spark([78, 74, 72, 68, 64, 61, 58, 54, 50, 47]), ...SRC.blended },
-    { metric: 'roas.reservations', label: 'ROAS', value: '4.8x', delta: '+0.6x', deltaColor: UP, sub: 'CRM reservation value ÷ ad spend', tip: 'Net of cancellations and commissions', icon: 'ph ph-chart-line-up', spark: spark([48, 46, 52, 55, 54, 61, 63, 68, 73, 78]), ...SRC.blended },
+    { metric: 'roas.attributed', label: 'ROAS', value: '4.8x', delta: '+0.6x', deltaColor: UP, sub: 'tagged reservation value ÷ ad spend', tip: 'Reservation value on leads tagged to a paid channel, over ad spend. Cancellations excluded; nothing else netted off. A floor — an untagged lead is outside the numerator while its spend stays in the denominator.', icon: 'ph ph-chart-line-up', spark: spark([48, 46, 52, 55, 54, 61, 63, 68, 73, 78]), ...SRC.blended },
   ],
 
   mktKpis: [

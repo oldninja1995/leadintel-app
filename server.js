@@ -163,6 +163,43 @@ function entitiesFor(workspaceId) {
  * quota actually bought. `dropEntities(id, { now: true })` still forces one
  * where a reader must not see stale data — storing a credential changes which
  * demo rows replay, and the operator is looking at the result. */
+/* How far back the store actually reaches, and whether a window sits inside it.
+ *
+ * Keyed on the entity snapshot itself rather than on the workspace, so it is
+ * recomputed exactly when the snapshot is rebuilt and never goes stale against
+ * a backfill that just widened the coverage.
+ *
+ * Only the two collections a comparison is ever built from are walked. A
+ * `to` beyond the store is not a problem — that is just today — so only the
+ * `from` edge is tested. */
+const coverageCache = new WeakMap();
+
+function coverageStart(workspaceId) {
+  const entities = entitiesFor(workspaceId);
+  if (coverageCache.has(entities)) return coverageCache.get(entities);
+
+  let earliest = null;
+  const consider = (v) => {
+    if (!v) return;
+    const day = String(v).slice(0, 10);
+    if (!earliest || day < earliest) earliest = day;
+  };
+  for (const day of entities.campaignDays || []) consider(day.date);
+  for (const lead of entities.leads || []) consider(lead.createdAt);
+
+  coverageCache.set(entities, earliest);
+  return earliest;
+}
+
+function coversWindow(workspaceId, window) {
+  if (!window || !window.from) return false;
+  const start = coverageStart(workspaceId);
+  /* Nothing ingested at all: there is no comparison to make and no claim that
+     one is missing. */
+  if (!start) return false;
+  return String(window.from).slice(0, 10) >= start;
+}
+
 const MIN_REBUILD_MS = 5 * 60_000;
 const staleAt = new Map();
 
@@ -507,13 +544,28 @@ function resolveMetrics(payload, workspaceId, over = null, { hidden = null, edit
      `metricValues` is cached per window, so this is one extra evaluation per
      distinct range rather than one per request. */
   const back = metrics.period.previous(over);
-  const previous = back ? metricValues(workspaceId, at, back).values : null;
+  /* A comparison the store cannot make is declined rather than computed.
+   *
+   * "This year" against last year read **+2798.6% ad spend** on the marketing
+   * dashboard. Nothing grew twenty-eight-fold: the store simply starts in the
+   * middle of the previous window, so a full year was being compared against
+   * whatever few days of it happen to have been backfilled. Every card carried
+   * one — impressions +2732%, clicks +2745%, cost per reservation −98.7% — and
+   * each is a measurement of how far back the data goes wearing the clothes of
+   * a business result.
+   *
+   * So a delta is offered only when the store actually spans the window it
+   * would be measured over. `deltaOf` already renders a missing previous as
+   * "·", which is the honest output: no claim. It will start appearing as the
+   * backfill walks back, which is the right time for it to appear. */
+  const comparable = back && coversWindow(workspaceId, back);
+  const previous = comparable ? metricValues(workspaceId, at, back).values : null;
 
   /* The same metrics with no grain applied, for cards marked `unscoped`. Free
      when the screen has no scope — it is the identical cache entry — and one
      extra evaluation per range when it does. */
   const base = at ? metricValues(workspaceId, null, over) : { values, notApplicable };
-  const basePrevious = at && back ? metricValues(workspaceId, null, back).values : previous;
+  const basePrevious = at && comparable ? metricValues(workspaceId, null, back).values : previous;
 
   return resolve.resolve(payload, {
     values,
