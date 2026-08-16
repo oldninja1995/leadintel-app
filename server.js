@@ -16,6 +16,7 @@ const schema = require('./lib/schema');
 const ingest = require('./lib/ingest');
 const { SyncRunner, RunLog } = require('./lib/ingest/runner');
 const httpConnectors = require('./lib/ingest/http');
+const backfill = require('./lib/ingest/backfill');
 /* Directly, for the account picker — that call is a Connections-screen concern
    rather than part of any sync. */
 const googleAds = require('./lib/ingest/http/google-ads');
@@ -1557,8 +1558,6 @@ app.post('/layout/:screen', express.urlencoded({ extended: false }), async (req,
  * the raw store deduplicates the overlap, so a double press costs time and
  * never correctness.
  */
-const BACKFILL_CHUNK_DAYS = 7;
-
 app.post('/connections/:source/backfill',
   express.urlencoded({ extended: false }), express.json(),
   gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'backfill' })),
@@ -1567,12 +1566,12 @@ app.post('/connections/:source/backfill',
     const definition = ingest.sources.get(source);
     if (!definition) return res.redirect(303, `/connections?error=${encodeURIComponent(`unknown source "${source}"`)}`);
 
-    const asked = Math.min(Number(req.body.days) || 365, 400);
-    /* Where this press starts. Absent means today; the button carries the last
-       date reached so a second press does not re-fetch what the first got. */
-    const startAt = Date.parse(req.body.before);
-    let cursor = Number.isFinite(startAt) ? startAt : Date.now();
-    const floor = (Number.isFinite(startAt) ? startAt : Date.now()) - asked * 86400000;
+    /* Where this press starts and where the whole walk ends — see
+       lib/ingest/backfill.js, which owns the one property that matters here
+       and states why it was wrong. `before` is the cursor the last press
+       handed back, so a second press does not re-fetch what the first got. */
+    const { asked, floor, cursor: from } = backfill.plan({ before: req.body.before, days: req.body.days });
+    let cursor = from;
 
     const startedAt = Date.now();
     let pulled = 0;
@@ -1580,10 +1579,9 @@ app.post('/connections/:source/backfill',
     let chunks = 0;
     let failure = null;
 
-    while (cursor > floor && Date.now() - startedAt < SYNC_BUDGET_MS) {
-      const to = new Date(cursor).toISOString();
-      const from = new Date(Math.max(cursor - BACKFILL_CHUNK_DAYS * 86400000, floor)).toISOString();
-      FORCED_WINDOW = { from, to };
+    while (!backfill.done(cursor, floor) && Date.now() - startedAt < SYNC_BUDGET_MS) {
+      const window = backfill.chunk(cursor, floor);
+      FORCED_WINDOW = window;
       let run;
       try {
         run = await runner.runOne(source);
@@ -1596,18 +1594,29 @@ app.post('/connections/:source/backfill',
       /* A chunk that fails wholesale stops the walk: continuing would burn the
          budget repeating one error a week at a time. */
       if (!run.ok) { failure = run.error; break; }
-      cursor = Date.parse(from);
+      cursor = Date.parse(window.from);
     }
 
     await runner.log.flush();
 
+    /* Show what was just fetched, rather than the snapshot from before it.
+     *
+     * The other half of "I pressed it and nothing happened". A write only marks
+     * the snapshot stale and the previous one keeps being served for
+     * MIN_REBUILD_MS — and a backfill writes on every chunk, so it re-arms that
+     * timer continuously and guarantees the screens show pre-backfill figures
+     * for the whole walk and five minutes past the end of it.
+     *
+     * This is the same exemption the credential routes take, for the same
+     * reason: an operator is looking at the result of something they just did.
+     * One forced rebuild per press is bounded work — it is the unbounded
+     * rebuild-per-write that took the app down, and a chunk is not a page
+     * view. */
+    dropEntities(req.workspace, { now: true });
+
     const reached = new Date(cursor).toISOString().slice(0, 10);
-    const done = cursor <= floor;
-    /* How much is left, because "press again to continue" without a number is
-       an unbounded ask. A source with six kinds fits about one week into an
-       invocation and a light one fits ten, so the count is the only honest way
-       to say how long this is going to take. */
-    const weeksLeft = Math.max(0, Math.ceil((cursor - floor) / (BACKFILL_CHUNK_DAYS * 86400000)));
+    const done = backfill.done(cursor, floor);
+    const weeksLeft = backfill.weeksLeft(cursor, floor);
     const detail = failure
       ? `${source}: stopped at ${reached} — ${failure}`
       : `${source}: ${written} row(s) written from ${chunks} week(s), back to ${reached}`
