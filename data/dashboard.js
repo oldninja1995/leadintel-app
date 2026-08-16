@@ -114,6 +114,18 @@ module.exports = {
     { metric: 'leads.interested', label: 'Interested leads', value: '1,187', delta: '·', deltaColor: NA, tip: 'Leads that reached interested or better', ...SRC.crm },
     { metric: 'leads.interested_rate', label: 'Interested rate', value: '18.4%', delta: '·', deltaColor: NA, tip: 'Share of leads that reached interested or better', ...SRC.crm },
     { metric: 'cost.per_interested_lead', label: 'Cost / interested lead', value: '₹1,240', delta: '·', deltaColor: NA, tip: 'Ad spend ÷ interested leads — the cost worth optimising', ...SRC.blended },
+    /* NC — the people the phone never reached, from paid leads only.
+     *
+     * A count and its rate together, for the reason stated above the interested
+     * pair: 12% NC on two hundred customers and on eight thousand are different
+     * situations and the same number.
+     *
+     * Both are PEOPLE rather than enquiries, which is the whole point of them —
+     * one unreachable number that writes in every day would otherwise read as a
+     * month of unreachable customers and send somebody to argue with the
+     * agency. Hidden under Non-ad, where they are a structural zero. */
+    { metric: 'leads.nc_customers', label: 'NC customers', value: '—', delta: '·', deltaColor: NA, tip: 'People from Meta and Google leads the phone never reached — ringing no answer, not available, busy or switched off. One person counts once', ...SRC.crm },
+    { metric: 'leads.nc_rate', label: 'NC rate', value: '—', delta: '·', deltaColor: NA, tip: 'NC customers ÷ every customer paid media produced — both sides are people, not enquiries', ...SRC.crm },
     { metric: 'leads.conversion_rate', label: 'Lead → won', value: '4.2%', delta: '·', deltaColor: NA, tip: 'Share of leads that became a won reservation', ...SRC.crm },
     { metric: 'leads.interested_to_won', label: 'Interested → won', value: '22.8%', delta: '·', deltaColor: NA, tip: 'How well interested leads are closed — measures the team, not the channel', ...SRC.crm },
     { metric: 'cost.per_reservation', label: 'Cost / reservation', value: '₹3,480', delta: '·', deltaColor: NA, tip: 'Ad spend ÷ CRM-won reservations', ...SRC.blended },
