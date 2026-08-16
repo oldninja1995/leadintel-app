@@ -80,22 +80,24 @@
             Rendered only when the tiles are, so it cannot outlive them on a
             view where they have been hidden.
           -->
-          <% var ncShown = (miniKpis || []).some(function (k) { return k.metric === 'leads.nc_customers' || k.metric === 'leads.nc_rate'; }); %>
+          <% var ncShown = (miniKpis || []).some(function (k) { return String(k.metric || '').indexOf('leads.new_customer') === 0; }); %>
           <% if (ncShown) { %>
             <div style="background:var(--color-surface); border-radius:10px; box-shadow:var(--shadow-sm); padding:10px 13px; margin-bottom:12px; display:flex; gap:9px; align-items:flex-start;">
-              <i class="ph ph-phone-x" style="font-size:14px; color:var(--color-accent-400); margin-top:1px;"></i>
+              <i class="ph ph-user-plus" style="font-size:14px; color:var(--color-accent-400); margin-top:1px;"></i>
               <div style="font-size:11px; line-height:1.55; color:var(--color-neutral-400);">
-                <span style="color:var(--color-neutral-300); font-weight:500;">NC — not connected.</span>
-                A lead the phone never reached: <span style="color:var(--color-neutral-300);">ringing no answer</span>,
-                <span style="color:var(--color-neutral-300);">not available</span>,
-                <span style="color:var(--color-neutral-300);">busy</span> or
-                <span style="color:var(--color-neutral-300);">switched off</span>.
-                Counted as <span style="color:var(--color-neutral-300);">people, not enquiries</span> — one number that
-                writes in five times is one customer, matched on the phone across 365 days.
-                Paid leads only, so an untagged walk-in is in neither the count nor the rate.
-                <span style="color:var(--color-neutral-500);">Not interested</span> means the lead
-                <em>was</em> reached and is not counted here; <span style="color:var(--color-neutral-500);">fresh</span>
-                means nobody has dialled it yet and is in the rate's base but not its numerator.
+                <span style="color:var(--color-neutral-300); font-weight:500;">NC — new customer.</span>
+                Somebody with <span style="color:var(--color-neutral-300);">no earlier enquiry in the last 365 days</span>.
+                Counted as <span style="color:var(--color-neutral-300);">people, not enquiries</span> — one person who
+                writes in five times is one new customer, matched on the phone number across those 365 days, so
+                <span style="color:var(--color-neutral-300);">+91&nbsp;98…</span>, <span style="color:var(--color-neutral-300);">098…</span>
+                and <span style="color:var(--color-neutral-300);">98…</span> are the same guest. Paid leads only:
+                an untagged walk-in is in neither the count nor the rate.
+                <span style="color:var(--color-neutral-300);">NC interested</span> asks both questions of the
+                <em>person</em>, so Fresh on a first enquiry and Interested on a second still counts.
+                <br>
+                <span style="color:var(--color-warning-400, var(--color-neutral-300));">Reads high until the store holds a full year.</span>
+                A guest whose earlier enquiry predates the data looks new, so this overstates by exactly the repeat
+                business we cannot yet see — it falls towards the truth as the 365-day backfill walks back.
               </div>
             </div>
           <% } %>

@@ -1606,7 +1606,7 @@ app.post('/connections/:source/backfill',
     };
 
     while (!backfill.done(cursor, floor) && roomForAnother()) {
-      const window = backfill.chunk(cursor, floor);
+      const window = backfill.chunk(cursor, floor, source);
       const chunkAt = Date.now();
       FORCED_WINDOW = window;
       let run;

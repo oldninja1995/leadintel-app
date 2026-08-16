@@ -124,14 +124,18 @@ module.exports = {
      * one unreachable number that writes in every day would otherwise read as a
      * month of unreachable customers and send somebody to argue with the
      * agency. Hidden under Non-ad, where they are a structural zero. */
-    /* The same pair, counted the same way, for the other end of the funnel.
-       Beside the lead-level Interested tiles above on purpose: the gap between
-       them IS the repeat rate, and seeing both is how anybody notices that one
-       person wrote in four times. */
-    { metric: 'leads.interested_customers', label: 'Interested customers', value: '—', delta: '·', deltaColor: NA, tip: 'People from Meta and Google leads who reached interested or better — one person counts once, however many times they enquired', ...SRC.crm },
-    { metric: 'leads.interested_customer_rate', label: 'Interested customer rate', value: '—', delta: '·', deltaColor: NA, tip: 'Interested customers ÷ every customer paid media produced — both sides are people, so it reads above the lead-level rate', ...SRC.crm },
-    { metric: 'leads.nc_customers', label: 'NC customers', value: '—', delta: '·', deltaColor: NA, tip: 'People from Meta and Google leads the phone never reached — ringing no answer, not available, busy or switched off. One person counts once', ...SRC.crm },
-    { metric: 'leads.nc_rate', label: 'NC rate', value: '—', delta: '·', deltaColor: NA, tip: 'NC customers ÷ every customer paid media produced — both sides are people, not enquiries', ...SRC.crm },
+    /* NC — new customers, and how good the new demand is.
+     *
+     * Four tiles rather than two because a count and a rate answer different
+     * questions and neither is safe alone: 62% new on two hundred customers
+     * and on eight thousand are different situations and the same number.
+     *
+     * All four are PEOPLE rather than enquiries, and all four are paid leads
+     * only. Hidden under Non-ad, where they are a structural zero. */
+    { metric: 'leads.new_customers', label: 'NC customers', value: '—', delta: '·', deltaColor: NA, tip: 'New customers — people from Meta and Google leads with no earlier enquiry in the last 365 days. One person counts once', ...SRC.crm },
+    { metric: 'leads.new_customer_rate', label: 'NC %', value: '—', delta: '·', deltaColor: NA, tip: 'New customers ÷ every customer paid media produced — both sides are people, not enquiries', ...SRC.crm },
+    { metric: 'leads.new_customers_interested', label: 'NC interested leads', value: '—', delta: '·', deltaColor: NA, tip: 'New customers who reached interested or better — both conditions are about the person, so Fresh on the first enquiry and Interested on the second still counts', ...SRC.crm },
+    { metric: 'leads.new_customers_interested_rate', label: 'NC interested leads %', value: '—', delta: '·', deltaColor: NA, tip: 'Interested new customers ÷ new customers — the quality of newly acquired demand, not of every customer', ...SRC.crm },
     { metric: 'leads.conversion_rate', label: 'Lead → won', value: '4.2%', delta: '·', deltaColor: NA, tip: 'Share of leads that became a won reservation', ...SRC.crm },
     { metric: 'leads.interested_to_won', label: 'Interested → won', value: '22.8%', delta: '·', deltaColor: NA, tip: 'How well interested leads are closed — measures the team, not the channel', ...SRC.crm },
     { metric: 'cost.per_reservation', label: 'Cost / reservation', value: '₹3,480', delta: '·', deltaColor: NA, tip: 'Ad spend ÷ CRM-won reservations', ...SRC.blended },

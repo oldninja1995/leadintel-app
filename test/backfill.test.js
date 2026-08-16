@@ -32,11 +32,11 @@ function press(before, days, chunks = 3, now = NOW) {
   const { floor } = backfill.plan({ before, days, now });
   let cursor = backfill.plan({ before, days, now }).cursor;
   for (let i = 0; i < chunks && !backfill.done(cursor, floor); i += 1) {
-    cursor = Date.parse(backfill.chunk(cursor, floor).from);
+    cursor = Date.parse(backfill.chunk(cursor, floor, 'telecrm').from);
   }
   return {
     before: new Date(cursor).toISOString(),
-    stepsLeft: backfill.stepsLeft(cursor, floor), daysLeft: backfill.daysLeft(cursor, floor),
+    stepsLeft: backfill.stepsLeft(cursor, floor, 'telecrm'), daysLeft: backfill.daysLeft(cursor, floor),
     done: backfill.done(cursor, floor),
   };
 }
@@ -94,13 +94,39 @@ test('the last chunk stops at the floor instead of overshooting it', () => {
   const cursor = NOW - 9 * DAY;
   /* One day short of the floor, with a multi-day chunk: it must clamp, or the
      walk fetches history nobody asked for and the store pays for it. */
-  assert.equal(backfill.chunk(cursor, floor).from, new Date(floor).toISOString());
+  assert.equal(backfill.chunk(cursor, floor, 'telecrm').from, new Date(floor).toISOString());
 });
 
 test('a chunk runs backwards — from is older than to', () => {
-  const { from, to } = backfill.chunk(NOW, NOW - 365 * DAY);
+  const { from, to } = backfill.chunk(NOW, NOW - 365 * DAY, 'telecrm');
   assert.ok(Date.parse(from) < Date.parse(to));
-  assert.equal(Date.parse(to) - Date.parse(from), backfill.CHUNK_DAYS * DAY);
+  assert.equal(Date.parse(to) - Date.parse(from), backfill.chunkDays('telecrm') * DAY);
+});
+
+/* ── the chunk width is per source, and must be ─────────────────────────── */
+
+test('Meta walks in wider chunks than TeleCRM', () => {
+  /* They fail in opposite directions: TeleCRM times out INSIDE a wide chunk
+     because of its 100-row page cap, Meta rate-limits ACROSS narrow ones
+     because six kinds times many chunks is too many calls. Cutting the width
+     to three days for TeleCRM's sake is what produced Meta's `code 17 — User
+     request limit reached` inside a single walk. */
+  assert.ok(backfill.chunkDays('meta_ads') > backfill.chunkDays('telecrm'));
+});
+
+test('an unlisted source gets the narrow default', () => {
+  /* A timeout loses the cursor; a rate limit costs a retry. Narrow is the safe
+     side of an unknown source. */
+  assert.equal(backfill.chunkDays('pms'), backfill.DEFAULT_CHUNK_DAYS);
+  assert.equal(backfill.chunkDays(null), backfill.DEFAULT_CHUNK_DAYS);
+  assert.equal(backfill.DEFAULT_CHUNK_DAYS, backfill.chunkDays('telecrm'));
+});
+
+test('a wider chunk means fewer steps for the same year', () => {
+  const floor = NOW - 365 * DAY;
+  assert.ok(backfill.stepsLeft(NOW, floor, 'meta_ads') < backfill.stepsLeft(NOW, floor, 'telecrm'));
+  /* Days remaining is the same fact either way — it is history, not steps. */
+  assert.equal(backfill.daysLeft(NOW, floor), 365);
 });
 
 test('an absent cursor means start at now', () => {
@@ -120,6 +146,6 @@ test('a walk already past its floor is done, not negative', () => {
   const floor = NOW - 30 * DAY;
   const cursor = NOW - 400 * DAY;
   assert.equal(backfill.done(cursor, floor), true);
-  assert.equal(backfill.stepsLeft(cursor, floor), 0);
+  assert.equal(backfill.stepsLeft(cursor, floor, 'telecrm'), 0);
   assert.equal(backfill.daysLeft(cursor, floor), 0);
 });
