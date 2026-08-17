@@ -33,3 +33,24 @@ test('the chip labels a channel the way the table names it', () => {
   assert.equal(filters.labelsFor('channel').meta, 'Meta Ads');
   assert.deepEqual(filters.labelsFor('property'), {});
 });
+
+test('a seeded channel is offered even when no row on the screen carries it', () => {
+  /* The Executive Dashboard's campaign table is ranked by spend and truncated,
+     so over a full year Meta pushed every Google campaign below the cut and the
+     chip stopped offering a platform with real spend in the window. The chip
+     sets metricScope and every KPI is recomputed from the entities, so what it
+     must reflect is the store, not one table's visible rows. */
+  const payload = { campaigns: [{ name: 'Munnar Honeymoon', platform: 'Meta' }] };
+
+  const without = filters.optionsFor(payload);
+  assert.ok(!without.channel.includes('google'));
+
+  const seeded = filters.optionsFor(payload, { channel: ['meta', 'google'] });
+  assert.ok(seeded.channel.includes('google'));
+  assert.ok(seeded.channel.includes('meta'));
+});
+
+test('an empty seed changes nothing', () => {
+  const payload = { rows: [{ property: 'Munnar Hillside' }] };
+  assert.deepEqual(filters.optionsFor(payload, { channel: [] }), filters.optionsFor(payload));
+});

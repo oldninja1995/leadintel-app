@@ -714,8 +714,8 @@ function periodValues(workspaceId, label, at = null) {
 /* What the chips offer. Derived from the payload *before* filtering, so
    choosing "Munnar Hillside" does not leave the dropdown holding only Munnar
    Hillside — a filter you cannot change is a filter you cannot undo. */
-function filterData(unfiltered, active = {}) {
-  const options = unfiltered ? filters.optionsFor(unfiltered) : {};
+function filterData(unfiltered, active = {}, seed = {}) {
+  const options = unfiltered ? filters.optionsFor(unfiltered, seed) : {};
   return {
     dimensions: filters.DIMENSIONS.map((d) => ({
       key: d.key,
@@ -3032,7 +3032,14 @@ function screenRoute(screen) {
         drawer,
         palette: await palette(),
         notifications: notifications(req.workspace),
-        filterData: filterData(unfiltered, result.active),
+        /* Seeded with the channels the store actually holds in this window, so
+           the chip offers a platform the workspace has rather than one a
+           truncated table happened to include. See lib/filters.js optionsFor. */
+        filterData: filterData(unfiltered, result.active, {
+          channel: [...new Set((metrics.period.within(entitiesFor(req.workspace), params.over).campaignDays || [])
+            .map((d) => metrics.scope.CHANNEL[d.platform])
+            .filter(Boolean))],
+        }),
         filterNote: note && { ...note, clearUrl: clearUrl(req.originalUrl, result.active) },
         attrPreview,
       }, (err, html) => (err ? next(err) : res.send(html)));
