@@ -329,6 +329,25 @@ test('access_denied names the test-user list', async () => {
   await assert.rejects(exchangeWith('access_denied'), /Test users/);
 });
 
+/* The exchange is shared with Google Analytics, and a hardcoded "Google Ads:"
+   made a GA4 failure accuse a source that was working — the operator goes to
+   repair the wrong Connections card. Both spellings are asserted, since a
+   default that quietly stopped applying would be just as wrong. */
+test('the exchange names the source whose credentials failed, not always Google Ads', async () => {
+  google.clearTokenCache();
+  await assert.rejects(exchangeWith('invalid_client'), /^Error: Google Ads:/);
+
+  google.clearTokenCache();
+  await assert.rejects(
+    google.accessTokenFor(
+      { clientId: 'c.apps.googleusercontent.com', clientSecret: 's', refreshToken: '1//r' },
+      async () => oauthRefusal('invalid_client'),
+      'Google Analytics',
+    ),
+    /^Error: Google Analytics: could not exchange the refresh token \(invalid_client\)/,
+  );
+});
+
 /* The one everybody hits must keep its existing wording. */
 test('invalid_grant still says the token must be generated again', async () => {
   google.clearTokenCache();
