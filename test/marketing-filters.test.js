@@ -104,3 +104,36 @@ test('selecting a channel does not dash the total ROAS', () => {
     assert.notEqual(values['roas.total'], null, `roas.total dashed at channel:${channel}`);
   }
 });
+
+/* ── absence is not a normalisation failure ──────────────────────────────── */
+
+const canonical = require('../lib/ingest/canonical');
+
+test('an absent optional field is not counted as a value that could not be read', () => {
+  /* A TeleCRM lead carries no campaign when nobody tagged it. Counting that as
+     a normalisation problem produced 129,631 of them, fired a notification
+     saying values "could not be read", cost every CRM metric 20 points of
+     confidence, and buried the real parse failures in six figures of noise. */
+  const built = canonical.build([
+    {
+      source: 'telecrm', kind: 'lead', externalId: 'L1',
+      body: { lead_id: 'L1', name: 'Anjali', phone: '+91 98470 12345', created_at: '2026-08-01T10:00:00+05:30' },
+    },
+  ]);
+
+  const kinds = (built.problems || []).map((p) => p.problem);
+  assert.ok(!kinds.includes('empty'), `absence was counted: ${JSON.stringify(built.problems)}`);
+});
+
+test('a value that genuinely could not be parsed is still reported', () => {
+  const built = canonical.build([
+    {
+      source: 'telecrm', kind: 'deal', externalId: 'D1',
+      body: { deal_id: 'D1', lead_id: 'L1', value: 'not a number at all', currency: 'INR', updated_at: '2026-08-01T10:00:00+05:30' },
+    },
+  ]);
+
+  const kinds = (built.problems || []).map((p) => p.problem);
+  assert.ok(kinds.length > 0, 'a real parse failure must survive');
+  assert.ok(!kinds.includes('empty'));
+});
