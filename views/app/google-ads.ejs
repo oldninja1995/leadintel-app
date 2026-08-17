@@ -33,6 +33,55 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
   </p>
 <% } %>
 
+<!-- Paid search reservation value ------------------------------------------->
+<section class="li-ota-panel">
+  <div class="li-ota-panel-head">
+    <h2>Paid search reservation value</h2>
+    <p>
+      What the booking engine took from sessions Google Analytics classified as
+      <strong>Paid Search</strong>, and that value against this account&rsquo;s spend.
+      Google Ads counts conversions but does not price them; GA4 does.
+    </p>
+  </div>
+
+  <div class="li-ota-scroll">
+    <table class="li-ota-table">
+      <thead>
+        <tr>
+          <th class="li-num">Reservation value (GA4)</th>
+          <th class="li-num">Google Ads spend</th>
+          <th class="li-num">ROAS</th>
+          <th>Basis</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="li-num"><%= txt(d.paidSearch && d.paidSearch.revenueText) %></td>
+          <td class="li-num"><%= txt(d.campaignTotal && d.campaignTotal.spendText) %></td>
+          <td class="li-num"><%= txt(d.paidSearch && d.paidSearch.roasText) %></td>
+          <td>
+            <% if (d.paidSearch && d.paidSearch.absent) { %>
+              <%= d.paidSearch.absent %>
+            <% } else if (d.paidSearch) { %>
+              GA4 Paid Search revenue over <%= num(d.paidSearch.days) %> day(s)
+              &divide; Google Ads spend, same range.
+            <% } else { %>
+              &mdash;
+            <% } %>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="li-ota-foot">
+    This is <strong>GA4&rsquo;s attribution, not Google Ads&rsquo;</strong> &mdash; different models and
+    windows, and GA4&rsquo;s Paid Search covers any CPC search session, not only this account&rsquo;s.
+    It is deliberately kept apart from CRM-attributed revenue rather than added to it: the same
+    booking counted from both sides would be counted twice.
+  </p>
+</section>
+
 <!-- Campaigns --------------------------------------------------------------->
 <section class="li-ota-panel">
   <div class="li-ota-panel-head">

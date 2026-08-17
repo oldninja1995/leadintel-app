@@ -1,17 +1,121 @@
 {
   "session_day": [
-    { "date": "2026-08-01", "sessions": 1842, "totalUsers": 1531, "newUsers": 1188, "bounceRate": 0.4123, "averageSessionDuration": 96.4, "screenPageViews": 4310 },
-    { "date": "2026-08-02", "sessions": 1615, "totalUsers": 1344, "newUsers": 1027, "bounceRate": 0.4408, "averageSessionDuration": 88.1, "screenPageViews": 3722 }
+    {
+      "date": "2026-08-01",
+      "sessions": 1842,
+      "totalUsers": 1531,
+      "newUsers": 1188,
+      "bounceRate": 0.4123,
+      "averageSessionDuration": 96.4,
+      "screenPageViews": 4310
+    },
+    {
+      "date": "2026-08-02",
+      "sessions": 1615,
+      "totalUsers": 1344,
+      "newUsers": 1027,
+      "bounceRate": 0.4408,
+      "averageSessionDuration": 88.1,
+      "screenPageViews": 3722
+    }
   ],
   "channel_day": [
-    { "date": "2026-08-01", "sessionDefaultChannelGroup": "Organic Search", "sessions": 704, "totalUsers": 611, "newUsers": 498, "bounceRate": 0.3705, "averageSessionDuration": 112.7, "screenPageViews": 1809 },
-    { "date": "2026-08-01", "sessionDefaultChannelGroup": "Paid Search", "sessions": 421, "totalUsers": 388, "newUsers": 341, "bounceRate": 0.4890, "averageSessionDuration": 74.2, "screenPageViews": 902 },
-    { "date": "2026-08-01", "sessionDefaultChannelGroup": "Direct", "sessions": 398, "totalUsers": 330, "newUsers": 205, "bounceRate": 0.3982, "averageSessionDuration": 101.5, "screenPageViews": 988 },
-    { "date": "2026-08-02", "sessionDefaultChannelGroup": "Paid Social", "sessions": 319, "totalUsers": 295, "newUsers": 268, "bounceRate": 0.5311, "averageSessionDuration": 61.8, "screenPageViews": 623 }
+    {
+      "date": "2026-08-01",
+      "sessionDefaultChannelGroup": "Organic Search",
+      "sessions": 704,
+      "totalUsers": 611,
+      "newUsers": 498,
+      "bounceRate": 0.3705,
+      "averageSessionDuration": 112.7,
+      "screenPageViews": 1809
+    },
+    {
+      "date": "2026-08-01",
+      "sessionDefaultChannelGroup": "Paid Search",
+      "sessions": 421,
+      "totalUsers": 388,
+      "newUsers": 341,
+      "bounceRate": 0.489,
+      "averageSessionDuration": 74.2,
+      "screenPageViews": 902
+    },
+    {
+      "date": "2026-08-01",
+      "sessionDefaultChannelGroup": "Direct",
+      "sessions": 398,
+      "totalUsers": 330,
+      "newUsers": 205,
+      "bounceRate": 0.3982,
+      "averageSessionDuration": 101.5,
+      "screenPageViews": 988
+    },
+    {
+      "date": "2026-08-02",
+      "sessionDefaultChannelGroup": "Paid Social",
+      "sessions": 319,
+      "totalUsers": 295,
+      "newUsers": 268,
+      "bounceRate": 0.5311,
+      "averageSessionDuration": 61.8,
+      "screenPageViews": 623
+    }
+  ],
+  "channel_revenue_day": [
+    {
+      "date": "2026-08-01",
+      "sessionDefaultChannelGroup": "Organic Search",
+      "totalRevenue": 186400
+    },
+    {
+      "date": "2026-08-01",
+      "sessionDefaultChannelGroup": "Paid Search",
+      "totalRevenue": 98750
+    },
+    {
+      "date": "2026-08-01",
+      "sessionDefaultChannelGroup": "Direct",
+      "totalRevenue": 242100
+    },
+    {
+      "date": "2026-08-02",
+      "sessionDefaultChannelGroup": "Paid Social",
+      "totalRevenue": 57300
+    }
   ],
   "source_medium_day": [
-    { "date": "2026-08-01", "sessionSource": "google", "sessionMedium": "cpc", "sessions": 421, "totalUsers": 388, "newUsers": 341, "bounceRate": 0.4890, "averageSessionDuration": 74.2, "screenPageViews": 902 },
-    { "date": "2026-08-01", "sessionSource": "google", "sessionMedium": "organic", "sessions": 704, "totalUsers": 611, "newUsers": 498, "bounceRate": 0.3705, "averageSessionDuration": 112.7, "screenPageViews": 1809 },
-    { "date": "2026-08-02", "sessionSource": "facebook", "sessionMedium": "paid", "sessions": 319, "totalUsers": 295, "newUsers": 268, "bounceRate": 0.5311, "averageSessionDuration": 61.8, "screenPageViews": 623 }
+    {
+      "date": "2026-08-01",
+      "sessionSource": "google",
+      "sessionMedium": "cpc",
+      "sessions": 421,
+      "totalUsers": 388,
+      "newUsers": 341,
+      "bounceRate": 0.489,
+      "averageSessionDuration": 74.2,
+      "screenPageViews": 902
+    },
+    {
+      "date": "2026-08-01",
+      "sessionSource": "google",
+      "sessionMedium": "organic",
+      "sessions": 704,
+      "totalUsers": 611,
+      "newUsers": 498,
+      "bounceRate": 0.3705,
+      "averageSessionDuration": 112.7,
+      "screenPageViews": 1809
+    },
+    {
+      "date": "2026-08-02",
+      "sessionSource": "facebook",
+      "sessionMedium": "paid",
+      "sessions": 319,
+      "totalUsers": 295,
+      "newUsers": 268,
+      "bounceRate": 0.5311,
+      "averageSessionDuration": 61.8,
+      "screenPageViews": 623
+    }
   ]
 }

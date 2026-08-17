@@ -90,6 +90,31 @@ test('the metric list avoids the names Google has renamed', () => {
   assert.ok(ga.METRICS.includes('sessions'));
 });
 
+test('the revenue kind asks only for the metric the property was confirmed to report', async () => {
+  /* `totalRevenue` is what GA4's Traffic acquisition report shows and what this
+     property was checked for. Asking for `purchaseRevenue` beside it would risk
+     the whole report on a spelling nobody verified. */
+  const req = await ga.request({ kind: 'channel_revenue_day', window: WINDOW, credentials: CREDS, fetchImpl: withToken() });
+  const body = JSON.parse(req.body);
+
+  assert.deepEqual(body.metrics.map((m) => m.name), ['totalRevenue']);
+  /* Same cut as channel_day, so the two join on the channel group. */
+  assert.deepEqual(body.dimensions.map((d) => d.name), ['date', 'sessionDefaultChannelGroup']);
+});
+
+test('revenue is a kind of its own, so it cannot take sessions down with it', () => {
+  /* The whole reason for the separation: an unknown metric name fails the
+     entire report. A property with no ecommerce measurement must lose revenue
+     and keep sessions, users and the channel split. */
+  assert.ok(!ga.METRICS.includes('totalRevenue'));
+  assert.ok(sources.get('google_analytics').kinds.includes('channel_revenue_day'));
+
+  const req = ga.request({ kind: 'channel_day', window: WINDOW, credentials: CREDS, fetchImpl: withToken() });
+  return req.then((r) => {
+    assert.ok(!JSON.parse(r.body).metrics.map((m) => m.name).includes('totalRevenue'));
+  });
+});
+
 test('an unknown kind is refused rather than reported empty', async () => {
   await assert.rejects(
     ga.request({ kind: 'landing_page_day', window: WINDOW, credentials: CREDS, fetchImpl: withToken() }),

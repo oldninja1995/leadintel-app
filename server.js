@@ -2102,6 +2102,57 @@ async function renderGoogleAds(req, res) {
     }))
     .sort((x, y) => y.conversions - x.conversions);
 
+  /* ── Paid search reservation value, and the ROAS it makes possible ────────
+   *
+   * Google Ads reports conversions; it does not report what a reservation was
+   * worth. The booking engine does, and Google Analytics classifies the session
+   * that produced it — so the revenue GA4 attributes to its **Paid Search**
+   * channel group is the closest thing this account has to "what Google Ads
+   * brought in".
+   *
+   * Matched on Google's own label rather than re-derived from source/medium:
+   * `sessionDefaultChannelGroup` is GA4's classification, and deriving "is this
+   * paid search" by hand is how a screen quietly stops agreeing with the GA
+   * interface somebody is checking it against.
+   *
+   * **This is GA4's attribution, not Google Ads'.** The two disagree by
+   * construction — different attribution windows, different models, and GA4's
+   * Paid Search includes any CPC search session, not only this account's. So it
+   * is labelled as GA4's and kept apart from anything the CRM says; it is not
+   * folded into `revenue.attributed`, which counts CRM-tagged deals and would
+   * double-count the same booking seen twice.
+   *
+   * Null, never zero, when GA4 has no revenue rows in range: a booking engine
+   * with no purchase event configured must not report ₹0 of reservations as
+   * though it had measured none. */
+  const paidSearchRows = (entities.webChannelRevenueDays || [])
+    .filter((r) => /^paid\s*search$/i.test(String(r.channelGroup || '')));
+  const paidSearchRevenue = paidSearchRows.length
+    ? paidSearchRows.reduce((t, r) => t + (r.revenue || 0), 0)
+    : null;
+
+  /* Divided by the spend of the same campaigns the table above renders, over
+     the same range — the honesty rule that a headline shares its table's rows.
+     No spend means no return *on* spend, so it is unknown rather than zero. */
+  const paidSearchRoas = paidSearchRevenue !== null && campaignTotal.spend > 0
+    ? paidSearchRevenue / campaignTotal.spend
+    : null;
+
+  const paidSearch = {
+    revenue: paidSearchRevenue,
+    revenueText: paidSearchRevenue !== null ? asMoney(paidSearchRevenue) : null,
+    roas: paidSearchRoas,
+    roasText: paidSearchRoas !== null ? `${(Math.round(paidSearchRoas * 10) / 10).toFixed(1)}x` : null,
+    days: paidSearchRows.length,
+    /* Why the figure is absent, said on the card rather than left as a dash
+       somebody has to come and ask about. */
+    absent: paidSearchRevenue === null
+      ? (ingest.liveSources({ connections, workspace: req.workspace, httpConnectors }).has('google_analytics')
+        ? 'Google Analytics reports no revenue for Paid Search in this range — the booking engine may not be sending purchase events.'
+        : 'Google Analytics is not connected, so the value of a paid-search booking is not measured.')
+      : null,
+  };
+
   /* Whether keywords *apply*, which is not the same question as whether any
      were returned. App, Performance Max and Shopping campaigns have none by
      construction, and an empty table would state "no keywords" about a campaign
@@ -2122,7 +2173,7 @@ async function renderGoogleAds(req, res) {
       connected: ingest.liveSources({ connections, workspace: req.workspace, httpConnectors }).has('google_ads'),
       campaigns, campaignTotal, adGroups, ads, keywords, conversions,
       searchTerms: terms, termSummary, words,
-      keywordsNotApplicable,
+      keywordsNotApplicable, paidSearch,
     },
     drawer: null,
     palette: await palette(),
