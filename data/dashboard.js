@@ -43,10 +43,19 @@ module.exports = {
       sub: 'CRM-recorded, cancellations excluded', tip: 'What the CRM records on won leads — not settled folio revenue',
       icon: 'ph ph-currency-inr', spark: spark([38, 42, 40, 51, 55, 52, 63, 68, 71, 76]), ...SRC.crm,
     },
+    /* One ROAS, not two.
+     *
+     * This was `roas.reservations` — CRM value over ad spend — and a second
+     * "Total ROAS" tile was added beside it carrying the GA4 half. Two ROAS
+     * figures on one screen is a question, not an answer: a reader has to work
+     * out which one is theirs, and the smaller one is wrong in a specific way
+     * (Google's spend sits in its denominator with none of its online revenue
+     * on top). So the headline is the combined figure and the CRM-only metric
+     * stays in the registry for anything that needs it explicitly. */
     {
-      metric: 'roas.reservations',
+      metric: 'roas.total',
       label: 'ROAS', value: '4.8x', delta: '+0.6x', deltaColor: UP,
-      sub: 'reservation value ÷ ad spend · target 4.0x', tip: 'CRM reservation value against ad spend — pick a channel above for that platform’s own',
+      sub: 'CRM + GA4 paid search ÷ ad spend · target 4.0x', tip: 'Reservation value the CRM recorded plus what the booking engine took from paid-search sessions, against ad spend. A website booking also entered into the CRM is counted twice — the overlap needs a PMS to reconcile',
       icon: 'ph ph-chart-line-up', spark: spark([48, 45, 52, 50, 58, 61, 60, 68, 72, 78]), ...SRC.blended,
     },
     /* The online half of the same question.
@@ -61,12 +70,6 @@ module.exports = {
       label: 'Paid search reservation value', value: '₹0', delta: '·', deltaColor: NA,
       sub: 'GA4 · booking engine, paid search sessions', tip: 'What the booking engine took from sessions GA4 classified as Paid Search — GA4’s attribution, not Google Ads’ own',
       icon: 'ph ph-magnifying-glass', ...SRC.blended,
-    },
-    {
-      metric: 'roas.total',
-      label: 'Total ROAS', value: '0.0x', delta: '·', deltaColor: NA,
-      sub: 'CRM + GA4 paid search ÷ ad spend', tip: 'Both books against ad spend. A website booking also entered into the CRM is counted twice — the overlap cannot be measured until a PMS reconciles them',
-      icon: 'ph ph-chart-line-up', ...SRC.blended,
     },
     {
       metric: 'bookings.reservations',
