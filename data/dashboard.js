@@ -71,6 +71,14 @@ module.exports = {
       sub: 'GA4 · booking engine, paid search sessions', tip: 'What the booking engine took from sessions GA4 classified as Paid Search — GA4’s attribution, not Google Ads’ own',
       icon: 'ph ph-magnifying-glass', ...SRC.blended,
     },
+    /* The count beside the value, so an average booking is readable. Never
+       added to the CRM's reservation count — see bookings.paid_search. */
+    {
+      metric: 'bookings.paid_search',
+      label: 'Paid search reservations', value: '0', delta: '·', deltaColor: NA,
+      sub: 'GA4 · booking-engine purchases', tip: 'Purchases the booking engine completed on paid-search sessions. Overlaps the CRM’s reservation count by an unmeasured amount, so the two are never summed',
+      icon: 'ph ph-shopping-cart', ...SRC.blended,
+    },
     {
       metric: 'bookings.reservations',
       label: 'Reservations', value: '312', delta: '+38', deltaColor: UP,

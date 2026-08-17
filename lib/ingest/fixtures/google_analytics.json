@@ -65,22 +65,26 @@
     {
       "date": "2026-08-01",
       "sessionDefaultChannelGroup": "Organic Search",
-      "totalRevenue": 186400
+      "totalRevenue": 186400,
+      "ecommercePurchases": 7
     },
     {
       "date": "2026-08-01",
       "sessionDefaultChannelGroup": "Paid Search",
-      "totalRevenue": 98750
+      "totalRevenue": 98750,
+      "ecommercePurchases": 4
     },
     {
       "date": "2026-08-01",
       "sessionDefaultChannelGroup": "Direct",
-      "totalRevenue": 242100
+      "totalRevenue": 242100,
+      "ecommercePurchases": 9
     },
     {
       "date": "2026-08-02",
       "sessionDefaultChannelGroup": "Paid Social",
-      "totalRevenue": 57300
+      "totalRevenue": 57300,
+      "ecommercePurchases": 2
     }
   ],
   "source_medium_day": [

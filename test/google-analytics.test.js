@@ -90,14 +90,16 @@ test('the metric list avoids the names Google has renamed', () => {
   assert.ok(ga.METRICS.includes('sessions'));
 });
 
-test('the revenue kind asks only for the metric the property was confirmed to report', async () => {
+test('the revenue kind asks for the value and its count, and nothing else', async () => {
   /* `totalRevenue` is what GA4's Traffic acquisition report shows and what this
-     property was checked for. Asking for `purchaseRevenue` beside it would risk
-     the whole report on a spelling nobody verified. */
+     property was checked for; `ecommercePurchases` is how many reservations
+     made it up, so the value has a divisor. Both are renames of older
+     spellings, and a wrong one fails the entire report — which is why this kind
+     is separate from the three that carry sessions. */
   const req = await ga.request({ kind: 'channel_revenue_day', window: WINDOW, credentials: CREDS, fetchImpl: withToken() });
   const body = JSON.parse(req.body);
 
-  assert.deepEqual(body.metrics.map((m) => m.name), ['totalRevenue']);
+  assert.deepEqual(body.metrics.map((m) => m.name), ['totalRevenue', 'ecommercePurchases']);
   /* Same cut as channel_day, so the two join on the channel group. */
   assert.deepEqual(body.dimensions.map((d) => d.name), ['date', 'sessionDefaultChannelGroup']);
 });
