@@ -49,6 +49,25 @@ module.exports = {
       sub: 'reservation value ÷ ad spend · target 4.0x', tip: 'CRM reservation value against ad spend — pick a channel above for that platform’s own',
       icon: 'ph ph-chart-line-up', spark: spark([48, 45, 52, 50, 58, 61, 60, 68, 72, 78]), ...SRC.blended,
     },
+    /* The online half of the same question.
+     *
+     * Google Ads counts conversions and never prices them; the booking engine
+     * prices them and does not know which ad they came from. GA4 is the only
+     * system that sees both, so its Paid Search revenue is what makes a return
+     * on Google's spend measurable at all — without it that spend sat in the
+     * ROAS denominator with nothing of its own on top. */
+    {
+      metric: 'revenue.paid_search',
+      label: 'Paid search reservation value', value: '₹0', delta: '·', deltaColor: NA,
+      sub: 'GA4 · booking engine, paid search sessions', tip: 'What the booking engine took from sessions GA4 classified as Paid Search — GA4’s attribution, not Google Ads’ own',
+      icon: 'ph ph-magnifying-glass', ...SRC.blended,
+    },
+    {
+      metric: 'roas.total',
+      label: 'Total ROAS', value: '0.0x', delta: '·', deltaColor: NA,
+      sub: 'CRM + GA4 paid search ÷ ad spend', tip: 'Both books against ad spend. A website booking also entered into the CRM is counted twice — the overlap cannot be measured until a PMS reconciles them',
+      icon: 'ph ph-chart-line-up', ...SRC.blended,
+    },
     {
       metric: 'bookings.reservations',
       label: 'Reservations', value: '312', delta: '+38', deltaColor: UP,
