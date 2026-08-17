@@ -171,8 +171,14 @@
          for in the list. Falls back to the value, so a dimension with no map
          reads exactly as before. */
       const labels = dimension.labels || {};
+      /* Looked up case-insensitively because the screens disagree about how a
+         channel is written — one table carries `google`, another `Google` — and
+         both must read "Google Ads" in the menu. The value itself is left
+         exactly as the rows carry it, since that is what a selection is
+         compared against. */
+      const labelOf = (o) => labels[o] || labels[String(o).toLowerCase()] || o;
       menu.innerHTML = option('All', 'All')
-        + dimension.options.map((o) => option(o, labels[o] || o)).join('');
+        + dimension.options.map((o) => option(o, labelOf(o))).join('');
     }
 
     const box = chip.getBoundingClientRect();
@@ -435,7 +441,7 @@
       if (active) {
         /* Spelled the same way the menu spelled it — a chip reading "google"
            after picking "Google Ads" looks like it selected something else. */
-        spans[1].textContent = (spec.labels && spec.labels[active]) || active;
+        spans[1].textContent = (spec.labels && (spec.labels[active] || spec.labels[String(active).toLowerCase()])) || active;
         chip.classList.add('li-chip-active');
       }
     }

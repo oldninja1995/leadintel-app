@@ -46,8 +46,15 @@ test('a seeded channel is offered even when no row on the screen carries it', ()
   assert.ok(!without.channel.includes('google'));
 
   const seeded = filters.optionsFor(payload, { channel: ['meta', 'google'] });
-  assert.ok(seeded.channel.includes('google'));
-  assert.ok(seeded.channel.includes('meta'));
+  const lower = seeded.channel.map((v) => v.toLowerCase());
+  assert.ok(lower.includes('google'), 'the seeded channel is offered');
+
+  /* The row's own spelling wins: `applyFilters` compares a selection against
+     the row value exactly, so seeding `meta` beside a table carrying `Meta`
+     would offer the same platform twice, one of which matches no row. */
+  assert.ok(seeded.channel.includes('Meta'));
+  assert.ok(!seeded.channel.includes('meta'));
+  assert.equal(lower.filter((v) => v === 'meta').length, 1);
 });
 
 test('an empty seed changes nothing', () => {
