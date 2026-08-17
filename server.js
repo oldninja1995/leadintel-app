@@ -717,7 +717,14 @@ function periodValues(workspaceId, label, at = null) {
 function filterData(unfiltered, active = {}) {
   const options = unfiltered ? filters.optionsFor(unfiltered) : {};
   return {
-    dimensions: filters.DIMENSIONS.map((d) => ({ key: d.key, chip: d.chip, options: options[d.key] || [] })),
+    dimensions: filters.DIMENSIONS.map((d) => ({
+      key: d.key,
+      chip: d.chip,
+      options: options[d.key] || [],
+      /* The value stays the token the URL and scope layer use; this is only how
+         it is spelled in the menu. */
+      labels: filters.labelsFor(d.key),
+    })),
     inert: filters.INERT,
     active,
   };

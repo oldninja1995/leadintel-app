@@ -166,7 +166,13 @@
         '<button type="button" role="menuitemradio" data-v="' + value.replace(/"/g, '&quot;') + '"' +
         ' aria-checked="' + (value === current) + '">' + label + '<i class="ph ph-check"></i></button>';
 
-      menu.innerHTML = option('All', 'All') + dimension.options.map((o) => option(o, o)).join('');
+      /* The label is not the value. `google` is what the URL carries and what
+         the scope layer narrows on; "Google Ads" is what somebody is looking
+         for in the list. Falls back to the value, so a dimension with no map
+         reads exactly as before. */
+      const labels = dimension.labels || {};
+      menu.innerHTML = option('All', 'All')
+        + dimension.options.map((o) => option(o, labels[o] || o)).join('');
     }
 
     const box = chip.getBoundingClientRect();
@@ -427,7 +433,9 @@
 
       const active = spec.key && filters.active[spec.key];
       if (active) {
-        spans[1].textContent = active;
+        /* Spelled the same way the menu spelled it — a chip reading "google"
+           after picking "Google Ads" looks like it selected something else. */
+        spans[1].textContent = (spec.labels && spec.labels[active]) || active;
         chip.classList.add('li-chip-active');
       }
     }
