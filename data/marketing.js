@@ -38,14 +38,14 @@ module.exports = {
        uses: a reservation figure and a revenue figure that disagree about who
        is in them is how two cards on one screen answer different questions in
        the same typeface. */
-    { metric: 'bookings.attributed', label: 'Reservations (paid)', value: '312', delta: '—', deltaColor: NA, tip: 'Won CRM reservations whose lead was tagged to a paid channel, cancellations excluded. A floor — most reservations in this workspace carry no channel at all, and those are on the CRM and Sales screens.', ...SRC.crm },
+    { metric: 'bookings.attributed_total', label: 'Reservations (paid)', value: '312', delta: '—', deltaColor: NA, tip: 'Won CRM reservations tagged to a paid channel, plus booking-engine purchases GA4 attributes to paid search. Two books added, not reconciled — a website booking also entered into the CRM is counted twice, and nothing can separate them until a PMS gives both one folio.', ...SRC.blended },
     /* Was dividing ad spend by EVERY reservation the CRM holds, most of which
        no advertising paid for — ₹597 that looked like efficient advertising
        and was mostly walk-ins. Both halves are paid now. */
     /* What one of those reservations was worth, beside how many there were and
        what each cost. CRM over CRM — see the registry note for why this is not
        the CRM+GA4 total divided by a CRM count. */
-    { metric: 'revenue.per_attributed_reservation', label: 'Reservation AOV', value: '₹42,800', delta: '—', deltaColor: NA, tip: 'Paid-tagged CRM reservation value divided by the paid-tagged reservations that made it up. Excludes GA4 paid-search revenue on purpose: those purchases are not in the denominator, so counting their value would inflate the average.', ...SRC.crm },
+    { metric: 'revenue.per_attributed_reservation', label: 'Reservation AOV', value: '₹42,800', delta: '—', deltaColor: NA, tip: 'Blended reservation value divided by the blended reservation count — CRM paid-tagged plus GA4 paid search on both sides. Both books, so the average is not inflated by counting one system’s revenue against another’s bookings.', ...SRC.crm },
     { metric: 'cost.per_attributed_reservation', label: 'Cost per reservation', value: '₹3,480', delta: '−11.0%', deltaColor: UP, tip: 'Ad spend divided by paid-tagged CRM reservations. A ceiling: a reservation advertising produced but nobody tagged sits outside the denominator while its cost stays in the numerator.', ...SRC.blended },
     /* The GA4 half on its own, beside the total it is now part of. A figure
        folded into a headline and shown nowhere else cannot be checked, and
