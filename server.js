@@ -1205,7 +1205,15 @@ function timed(name, promise, marks) {
   if (!promise) return null;
   const started = Date.now();
   return Promise.resolve(promise).then(
-    (value) => { marks.push(`${name};dur=${Date.now() - started}`); return value; },
+    (value) => {
+      /* A resolved string is a note about what the work moved — prefetch returns
+         its per-query row counts — and rides along as the Server-Timing desc.
+         Volume is what is left to optimise once a read is one round trip, and
+         volume is invisible in a duration. */
+      const note = typeof value === 'string' && value ? `;desc="${value.replace(/"/g, '')}"` : '';
+      marks.push(`${name};dur=${Date.now() - started}${note}`);
+      return value;
+    },
     (err) => { marks.push(`${name};dur=${Date.now() - started};desc="failed"`); throw err; }
   );
 }
@@ -1241,10 +1249,8 @@ app.use((req, res, next) => {
      * not overlap, whatever Promise.all suggests. */
     timed('docs', store.hydrateDocuments({ connections, workspace, webhookTokens, layouts, definitionLog: metrics.definitionLog }), marks),
     timed('runlog', runner.log.hydrate(), marks),
-    timed('audit', gatekeeper.audit.hydrate(), marks),
     timed('rules', fires.hydrate(), marks),
     timed('dispatches', dispatches.hydrate(), marks),
-    timed('evals', metrics.evaluations.hydrate(), marks),
     timed('entities', hydrateEntities(req.workspace), marks),
     /* The repository keeps its own snapshot — the screens read through it while
        the metric layer reads through `entitiesFor` — so it hydrates too. */
