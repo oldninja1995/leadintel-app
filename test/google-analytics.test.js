@@ -119,7 +119,9 @@ test('revenue is a kind of its own, so it cannot take sessions down with it', ()
 
 test('an unknown kind is refused rather than reported empty', async () => {
   await assert.rejects(
-    ga.request({ kind: 'landing_page_day', window: WINDOW, credentials: CREDS, fetchImpl: withToken() }),
+    /* Was 'landing_page_day', which is now a real kind. The point of the test
+       is the refusal, so it needs a name nothing will ever answer for. */
+    ga.request({ kind: 'not_a_report', window: WINDOW, credentials: CREDS, fetchImpl: withToken() }),
     /no request shape/
   );
 });
