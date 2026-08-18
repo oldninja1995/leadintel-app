@@ -58,6 +58,20 @@
   --color-section-glow: #353b80;
   --color-section-ghost: #4c5397;
 
+  /* Grounds the conversion left hardcoded in the views. Each is named for the
+     job it does rather than the colour it is, because the job is what has to
+     survive a theme change — a "raised panel" is above the ground in both
+     themes; #1e202c is only above it in one. Dark values are the exact hexes
+     they replace. */
+  --color-raised: #1e202c;      /* a panel sitting above the surface */
+  --color-drawer: #191b28;      /* the slide-over, floating over a scrim */
+  --color-section-deep: #1c1f3d;/* far stop of the section gradient */
+  --color-shell-foot: #14161f;  /* the sidebar's vertical fall */
+  --color-canvas: #ffffff;      /* a report slide: paper, in both themes */
+  --color-well: #1a1c28;        /* a recess — pipeline columns, chart plates */
+  --color-well-deep: #16171f;   /* an empty recess, waiting to be filled */
+  --color-on-accent: #14161f;   /* text on an accent fill — dark, on a pale accent */
+
   --font-heading: "Inter", system-ui, sans-serif;
   --font-heading-weight: 500;
   --font-body: "Inter", system-ui, sans-serif;
@@ -78,6 +92,10 @@
   --shadow-sm: 0 0 0 1px #3f424d;
   --shadow-md: 0 0 0 1px #595d6c, 0 6px 18px rgba(0,0,0,0.55);
   --shadow-lg: 0 0 0 1px #9397ab, 0 16px 40px rgba(0,0,0,0.65);
+
+  --scrim: rgba(8, 9, 14, .62);
+  --shadow-pop: 0 24px 64px rgba(0, 0, 0, .55);  /* palette, modal */
+  --shadow-drop: 0 16px 40px rgba(0, 0, 0, .5);  /* menu under a control */
 }
 
 body {
@@ -361,11 +379,34 @@ textarea.input { min-height: 90px; resize: vertical; }
   --color-section-glow: #d3d7f6;
   --color-section-ghost: #b9bfef;
 
-  /* The eighteen hardcoded panel grounds in the views are all near-black
-     indigos chosen to sit *under* a surface. There is no token to redefine for
-     them, so they are neutralised here and the surface tokens do the work —
-     see the `[style*=]` rules below. */
-  --color-panel-sunk: #eef0f8;
+
+  /* The grounds, in their light values. A recess is a *tint* on white, not a
+     darker slab: on a light theme depth reads as a step down in lightness of a
+     few percent plus the shadow above it, and anything heavier reads as a hole. */
+  --color-raised: #ffffff;
+  --color-drawer: #ffffff;
+  --color-section-deep: #d7dbf5;
+  --color-shell-foot: #e9ecf4;
+  --color-canvas: #ffffff;
+  --color-well: #eef0f8;
+  --color-well-deep: #e4e7f2;
+  /* The accent darkens on white, so what sits on it has to lighten. */
+  --color-on-accent: #ffffff;
+
+  /* Elevation, rebuilt for a light ground. The dark theme gets its depth from a
+     hairline edge because a shadow on near-black is invisible; a light theme
+     gets it from the shadow, and the edge drops to a whisper. Both are tinted
+     with the text ink rather than pure black, which on a cool grey ground
+     reads as grime. */
+  --shadow-sm: 0 0 0 1px rgba(28, 30, 42, .07), 0 1px 2px rgba(28, 30, 42, .05);
+  --shadow-md: 0 0 0 1px rgba(28, 30, 42, .07), 0 4px 12px rgba(28, 30, 42, .08);
+  --shadow-lg: 0 0 0 1px rgba(28, 30, 42, .08), 0 16px 40px rgba(28, 30, 42, .14);
+
+  /* The scrim stays dark — it is the room going dim, which is not a colour the
+     theme owns — but it lifts, because 62% black over white is a blackout. */
+  --scrim: rgba(28, 30, 42, .42);
+  --shadow-pop: 0 24px 64px rgba(28, 30, 42, .20);
+  --shadow-drop: 0 16px 40px rgba(28, 30, 42, .16);
 }
 
 @media (prefers-color-scheme: light) {
@@ -410,35 +451,44 @@ textarea.input { min-height: 90px; resize: vertical; }
     --color-section: #e6e8fb;
     --color-section-glow: #d3d7f6;
     --color-section-ghost: #b9bfef;
-    --color-panel-sunk: #eef0f8;
+
+    /* The grounds, in their light values. A recess is a *tint* on white, not a
+       darker slab: on a light theme depth reads as a step down in lightness of a
+       few percent plus the shadow above it, and anything heavier reads as a hole. */
+    --color-raised: #ffffff;
+    --color-drawer: #ffffff;
+    --color-section-deep: #d7dbf5;
+    --color-shell-foot: #e9ecf4;
+    --color-canvas: #ffffff;
+    --color-well: #eef0f8;
+    --color-well-deep: #e4e7f2;
+    /* The accent darkens on white, so what sits on it has to lighten. */
+    --color-on-accent: #ffffff;
+
+    /* Elevation, rebuilt for a light ground. The dark theme gets its depth from a
+       hairline edge because a shadow on near-black is invisible; a light theme
+       gets it from the shadow, and the edge drops to a whisper. Both are tinted
+       with the text ink rather than pure black, which on a cool grey ground
+       reads as grime. */
+    --shadow-sm: 0 0 0 1px rgba(28, 30, 42, .07), 0 1px 2px rgba(28, 30, 42, .05);
+    --shadow-md: 0 0 0 1px rgba(28, 30, 42, .07), 0 4px 12px rgba(28, 30, 42, .08);
+    --shadow-lg: 0 0 0 1px rgba(28, 30, 42, .08), 0 16px 40px rgba(28, 30, 42, .14);
+
+    /* The scrim stays dark — it is the room going dim, which is not a colour the
+       theme owns — but it lifts, because 62% black over white is a blackout. */
+    --scrim: rgba(28, 30, 42, .42);
+    --shadow-pop: 0 24px 64px rgba(28, 30, 42, .20);
+    --shadow-drop: 0 16px 40px rgba(28, 30, 42, .16);
   }
 }
 
-/* The hardcoded grounds, neutralised.
- *
- * Eighteen inline `background:#1c1f3d`-style values survive in the views from
- * the original conversion. Editing them all would be the better fix and is a
- * larger change than this one; overriding by attribute selector is exact —
- * these strings appear nowhere else — and leaves dark mode byte-identical. */
-:root[data-theme='light'] [style*='#1c1f3d'],
-:root[data-theme='light'] [style*='#1e202c'],
-:root[data-theme='light'] [style*='#14161f'],
-:root[data-theme='light'] [style*='#1a1c28'],
-:root[data-theme='light'] [style*='#191b28'],
-:root[data-theme='light'] [style*='#1b1d29'] {
-  background: var(--color-panel-sunk) !important;
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme='dark']) [style*='#1c1f3d'],
-  :root:not([data-theme='dark']) [style*='#1e202c'],
-  :root:not([data-theme='dark']) [style*='#14161f'],
-  :root:not([data-theme='dark']) [style*='#1a1c28'],
-  :root:not([data-theme='dark']) [style*='#191b28'],
-  :root:not([data-theme='dark']) [style*='#1b1d29'] {
-    background: var(--color-panel-sunk) !important;
-  }
-}
+/* The grounds that used to be neutralised by attribute selector are gone: the
+ * nineteen hardcoded values in the views now read the role tokens above. That
+ * hack could not tell a card's gradient foot from a sunk well — both matched
+ * `[style*='#1e202c']` — so it flattened every one of them to the same tint and
+ * inverted the hierarchy on white: the hero cards, which recede in dark mode,
+ * became the only tinted things on the screen while ordinary cards stayed pure
+ * white. Naming the role fixes what the string match could not see. */
 
 /* Charts and sparklines are drawn with the accent and neutral tokens, so they
    follow — except the SVG gradient stops, which resolve against the token at

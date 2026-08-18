@@ -6,7 +6,7 @@
 /* — shared overlay — */
 .li-overlay, .li-panel { position: fixed; inset: 0; z-index: 200; }
 .li-overlay[hidden], .li-panel[hidden] { display: none; }
-.li-overlay-scrim { position: absolute; inset: 0; background: rgba(8, 9, 14, .62); animation: li-fade .12s ease; }
+.li-overlay-scrim { position: absolute; inset: 0; background: var(--scrim); animation: li-fade .12s ease; }
 
 .li-kbd {
   font: inherit; font-size: 10px; line-height: 1; color: var(--color-neutral-500);
@@ -25,7 +25,7 @@
   position: relative; width: min(620px, calc(100vw - 32px));
   margin: 12vh auto 0; background: var(--color-surface);
   border: 1px solid var(--color-neutral-800); border-radius: 12px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, .55); overflow: hidden;
+  box-shadow: var(--shadow-pop); overflow: hidden;
   animation: li-pop .14s ease;
 }
 
@@ -98,7 +98,7 @@
 /* — notification bell badge, attached to the design's own topbar button — */
 .li-bell-dot {
   position: absolute; top: -1px; right: -1px; min-width: 14px; height: 14px;
-  border-radius: 99px; background: var(--c-down); color: #0b0c12;
+  border-radius: 99px; background: var(--c-down); color: var(--color-on-accent);
   font-size: 9px; font-weight: 600; line-height: 14px; text-align: center;
   padding: 0 3px; border: 2px solid var(--color-bg); box-sizing: content-box;
 }
@@ -107,7 +107,7 @@
 .li-menu {
   position: absolute; z-index: 300; min-width: 172px; max-height: 300px; overflow-y: auto;
   background: var(--color-surface); border: 1px solid var(--color-neutral-800);
-  border-radius: 9px; box-shadow: 0 16px 40px rgba(0, 0, 0, .5); padding: 5px;
+  border-radius: 9px; box-shadow: var(--shadow-drop); padding: 5px;
   animation: li-pop .1s ease;
 }
 .li-menu button {
@@ -474,7 +474,7 @@ main:focus { outline: none; }
 .li-login-card {
   width: min(420px, 100%); background: var(--color-surface);
   border: 1px solid var(--color-neutral-800); border-radius: 14px;
-  padding: 26px 26px 20px; box-shadow: 0 24px 64px rgba(0, 0, 0, .5);
+  padding: 26px 26px 20px; box-shadow: var(--shadow-pop);
 }
 .li-login-brand { display: flex; align-items: center; gap: 11px; margin-bottom: 20px; }
 .li-login-mark {
@@ -503,7 +503,7 @@ main:focus { outline: none; }
 .li-login-error {
   display: flex; align-items: center; gap: 7px; margin: 0 0 14px;
   padding: 9px 11px; border-radius: 8px; font-size: 12px;
-  border: 1px solid var(--c-down); color: var(--c-down); background: rgba(0, 0, 0, .2);
+  border: 1px solid var(--c-down); color: var(--c-down); background: color-mix(in srgb, var(--c-down) 10%, transparent);
 }
 .li-login-note { font-size: 11px; color: var(--color-neutral-600); line-height: 1.6; margin: 14px 0 0; }
 .li-login-note strong { color: var(--color-neutral-400); font-weight: 500; }

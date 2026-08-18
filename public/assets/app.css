@@ -30,12 +30,31 @@ a:hover { color: var(--color-accent-200); }
 
 table thead th { position: sticky; top: 0; background: var(--color-surface); z-index: 2; }
 
-/* Semantic status colours, resolved once instead of repeated inline. */
+/* Semantic status colours, resolved once instead of repeated inline.
+   The lightnesses are picked against the ground they sit on: L 0.7–0.8 carries
+   on near-black and fails on white, where the same hue has to come down to
+   roughly L 0.55 before a 11px "+93.2%" is readable. */
 :root {
   --c-up: oklch(0.76 0.13 155);
   --c-down: oklch(0.7 0.14 25);
   --c-warn: oklch(0.8 0.12 85);
   --c-code-bg: #14161f;
+}
+
+:root[data-theme='light'] {
+  --c-up: oklch(0.56 0.14 155);
+  --c-down: oklch(0.55 0.19 25);
+  --c-warn: oklch(0.58 0.13 85);
+  --c-code-bg: #eef0f8;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    --c-up: oklch(0.56 0.14 155);
+    --c-down: oklch(0.55 0.19 25);
+    --c-warn: oklch(0.58 0.13 85);
+    --c-code-bg: #eef0f8;
+  }
 }
 
 /* — shell — */
@@ -44,7 +63,7 @@ table thead th { position: sticky; top: 0; background: var(--color-surface); z-i
 .sidebar {
   flex: none; display: flex; flex-direction: column;
   border-right: 1px solid var(--color-neutral-900);
-  background: linear-gradient(180deg, var(--color-bg) 0%, #14161f 100%);
+  background: linear-gradient(180deg, var(--color-bg) 0%, var(--color-shell-foot) 100%);
   transition: width .22s ease; overflow: hidden;
 }
 .sidebar.is-expanded { width: 214px; }

@@ -7,7 +7,7 @@
           </div>
           <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:12px;">
             <% (crmHero || []).forEach(function (k) { %>
-              <div class="hv-4" style="background:linear-gradient(180deg, var(--color-surface), #1e202c); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px 12px; cursor:pointer;">
+              <div class="hv-4" style="background:linear-gradient(180deg, var(--color-surface), var(--color-raised)); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px 12px; cursor:pointer;">
                 <div title="<%= k.tip %>" style="display:flex; align-items:center; gap:6px; font-size:10.5px; letter-spacing:.08em; color:var(--color-neutral-500); text-transform:uppercase;"><i class="<%= k.icon %>" style="font-size:13px; color:var(--color-accent-400);"></i><%= k.label %><span style="flex:1;"></span><span style="font-size:8.5px; letter-spacing:.05em; border:1px solid <%= k.srcBorder %>; border-radius:4px; padding:1px 5px; color:<%= k.srcColor %>;"><%= k.src %></span></div>
                 <div style="display:flex; align-items:baseline; gap:9px; margin-top:7px;"><span style="font-size:26px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:11.5px; font-weight:500; color:<%= k.deltaColor %>;"><%= k.delta %></span></div>
                 <div style="font-size:10.5px; color:var(--color-neutral-600); margin-top:2px;"><%= k.sub %></div>
@@ -73,7 +73,7 @@
                 </div>
               <% }); %>
             </div>
-            <div style="background:linear-gradient(160deg, var(--color-section) 0%, #1c1f3d 70%); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
+            <div style="background:linear-gradient(160deg, var(--color-section) 0%, var(--color-section-deep) 70%); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
               <div style="display:flex; align-items:center; gap:7px; margin-bottom:8px;"><i class="ph-fill ph-sparkle" style="color:var(--color-accent-300); font-size:14px;"></i><div style="font-size:13px; font-weight:500;">AI · today's priorities</div></div>
               <div style="display:flex; flex-direction:column; gap:9px; font-size:11.5px; color:var(--color-accent-100); line-height:1.5;">
                 <div style="display:flex; gap:8px;"><span style="color:var(--color-accent-300);">1</span>Call Priya K first — 84% booking probability, Pool Villa quote expires today (₹58.8K).</div>

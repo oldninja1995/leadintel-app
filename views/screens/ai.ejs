@@ -13,7 +13,7 @@
 
           <!-- COMMAND CENTER -->
           <% if (aiCommand) { %>
-            <div style="background:linear-gradient(160deg, var(--color-section) 0%, #1c1f3d 75%); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px 18px; margin-bottom:12px;">
+            <div style="background:linear-gradient(160deg, var(--color-section) 0%, var(--color-section-deep) 75%); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px 18px; margin-bottom:12px;">
               <div style="display:flex; align-items:center; gap:10px; margin-bottom:10px;">
                 <i class="ph-fill ph-sparkle" style="color:var(--color-accent-300); font-size:15px;"></i>
                 <div style="font-size:13px; font-weight:500;"><%= sumTitle %></div>
@@ -90,7 +90,7 @@
               <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; min-height:480px;">
                 <div style="flex:1; padding:18px; display:flex; flex-direction:column; gap:14px;">
                   <div style="align-self:flex-end; max-width:70%; background:var(--color-accent-900); border:1px solid var(--color-accent-800); border-radius:12px 12px 3px 12px; padding:10px 13px; font-size:12.5px;">Which Meta campaign generated the highest profit this month?</div>
-                  <div style="max-width:85%; background:#1e202c; border-radius:12px 12px 12px 3px; box-shadow:var(--shadow-sm); padding:12px 14px; font-size:12.5px; line-height:1.6; color:var(--color-neutral-300);">
+                  <div style="max-width:85%; background:var(--color-raised); border-radius:12px 12px 12px 3px; box-shadow:var(--shadow-sm); padding:12px 14px; font-size:12.5px; line-height:1.6; color:var(--color-neutral-300);">
                     <b style="color:var(--color-neutral-100); font-weight:500;">Munnar Honeymoon — Video UGC</b> generated the highest profit: <b style="color:var(--color-accent-300); font-weight:500;">₹6.1L profit</b> on ₹2.1L spend (94 confirmed bookings, mostly Deluxe Lake View + Honeymoon Escape).
                     <div style="display:flex; gap:8px; margin-top:10px;">
                       <div style="flex:1; border:1px solid var(--color-neutral-800); border-radius:8px; padding:8px 10px;"><div style="font-size:9px; color:var(--color-neutral-600);">PROFIT</div><div style="font-size:13px; font-weight:500;">₹6.1L</div></div>
@@ -105,7 +105,7 @@
                     </div>
                   </div>
                   <div style="align-self:flex-end; max-width:70%; background:var(--color-accent-900); border:1px solid var(--color-accent-800); border-radius:12px 12px 3px 12px; padding:10px 13px; font-size:12.5px;">Predict next month's occupancy.</div>
-                  <div style="max-width:85%; background:#1e202c; border-radius:12px 12px 12px 3px; box-shadow:var(--shadow-sm); padding:12px 14px; font-size:12.5px; line-height:1.6; color:var(--color-neutral-300);">
+                  <div style="max-width:85%; background:var(--color-raised); border-radius:12px 12px 12px 3px; box-shadow:var(--shadow-sm); padding:12px 14px; font-size:12.5px; line-height:1.6; color:var(--color-neutral-300);">
                     August forecast: <b style="color:var(--color-accent-300); font-weight:500;">83% occupancy</b> (range 79–87%, 87% confidence) — +5pt vs July. Drivers: booking pace +18% WoW, monsoon-season search demand +22%, and 42 confirmed bookings already on the August calendar. Standard Rooms lag at 72% — the midweek corporate push targets exactly that gap.
                   </div>
                 </div>
@@ -261,7 +261,7 @@
                 </div>
                 <div style="font-size:10.5px; color:var(--color-neutral-600); line-height:1.5; border-top:1px solid var(--color-neutral-900); padding-top:10px;">Assumes marginal Meta ROAS 5.1x with saturation decay, −0.25pt occupancy per +1% ADR, and 82% recovery on avoided cancellations.</div>
               </div>
-              <div style="background:linear-gradient(160deg, var(--color-section) 0%, #1c1f3d 75%); border-radius:12px; box-shadow:var(--shadow-sm); padding:18px;">
+              <div style="background:linear-gradient(160deg, var(--color-section) 0%, var(--color-section-deep) 75%); border-radius:12px; box-shadow:var(--shadow-sm); padding:18px;">
                 <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;"><i class="ph-fill ph-flask" style="color:var(--color-accent-300); font-size:15px;"></i><div style="font-size:13px; font-weight:500;">Predicted next 30 days — <%= simScenario %></div></div>
                 <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:10px;">
                   <% (simOut || []).forEach(function (o) { %>
@@ -358,7 +358,7 @@
               </div>
             <% }); %>
           </div>
-          <div style="margin-top:12px; background:linear-gradient(160deg, var(--color-section) 0%, #1c1f3d 70%); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
+          <div style="margin-top:12px; background:linear-gradient(160deg, var(--color-section) 0%, var(--color-section-deep) 70%); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
             <div style="display:flex; align-items:center; gap:7px; margin-bottom:10px;"><i class="ph-fill ph-list-checks" style="color:var(--color-accent-300); font-size:15px;"></i><div style="font-size:13px; font-weight:500;">This week's action plan</div></div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; color:var(--color-accent-100); line-height:1.5;">
               <div style="display:flex; gap:8px;"><i class="ph ph-square" style="margin-top:2px; color:var(--color-accent-300);"></i>Shift ₹40K/week to Munnar Honeymoon campaign</div>
