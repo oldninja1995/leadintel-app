@@ -1228,13 +1228,21 @@ app.use((req, res, next) => {
      They then find their rows already fetched and return without a query —
      see store.prefetch. The limits repeat the ones each hydrate uses, because
      a prime is keyed on the limit and a mismatch means the store quietly
-     fetches for itself instead of silently getting the wrong history. */
+     fetches for itself instead of silently getting the wrong history.
+
+     **Only what every route actually reads.** The audit log and the evaluation
+     snapshots were in here, fetched before every request including ones that
+     return four hundred bytes of session JSON, and read by three routes between
+     them. Those three hydrate themselves; see /audit and /metrics/snapshots.
+
+     What stays, stays because a plain screen render reads it: the documents
+     behind connections.configured(), the run log behind the shell's freshness
+     line, and the fire log and dispatch list behind the notifications tray. */
   const ready = timed('prefetch', store.prefetch({
     documents: { connections, workspace, webhookTokens, layouts, definitionLog: metrics.definitionLog },
-    lists: [dispatches, metrics.evaluations],
+    lists: [dispatches],
     logs: [
       { store: runner.log, kind: 'hydrate', limit: 500 },
-      { store: gatekeeper.audit, kind: 'last', limit: 1000 },
       { store: fires, kind: 'last', limit: 2000 },
     ],
   }), marks);
@@ -1272,9 +1280,14 @@ app.get('/whoami', (req, res) => {
   });
 });
 
-app.get('/audit', (req, res) => {
+app.get('/audit', async (req, res, next) => {
+  /* Hydrated here rather than before every request in the app. This is the log's
+     only reader — `record()` appends through the backend and tolerates an
+     unhydrated cache by construction, so a write on an instance that never
+     hydrated still lands. */
+  try { await gatekeeper.audit.hydrate(); } catch (err) { return next(err); }
   /* Scoped to the caller's own workspace, always. */
-  res.json({
+  return res.json({
     workspace: req.workspace,
     entries: gatekeeper.audit.forWorkspace(req.workspace, { action: req.query.action || null }),
   });
@@ -2880,11 +2893,16 @@ app.post('/metrics/snapshot', express.json(), gatekeeper.gate('snapshot.record')
   }
 });
 
-app.get('/metrics/snapshots', (req, res) => {
-  res.json({ registryFingerprint: metrics.versions.fingerprint(), snapshots: metrics.evaluations.list() });
+app.get('/metrics/snapshots', async (req, res, next) => {
+  /* Hydrated here rather than before every request. These two routes are the
+     only readers, and an evaluation snapshot carries the inputs it was computed
+     from — the largest documents in the store. */
+  try { await metrics.evaluations.hydrate(); } catch (err) { return next(err); }
+  return res.json({ registryFingerprint: metrics.versions.fingerprint(), snapshots: metrics.evaluations.list() });
 });
 
-app.get('/metrics/snapshots/:id', (req, res) => {
+app.get('/metrics/snapshots/:id', async (req, res, next) => {
+  try { await metrics.evaluations.hydrate(); } catch (err) { return next(err); }
   let record;
   try {
     record = metrics.evaluations.get(req.params.id);
