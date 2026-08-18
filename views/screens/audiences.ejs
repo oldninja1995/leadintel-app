@@ -3,9 +3,9 @@
             <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:19px;">Audience Analytics</h1>
             <span style="font-size:11.5px; color:var(--color-neutral-600);">demographics, segments & saturation · CRM-verified</span>
           </div>
-          <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div style="display:grid; grid-template-columns:1.6fr 1fr; gap:12px; margin-bottom:12px;">
             <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
-              <div style="display:flex; align-items:center; margin-bottom:10px;"><div style="font-size:13px; font-weight:500;">Leads by age &amp; gender</div><div style="flex:1;"></div><span style="display:flex; gap:10px; font-size:11px; color:var(--color-neutral-400);"><span style="display:flex; align-items:center; gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-500);"></span>Female</span><span style="display:flex; align-items:center; gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-neutral-600);"></span>Male</span></span></div>
+              <div style="display:flex; align-items:center; margin-bottom:10px;"><div style="font-size:13px; font-weight:500;"><%= (typeof audAgeMeasure !== 'undefined' && audAgeMeasure) ? audAgeMeasure : 'Leads' %> by age &amp; gender</div><div style="flex:1;"></div><span style="display:flex; gap:10px; font-size:11px; color:var(--color-neutral-400);"><span style="display:flex; align-items:center; gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-500);"></span>Female</span><span style="display:flex; align-items:center; gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-neutral-600);"></span>Male</span></span></div>
               <%
               /* Drawn from Meta's age x gender breakdown. The design titled this
                  "Revenue by age & gender" and drew ten fixed bars that never moved;
@@ -40,36 +40,6 @@
               <div style="font-size:11px; color:var(--color-neutral-500); margin-top:8px; border-top:1px solid var(--color-neutral-900); padding-top:8px;">
                 <%= typeof audAgeNote !== 'undefined' ? audAgeNote : '' %>
               </div>
-              <% } %>
-            </div>
-            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
-              <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:10px;"><div style="font-size:13px; font-weight:500;">Reservation value by type</div><span style="font-size:10px; color:var(--color-neutral-600);">CRM</span></div>
-              <%
-              /* Replaced the Device & OS ring, which was a fixed 74% on every
-                 range and, once declined, a card carrying only an apology. A
-                 device split is a Meta breakdown of its own or a GA4 dimension
-                 and neither is pulled; this is a question the data can answer. */
-              var types = (typeof audRevenue !== 'undefined' && audRevenue) ? audRevenue : [];
-              %>
-              <% if (!types.length) { %>
-                <div style="height:96px; display:grid; place-items:center; text-align:center; font-size:11.5px; color:var(--color-neutral-600); padding:0 12px;">
-                  No ad set or campaign reported spend in this range, so there is nothing to group by type.
-                </div>
-              <% } else { %>
-                <% types.forEach(function (t) { %>
-                  <div style="padding:5px 0;">
-                    <div style="display:flex; align-items:baseline; gap:8px; font-size:11.5px;">
-                      <span style="flex:1; color:var(--color-neutral-300); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= t.type %></span>
-                      <span style="font-variant-numeric:tabular-nums; color:var(--color-neutral-200); font-weight:500;"><%= t.rev %></span>
-                      <span style="font-variant-numeric:tabular-nums; color:var(--color-neutral-600); width:30px; text-align:right;"><%= t.share %></span>
-                    </div>
-                    <div style="height:5px; border-radius:99px; background:var(--color-neutral-900); margin:4px 0 3px;"><div style="height:100%; width:<%= t.w %>; border-radius:99px; background:var(--color-accent-600);"></div></div>
-                    <div style="font-size:10px; color:var(--color-neutral-600);"><%= t.meta %> &middot; <%= t.bookings %> booked &middot; <%= t.roas %></div>
-                  </div>
-                <% }); %>
-                <div style="font-size:10px; color:var(--color-neutral-700); border-top:1px solid var(--color-neutral-900); margin-top:8px; padding-top:6px;">
-                  Reservation value the CRM recorded against leads from each kind of audience &mdash; deal value entered at conversion, not money collected. A type with spend and no value keeps its row: that is the finding.
-                </div>
               <% } %>
             </div>
             <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
