@@ -27,26 +27,29 @@ const VIEW = path.join(__dirname, '..', 'views', 'screens', 'attribution.ejs');
 
 /* ── the binding mechanism ──────────────────────────────────────────────── */
 
+/* The booking total, which is still a literal in the design's markup. The Meta
+   node used to be the example here and is no longer bound at all — the Sankey's
+   channel boxes are generated now, so there is no fixed node to replace. */
 test('a literal is replaced with the expression that re-credits it', () => {
-  const html = '<text>₹18.9L</text>';
-  assert.equal(bindLiterals(html, 'attribution'), '<text><%= attrSankeyMeta %></text>');
+  const html = '<text>₹52.3L</text>';
+  assert.equal(bindLiterals(html, 'attribution'), '<text><%= attrSankeyTotal %></text>');
 });
 
 test('binding is idempotent — the literal is gone after the first pass', () => {
-  const once = bindLiterals('<text>₹18.9L</text>', 'attribution');
+  const once = bindLiterals('<text>₹52.3L</text>', 'attribution');
   assert.equal(bindLiterals(once, 'attribution'), once);
 });
 
 test('a binding that would match twice is refused rather than guessing', () => {
   /* First-match-wins would bind the wrong node with nothing to show for it. */
   assert.throws(
-    () => bindLiterals('<text>₹18.9L</text><text>₹18.9L</text>', 'attribution'),
+    () => bindLiterals('<text>₹52.3L</text><text>₹52.3L</text>', 'attribution'),
     /appears 2 times — a binding must be unambiguous/
   );
 });
 
 test('bindings only apply to their own screen', () => {
-  const html = '<text>₹18.9L</text>';
+  const html = '<text>₹52.3L</text>';
   assert.equal(bindLiterals(html, 'dashboard'), html);
 });
 

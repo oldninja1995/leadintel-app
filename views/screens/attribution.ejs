@@ -12,33 +12,42 @@
           <div style="display:grid; grid-template-columns:1.5fr 1fr; gap:12px; margin-bottom:12px;">
             <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
               <div style="font-size:13px; font-weight:500; margin-bottom:2px;">Customer journey flow</div>
-              <div style="font-size:10.5px; color:var(--color-neutral-600); margin-bottom:10px;">first touch → assists → last touch → booking · width = credited revenue (<%= attrModelName %>)</div>
+              <div style="font-size:10.5px; color:var(--color-neutral-600); margin-bottom:10px;"><%= typeof attrFlowNote !== 'undefined' && attrFlowNote ? attrFlowNote : 'width = credited revenue' %></div>
               <svg viewBox="0 0 620 240" style="width:100%; height:240px;">
                 <g font-family="Inter" font-size="10">
-                  <path d="M90,40 C230,40 300,58 430,58 L430,86 C300,86 230,74 90,74 Z" fill="var(--color-accent-700)" opacity="0.55"></path>
-                  <path d="M90,90 C230,90 300,70 430,70 L430,84 C300,84 230,102 90,102 Z" fill="var(--color-accent-2-600)" opacity="0.4"></path>
-                  <path d="M90,118 C230,118 300,100 430,100 L430,118 C300,118 230,136 90,136 Z" fill="var(--color-accent-600)" opacity="0.45"></path>
-                  <path d="M90,152 C230,152 300,126 430,126 L430,140 C300,140 230,168 90,168 Z" fill="var(--color-neutral-700)" opacity="0.5"></path>
-                  <path d="M90,186 C230,186 300,146 430,146 L430,156 C300,156 230,198 90,198 Z" fill="var(--color-neutral-600)" opacity="0.4"></path>
-                  <path d="M470,58 C520,58 540,90 560,90 L560,150 C540,150 520,160 470,160 Z" fill="var(--color-accent-500)" opacity="0.5"></path>
+                  <%
+                  /* Drawn from data. The design typed five ribbons and five
+                     revenue labels straight into this SVG, so switching the
+                     credit model changed the table underneath and left the
+                     picture saying whatever it had always said. */
+                  var flow = (typeof attrFlow !== 'undefined' && attrFlow) ? attrFlow : [];
+                  %>
+                  <% flow.forEach(function (f) { %>
+                    <path d="<%= f.path %>" fill="<%= f.fill %>" opacity="0.5"></path>
+                  <% }); %>
                   <g>
-                    <rect x="40" y="30" width="50" height="48" rx="5" fill="var(--color-accent-800)"></rect><text x="65" y="50" text-anchor="middle" fill="var(--color-accent-100)">Meta</text><text x="65" y="64" text-anchor="middle" fill="var(--color-accent-200)" font-size="9"><%= attrSankeyMeta %></text>
-                    <rect x="40" y="84" width="50" height="24" rx="5" fill="var(--color-accent-2-700)"></rect><text x="65" y="100" text-anchor="middle" fill="var(--color-accent-100)" font-size="9">Google</text>
-                    <rect x="40" y="112" width="50" height="28" rx="5" fill="var(--color-accent-700)"></rect><text x="65" y="130" text-anchor="middle" fill="var(--color-accent-100)" font-size="9">Direct</text>
-                    <rect x="40" y="146" width="50" height="26" rx="5" fill="var(--color-neutral-800)"></rect><text x="65" y="163" text-anchor="middle" fill="var(--color-neutral-300)" font-size="9">Organic</text>
-                    <rect x="40" y="178" width="50" height="24" rx="5" fill="var(--color-neutral-800)"></rect><text x="65" y="194" text-anchor="middle" fill="var(--color-neutral-300)" font-size="9">Email</text>
+                    <% flow.forEach(function (f) { %>
+                      <rect x="40" y="<%= f.y %>" width="50" height="<%= f.h %>" rx="5" fill="<%= f.fill %>"></rect>
+                      <text x="65" y="<%= f.labelY %>" text-anchor="middle" fill="var(--color-accent-100)" font-size="8.5"><%= f.label %></text>
+                      <% if (f.showRev) { %>
+                        <text x="65" y="<%= f.revY %>" text-anchor="middle" fill="var(--color-accent-200)" font-size="8"><%= f.rev %></text>
+                      <% } %>
+                    <% }); %>
                   </g>
+                  <% if (!flow.length) { %>
+                    <text x="310" y="120" text-anchor="middle" fill="var(--color-neutral-600)" font-size="11">No credited revenue in this range</text>
+                  <% } %>
                   <g>
                     <rect x="430" y="48" width="40" height="120" rx="5" fill="var(--color-neutral-800)"></rect>
-                    <text x="450" y="105" text-anchor="middle" fill="var(--color-neutral-300)" font-size="9" transform="rotate(-90 450 105)">Last touch</text>
+                    <text x="450" y="105" text-anchor="middle" fill="var(--color-neutral-300)" font-size="9" transform="rotate(-90 450 105)">Credited</text>
                   </g>
                   <g>
                     <rect x="560" y="80" width="46" height="78" rx="6" fill="var(--color-section-glow)"></rect>
                     <text x="583" y="112" text-anchor="middle" fill="var(--color-accent-100)" font-size="9">Booking</text>
                     <text x="583" y="126" text-anchor="middle" fill="var(--color-accent-200)" font-size="10" font-weight="500"><%= attrSankeyTotal %></text>
                   </g>
-                  <text x="65" y="220" text-anchor="middle" fill="var(--color-neutral-600)" font-size="9">FIRST TOUCH</text>
-                  <text x="450" y="220" text-anchor="middle" fill="var(--color-neutral-600)" font-size="9">LAST TOUCH</text>
+                  <text x="65" y="220" text-anchor="middle" fill="var(--color-neutral-600)" font-size="9">CHANNEL</text>
+                  <text x="450" y="220" text-anchor="middle" fill="var(--color-neutral-600)" font-size="9">CREDITED</text>
                   <text x="583" y="220" text-anchor="middle" fill="var(--color-neutral-600)" font-size="9">REVENUE</text>
                 </g>
               </svg>
@@ -46,7 +55,7 @@
             <div style="display:flex; flex-direction:column; gap:12px;">
               <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
                 <div style="font-size:13px; font-weight:500; margin-bottom:4px;">A real journey</div>
-                <div style="font-size:10.5px; color:var(--color-neutral-600); margin-bottom:10px;">Lead #4812 · booked Deluxe Lake View · ₹34,200</div>
+                <div style="font-size:10.5px; color:var(--color-neutral-600); margin-bottom:10px;"><%= typeof attrJourneyCaption !== 'undefined' ? attrJourneyCaption : '' %></div>
                 <% (journey || []).forEach(function (j) { %>
                   <div style="display:flex; gap:10px; align-items:flex-start; padding-bottom:10px; position:relative;">
                     <div style="width:24px; height:24px; flex:none; border-radius:99px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); display:grid; place-items:center;"><i class="<%= j.icon %>" style="font-size:12px; color:var(--color-accent-300);"></i></div>
@@ -55,14 +64,14 @@
                 <% }); %>
               </div>
               <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px; display:flex; gap:14px;">
-                <div style="flex:1;"><div style="font-size:10px; color:var(--color-neutral-600); letter-spacing:.06em;">ASSISTED CONV.</div><div style="font-size:18px; font-weight:500; margin-top:3px;">218</div><div style="font-size:10.5px; color:var(--color-neutral-600);">61% of bookings multi-touch</div></div>
+                <div style="flex:1;"><div style="font-size:10px; color:var(--color-neutral-600); letter-spacing:.06em;">ASSISTED CONV.</div><div style="font-size:18px; font-weight:500; margin-top:3px;"><%= typeof attrAssisted !== 'undefined' ? attrAssisted : '—' %></div><div style="font-size:10.5px; color:var(--color-neutral-600);"><%= typeof attrAssistedSub !== 'undefined' ? attrAssistedSub : '' %></div></div>
                 <div style="width:1px; background:var(--color-neutral-900);"></div>
-                <div style="flex:1;"><div style="font-size:10px; color:var(--color-neutral-600); letter-spacing:.06em;">AVG TIME TO BOOK</div><div style="font-size:18px; font-weight:500; margin-top:3px;">6.2 days</div><div style="font-size:10.5px; color:var(--color-neutral-600);">3.4 touchpoints avg</div></div>
+                <div style="flex:1;"><div style="font-size:10px; color:var(--color-neutral-600); letter-spacing:.06em;">AVG TIME TO BOOK</div><div style="font-size:18px; font-weight:500; margin-top:3px;"><%= typeof attrTimeToBook !== 'undefined' ? attrTimeToBook : '—' %></div><div style="font-size:10.5px; color:var(--color-neutral-600);"><%= typeof attrTimeSub !== 'undefined' ? attrTimeSub : '' %></div></div>
               </div>
             </div>
           </div>
           <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
-            <div style="display:flex; align-items:center; margin-bottom:8px;"><div style="font-size:13px; font-weight:500;">Channel credit — <%= attrModelName %></div><span style="font-size:10.5px; color:var(--color-neutral-600); margin-left:8px;">switch models above to compare credit</span></div>
+            <div style="display:flex; align-items:center; margin-bottom:8px;"><div style="font-size:13px; font-weight:500;">Channel credit — <%= attrModelName %></div><span style="font-size:10.5px; color:var(--color-neutral-600); margin-left:8px;"><%= typeof attrCreditBasis !== 'undefined' ? attrCreditBasis : '' %></span></div>
             <table style="width:100%; border-collapse:collapse; font-size:12px;">
               <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:7px 8px 7px 0; font-weight:500;">CHANNEL</th><th style="padding:7px 8px; text-align:right; font-weight:500;">TOUCHPOINTS</th><th style="padding:7px 8px; text-align:right; font-weight:500;">CREDITED REVENUE</th><th style="padding:7px 8px; font-weight:500;">SHARE</th><th style="padding:7px 8px; text-align:right; font-weight:500;">BOOKINGS</th><th style="padding:7px 8px; text-align:right; font-weight:500;">CONV %</th><th style="padding:7px 0 7px 8px; text-align:right; font-weight:500;">AVG TIME</th></tr></thead>
               <tbody>

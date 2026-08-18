@@ -499,12 +499,14 @@ const LITERAL_BINDINGS = [
     valueFrom: 'cr.bestScore',
     why: 'the bar shows the composite score, not hold rate — hold rate has its own cell',
   },
-  {
-    screen: 'attribution',
-    find: '>₹18.9L<',
-    replace: '><%= attrSankeyMeta %><',
-    why: 'Meta node — must follow the workspace attribution model',
-  },
+  /* The Sankey's five channel boxes were fixed art with a revenue figure typed
+     beside each, and a binding here made the Meta one follow the model. The
+     diagram is drawn from the credited rows now — a channel with no revenue has
+     no box, and its label arrives with its geometry — so that binding is gone
+     rather than kept pointing at markup nothing generates.
+
+     Noted because the design file still reads ₹18.9L there, and somebody
+     comparing the two should see this was decided rather than missed. */
   {
     screen: 'attribution',
     find: '>₹52.3L<',
