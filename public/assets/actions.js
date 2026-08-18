@@ -30,6 +30,29 @@ const TOGGLES = {
 };
 
 const HANDLERS = {
+  /* A sub-screen list that folds away, and stays that way.
+   *
+   * Server-rendered open when the reader is standing in the branch, and
+   * remembered in localStorage otherwise — a fold that reopened on every
+   * navigation would be a decoration rather than a control. The key is the
+   * parent's slug, so adding another parent needs nothing here. */
+  toggleNav(el, ev) {
+    if (ev) ev.stopPropagation();
+    const slug = el.getAttribute('data-nav');
+    const box = document.querySelector('[data-nav-children="' + slug + '"]');
+    if (!box) return;
+    const open = box.style.display === 'none';
+    box.style.display = open ? '' : 'none';
+    el.classList.toggle('ph-caret-down', open);
+    el.classList.toggle('ph-caret-right', !open);
+    try {
+      window.localStorage.setItem('li-nav:' + slug, open ? 'open' : 'shut');
+    } catch (err) {
+      /* Private browsing refuses storage. The fold still works for this page;
+         it simply does not outlive it, which is better than the click doing
+         nothing at all. */
+    }
+  },
   /* The sidebar's own markup is the whole story: collapse narrows it and hides
      the labels. Nothing else is implied. */
   toggleSidebar(el) {
@@ -49,6 +72,14 @@ document.addEventListener('click', (ev) => {
   const el = ev.target.closest('[data-action]');
   if (!el) return;
   const action = el.getAttribute('data-action');
+
+  /* Handlers first: a fold caret lives inside a row that navigates, and the
+     row's path would otherwise win the moment the caret's own name is not
+     recognised here. */
+  if (HANDLERS[action]) {
+    HANDLERS[action](el, ev);
+    return;
+  }
 
   /* Item-scoped actions are evaluated at render, so the data can supply a
      destination per row. A path means navigate. */

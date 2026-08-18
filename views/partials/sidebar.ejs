@@ -26,10 +26,10 @@
             <div style="font-size:10px; letter-spacing:.09em; color:var(--color-neutral-700); padding:10px 8px 4px; text-transform:uppercase; white-space:nowrap;"><%= grp.label %></div>
           <% } %>
           <% (grp.items || []).forEach(function (it) { %>
-            <div class="hv-1" data-action="<%= it.go %>" title="<%= it.name %>" style="display:flex; align-items:center; gap:9px; padding:6.5px 8px 6.5px <%= it.child ? '24px' : '8px' %>; margin:1px 0; border-radius:7px; cursor:pointer; white-space:nowrap; color: <%= it.color %>; background: <%= it.bg %>; border-left:2px solid <%= it.rail %>;">
-              <i class="<%= it.icon %>" style="font-size:<%= it.child ? '13.5px' : '15.5px' %>; flex:none;"></i>
+            <div class="hv-1" data-action="<%= it.go %>" title="<%= it.name %>" style="display:flex; align-items:center; gap:9px; padding:6.5px 8px; margin:1px 0; border-radius:7px; cursor:pointer; white-space:nowrap; color: <%= it.color %>; background: <%= it.bg %>; border-left:2px solid <%= it.rail %>;">
+              <i class="<%= it.icon %>" style="font-size:15.5px; flex:none;"></i>
               <% if (expanded) { %>
-                <span style="flex:1; font-size:<%= it.child ? '11.5px' : '12.5px' %>; overflow:hidden; text-overflow:ellipsis;"><%= it.name %></span>
+                <span style="flex:1; font-size:12.5px; overflow:hidden; text-overflow:ellipsis;"><%= it.name %></span>
               <% } %>
               <% if (it.showBadge) { %>
                 <span style="font-size:10px; background:var(--color-accent-900); color:var(--color-accent-300); border:1px solid var(--color-accent-800); border-radius:99px; padding:0 6px; line-height:15px;"><%= it.badge %></span>
@@ -37,7 +37,29 @@
               <% if (it.pinned) { %>
                 <i class="ph-fill ph-push-pin" style="font-size:10px; color:var(--color-neutral-700);"></i>
               <% } %>
+              <%
+              /* The caret carries its own data-action, and the click handler
+                 takes the innermost one — so folding does not also navigate. */
+              %>
+              <% if ((it.children || []).length && expanded) { %>
+                <i class="ph <%= it.open ? 'ph-caret-down' : 'ph-caret-right' %>"
+                   data-action="toggleNav" data-nav="<%= it.slug %>"
+                   title="Show or hide <%= it.children.length %> sub-screen(s)"
+                   style="font-size:11px; color:var(--color-neutral-600); padding:2px; margin:-2px -2px -2px 0;"></i>
+              <% } %>
             </div>
+            <% if ((it.children || []).length) { %>
+              <div data-nav-children="<%= it.slug %>" style="<%= it.open ? '' : 'display:none;' %>">
+                <% it.children.forEach(function (kid) { %>
+                  <div class="hv-1" data-action="<%= kid.go %>" title="<%= kid.name %>" style="display:flex; align-items:center; gap:9px; padding:5.5px 8px 5.5px 26px; margin:1px 0; border-radius:7px; cursor:pointer; white-space:nowrap; color: <%= kid.color %>; background: <%= kid.bg %>; border-left:2px solid <%= kid.rail %>;">
+                    <i class="<%= kid.icon %>" style="font-size:13px; flex:none;"></i>
+                    <% if (expanded) { %>
+                      <span style="flex:1; font-size:11.5px; overflow:hidden; text-overflow:ellipsis;"><%= kid.name %></span>
+                    <% } %>
+                  </div>
+                <% }); %>
+              </div>
+            <% } %>
           <% }); %>
         </div>
       <% }); %>

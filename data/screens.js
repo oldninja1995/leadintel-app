@@ -55,24 +55,29 @@ const SCREENS = [
   { slug: 'connections', view: 'connections', gate: null, app: 'connections', name: 'Connections', icon: 'ph ph-plugs-connected', group: 'Settings' },
 ];
 
-/* Sidebar groups, derived so SCREENS stays the single source of truth. */
+/* Sidebar groups, derived so SCREENS stays the single source of truth.
+ *
+ * A screen naming a `parent` is nested under it rather than listed beside it,
+ * and the parent carries a caret that folds it away. Flat indentation said
+ * "related"; a fold says "this belongs to that, and you can put it back" —
+ * which is what a reader who never touches keywords actually wants.
+ *
+ * The fold starts open when the reader is on the parent or on one of its
+ * children, because collapsing the branch somebody is standing in hides where
+ * they are. Every other state is theirs to choose and is remembered in the
+ * browser; see public/assets/actions.js.
+ */
 function navGroups(activeSlug) {
   const order = [];
   const byGroup = new Map();
-  for (const s of SCREENS) {
-    if (!byGroup.has(s.group)) {
-      byGroup.set(s.group, []);
-      order.push(s.group);
-    }
+  const items = new Map();
+
+  const decorate = (s) => {
     const active = s.slug === activeSlug;
     /* Field names match what the design's sidebar markup reads. */
-    byGroup.get(s.group).push({
+    return {
       ...s,
       go: '/' + s.slug,
-      /* Nested under the screen it belongs to rather than listed beside it.
-         Keyword Analytics is Google Ads Analytics one level down, and a flat
-         sibling in the same group claims it is a separate subject. */
-      child: Boolean(s.parent),
       /* The design pairs a badge with a flag that gates it; no screen carries
          a count yet, so the badge is empty and the flag is off. */
       showBadge: false,
@@ -81,8 +86,29 @@ function navGroups(activeSlug) {
       color: active ? 'var(--color-accent-200)' : 'var(--color-neutral-400)',
       bg: active ? 'var(--color-accent-900)' : 'transparent',
       rail: active ? 'var(--color-accent-400)' : 'transparent',
-    });
+      children: [],
+      open: false,
+    };
+  };
+
+  for (const s of SCREENS) items.set(s.slug, decorate(s));
+
+  for (const s of SCREENS) {
+    const item = items.get(s.slug);
+    const parent = s.parent && items.get(s.parent);
+    if (parent) {
+      parent.children.push(item);
+      /* Standing on the child, or on the parent, opens the fold. */
+      if (s.slug === activeSlug || s.parent === activeSlug) parent.open = true;
+      continue;
+    }
+    if (!byGroup.has(s.group)) {
+      byGroup.set(s.group, []);
+      order.push(s.group);
+    }
+    byGroup.get(s.group).push(item);
   }
+
   return order.map((label) => ({ label, showLabel: true, items: byGroup.get(label) }));
 }
 
