@@ -56,6 +56,16 @@ const openSource = canManage
       <span class="li-conn-tally-n"><%= receiving.length %><em>/<%= connections.length %></em></span>
       <span class="li-conn-tally-l">receiving</span>
     </div>
+    <%# Every card below is a <details> that starts closed, so the per-source
+        Sync button cannot be seen without knowing which source to open. This
+        one is visible before anything is expanded. %>
+    <% if (canManage && receiving.length) { %>
+      <form method="post" action="/connections/sync" class="li-conn-syncall">
+        <button type="submit" title="Pull every connected source now, most out-of-date first">
+          <i class="ph ph-arrows-clockwise"></i>Sync all
+        </button>
+      </form>
+    <% } %>
   </header>
 
   <% if (!secretSet) { %>

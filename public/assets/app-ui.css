@@ -406,6 +406,19 @@
 .li-conn-actions button i { font-size: 13px; }
 .li-conn-actions button:hover { background: var(--color-accent-600); }
 .li-conn-actions button:disabled { opacity: .4; cursor: not-allowed; }
+/* The Sync-all control in the page header. It borrows the card buttons'
+   shape rather than defining a second one —  is scoped
+   to the card, and this one sits outside it beside the tally. */
+.li-conn-syncall { flex: none; align-self: center; }
+.li-conn-syncall button {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--color-accent-600); background: var(--color-accent-800);
+  color: var(--color-accent-100); border-radius: 7px; padding: 7px 14px;
+  font-family: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+}
+.li-conn-syncall button i { font-size: 13px; }
+.li-conn-syncall button:hover { background: var(--color-accent-600); }
+
 .li-conn-secondary { background: transparent !important; border-color: var(--color-neutral-800) !important; color: var(--color-neutral-400) !important; }
 .li-conn-secondary:hover { border-color: var(--color-neutral-700) !important; color: var(--color-neutral-200) !important; }
 .li-conn-danger { background: transparent !important; border-color: color-mix(in srgb, var(--c-down) 45%, transparent) !important; color: var(--c-down) !important; }
