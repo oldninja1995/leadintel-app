@@ -42,6 +42,10 @@ module.exports = {
     /* Was dividing ad spend by EVERY reservation the CRM holds, most of which
        no advertising paid for — ₹597 that looked like efficient advertising
        and was mostly walk-ins. Both halves are paid now. */
+    /* What one of those reservations was worth, beside how many there were and
+       what each cost. CRM over CRM — see the registry note for why this is not
+       the CRM+GA4 total divided by a CRM count. */
+    { metric: 'revenue.per_attributed_reservation', label: 'Reservation AOV', value: '₹42,800', delta: '—', deltaColor: NA, tip: 'Paid-tagged CRM reservation value divided by the paid-tagged reservations that made it up. Excludes GA4 paid-search revenue on purpose: those purchases are not in the denominator, so counting their value would inflate the average.', ...SRC.crm },
     { metric: 'cost.per_attributed_reservation', label: 'Cost per reservation', value: '₹3,480', delta: '−11.0%', deltaColor: UP, tip: 'Ad spend divided by paid-tagged CRM reservations. A ceiling: a reservation advertising produced but nobody tagged sits outside the denominator while its cost stays in the numerator.', ...SRC.blended },
     /* The GA4 half on its own, beside the total it is now part of. A figure
        folded into a headline and shown nowhere else cannot be checked, and
