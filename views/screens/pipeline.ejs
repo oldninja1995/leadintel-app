@@ -1,7 +1,19 @@
 <div style="animation:li-fade .25s ease;" data-screen-label="Sales Pipeline">
           <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
             <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:19px;">Sales Pipeline</h1>
-            <span style="font-size:11.5px; color:var(--color-neutral-600);">₹18.6L open pipeline · 214 active leads</span>
+            <%
+            /* The heading claimed "₹18.6L open pipeline · 214 active leads" on
+               every workspace and every range. Counted from the columns below,
+               so the two cannot disagree — and no value, because this CRM
+               prices a deal only at conversion. */
+            var board = (typeof pipeAllStages !== 'undefined' && pipeAllStages) ? pipeAllStages : (pipeStages || []);
+            var boardLeads = board.reduce(function (t, st) {
+              return t + (Number(String(st.n).replace(/[^0-9]/g, '')) || 0);
+            }, 0);
+            %>
+            <span style="font-size:11.5px; color:var(--color-neutral-600);">
+              <%= boardLeads.toLocaleString('en-IN') %> leads across <%= board.length %> stage<%= board.length === 1 ? '' : 's' %>
+            </span>
             <div style="flex:1;"></div>
             <div style="display:flex; border:1px solid var(--color-neutral-800); border-radius:7px; overflow:hidden; font-size:11.5px;">
               <span data-action="pipeKanban" style="display:flex; align-items:center; gap:5px; padding:5px 12px; cursor:pointer; color:<%= pipeKanbanColor %>; background:<%= pipeKanbanBg %>;"><i class="ph ph-kanban" style="font-size:13px;"></i>Kanban</span>
@@ -18,16 +30,26 @@
                     <div style="flex:1;"></div>
                     <span style="font-size:10px; color:var(--color-neutral-600); font-variant-numeric:tabular-nums;"><%= st.rev %></span>
                   </div>
-                  <div style="display:flex; gap:8px; font-size:9px; color:var(--color-neutral-600); padding:0 4px 8px; border-bottom:1px solid var(--color-neutral-900);">
-                    <span>conv <b style="color:var(--color-neutral-400); font-weight:500;"><%= st.conv %></b></span>
-                    <span>avg <b style="color:var(--color-neutral-400); font-weight:500;"><%= st.time %></b></span>
-                    <span>drop <b style="color:<%= st.dropColor %>; font-weight:500;"><%= st.drop %></b></span>
-                  </div>
+                  <%
+                  /* conv / avg / drop all need a stage-change event per lead and
+                     none is ingested, so this printed "conv — avg — drop —" on
+                     every column: three dead labels per stage, twelve times over.
+                     The row appears when the figures do. */
+                  %>
+                  <% if (st.measured) { %>
+                    <div style="display:flex; gap:8px; font-size:9px; color:var(--color-neutral-600); padding:0 4px 8px; border-bottom:1px solid var(--color-neutral-900);">
+                      <span>conv <b style="color:var(--color-neutral-400); font-weight:500;"><%= st.conv %></b></span>
+                      <span>avg <b style="color:var(--color-neutral-400); font-weight:500;"><%= st.time %></b></span>
+                      <span>drop <b style="color:<%= st.dropColor %>; font-weight:500;"><%= st.drop %></b></span>
+                    </div>
+                  <% } else { %>
+                    <div style="border-bottom:1px solid var(--color-neutral-900); margin:0 4px 2px;"></div>
+                  <% } %>
                   <div style="display:flex; flex-direction:column; gap:7px; padding-top:8px;">
                     <% (st.cards || []).forEach(function (c) { %>
                       <div class="hv-4" style="background:var(--color-surface); border-radius:8px; box-shadow:var(--shadow-sm); padding:9px 11px; cursor:grab;">
-                        <div style="display:flex; align-items:center; gap:7px;"><span style="font-size:11.5px; font-weight:500; color:var(--color-neutral-200); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= c.name %></span><span style="font-size:10.5px; font-weight:500; color:var(--color-accent-300); font-variant-numeric:tabular-nums;"><%= c.val %></span></div>
-                        <div style="font-size:10px; color:var(--color-neutral-600); margin-top:2px;"><%= c.what %></div>
+                        <div style="display:flex; align-items:center; gap:7px;"><span style="font-size:11.5px; font-weight:500; color:var(--color-neutral-200); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= c.name %></span><% if (c.val) { %><span style="font-size:10.5px; font-weight:500; color:var(--color-accent-300); font-variant-numeric:tabular-nums;"><%= c.val %></span><% } %></div>
+                        <% if (c.what) { %><div style="font-size:10px; color:var(--color-neutral-600); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= c.what %></div><% } %>
                         <div style="display:flex; align-items:center; gap:6px; margin-top:7px;">
                           <div style="width:16px; height:16px; border-radius:99px; background:var(--color-neutral-800); display:grid; place-items:center; font-size:7px; font-weight:600; color:var(--color-neutral-300);"><%= c.own %></div>
                           <span style="font-size:9.5px; color:<%= c.ageColor %>;"><%= c.age %></span>
@@ -36,9 +58,37 @@
                         </div>
                       </div>
                     <% }); %>
+                    <% if (st.more) { %>
+                      <div style="font-size:9.5px; color:var(--color-neutral-700); padding:2px 4px;">
+                        + <%= st.more.toLocaleString('en-IN') %> more in this stage
+                      </div>
+                    <% } %>
                   </div>
                 </div>
               <% }); %>
+              <%
+              /* A workspace names its own stages and this one has twelve. Eight
+                 get a column; the rest are named here with their counts rather
+                 than each taking a column of a board nobody scrolls to the end
+                 of. Nothing is hidden — the List view still carries them all. */
+              var tail = (typeof pipeTail !== 'undefined') ? pipeTail : null;
+              %>
+              <% if (tail) { %>
+                <div style="width:212px; flex:none; background:#16171f; border:1px dashed var(--color-neutral-800); border-radius:11px; padding:10px;">
+                  <div style="display:flex; align-items:center; gap:7px; padding:2px 4px 8px;">
+                    <span style="font-size:11.5px; font-weight:500; color:var(--color-neutral-400); white-space:nowrap;"><%= tail.count %> smaller stages</span>
+                    <div style="flex:1;"></div>
+                    <span style="font-size:10px; color:var(--color-neutral-600); font-variant-numeric:tabular-nums;"><%= tail.leads %></span>
+                  </div>
+                  <div style="border-bottom:1px solid var(--color-neutral-900); margin:0 4px 8px;"></div>
+                  <div style="display:flex; flex-direction:column; gap:5px; padding:0 4px;">
+                    <% tail.names.forEach(function (n) { %>
+                      <div style="font-size:10.5px; color:var(--color-neutral-500);"><%= n %></div>
+                    <% }); %>
+                  </div>
+                  <div style="font-size:9.5px; color:var(--color-neutral-700); padding:8px 4px 0;">Switch to List for every stage in full.</div>
+                </div>
+              <% } %>
             </div>
           <% } %>
           <% if (pipeIsList) { %>
@@ -46,7 +96,7 @@
               <table style="width:100%; border-collapse:collapse; font-size:12px;">
                 <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:9px 8px 9px 0; font-weight:500;">STAGE</th><th style="padding:9px 8px; text-align:right; font-weight:500;">LEADS</th><th style="padding:9px 8px; text-align:right; font-weight:500;">REVENUE</th><th style="padding:9px 8px; text-align:right; font-weight:500;">AVG TIME</th><th style="padding:9px 8px; text-align:right; font-weight:500;">CONVERSION</th><th style="padding:9px 8px; text-align:right; font-weight:500;">DROP-OFF</th><th style="padding:9px 0 9px 8px; font-weight:500;">FLOW</th></tr></thead>
                 <tbody>
-                  <% (pipeStages || []).forEach(function (st) { %>
+                  <% ((typeof pipeAllStages !== 'undefined' && pipeAllStages) ? pipeAllStages : (pipeStages || [])).forEach(function (st) { %>
                     <tr class="hv-1" style="border-top:1px solid var(--color-neutral-900);">
                       <td style="padding:9px 8px 9px 0; color:var(--color-neutral-200); font-weight:500; white-space:nowrap;"><%= st.name %></td>
                       <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= st.n %></td>
