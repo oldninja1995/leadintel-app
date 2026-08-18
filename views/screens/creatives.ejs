@@ -59,8 +59,9 @@
                 <div style="padding:12px 14px;">
                   <div style="font-size:12.5px; font-weight:500; color:var(--color-neutral-200);"><%= cr.title %></div>
                   <div style="font-size:10.5px; color:var(--color-neutral-500); margin-top:2px;" title="<%= cr.deliveryWhy %>"><%= cr.headline %></div>
-                  <div style="font-size:10px; color:var(--color-neutral-600); margin-top:2px;"><%= cr.hook %> · <%= cr.platform %> · <%= cr.spendTotal %> spent</div>
+                  <div style="font-size:10px; color:var(--color-neutral-600); margin-top:2px;"><%= cr.hook %> · <%= cr.platform %></div>
                   <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:10px; padding-top:9px; border-top:1px solid var(--color-neutral-900);">
+                    <div title="What this creative has cost in the selected range. Every cost and rate beside it divides this."><div style="font-size:9.5px; color:var(--color-neutral-600);">TOTAL SPEND</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums; color:var(--color-neutral-100);"><%= cr.spendTotal %></div></div>
                     <div><div style="font-size:9.5px; color:var(--color-neutral-600);">COST / INT. LEAD</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.spend %></div></div>
                     <div><div style="font-size:9.5px; color:var(--color-neutral-600);">CPL</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.cpl %></div></div>
                     <div data-li-slot="ctr"><div style="font-size:9.5px; color:var(--color-neutral-600);">CTR</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.ctr %></div></div>
