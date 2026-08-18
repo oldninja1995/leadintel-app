@@ -28,11 +28,17 @@ const entities = () => ({
     { entity: 'campaignDay', campaign: 'brand search', label: 'Brand Search', date: '2026-07-14', platform: 'meta_ads', spend: 203000, impressions: 14100, clicks: 1640, leads: 14 },
   ],
   leads: [
-    { entity: 'lead', id: 'L-1', name: 'George Kurien', phone: '+919847000001', property: 'Munnar Hillside', campaign: 'munnar honeymoon jul', owner: 'Vivek S', stage: 'Booked' },
-    { entity: 'lead', id: 'L-2', name: 'Anjali Menon', phone: '+919847000002', property: 'Munnar Hillside', campaign: 'munnar honeymoon jul', owner: 'Reshma K', stage: 'Qualified' },
+    { entity: 'lead', id: 'L-1', name: 'George Kurien', phone: '+919847000001', property: 'Munnar Hillside', campaign: 'munnar honeymoon jul', owner: 'Vivek S', stage: 'Booked', channel: 'meta' },
+    { entity: 'lead', id: 'L-2', name: 'Anjali Menon', phone: '+919847000002', property: 'Munnar Hillside', campaign: 'munnar honeymoon jul', owner: 'Reshma K', stage: 'Qualified', channel: 'meta' },
   ],
   bookings: [
     { entity: 'booking', id: 'B-1', leadId: 'L-1', revenue: { value: 4280000 }, settled: { value: 4280000 } },
+  ],
+  /* The CRM side of B-1. The marketing funnel counts paid-tagged won deals
+     rather than every confirmed booking the property has, so a fixture with no
+     deal at all would exercise the declining path instead of the counting one. */
+  deals: [
+    { entity: 'deal', id: 'D-1', leadId: 'L-1', channel: 'meta', outcome: 'won', bookingStatus: 'Confirmed', revenue: 4280000, updatedAt: '2026-07-16' },
   ],
   payments: [],
 });
@@ -586,6 +592,9 @@ test('stages no source defines decline rather than reading zero', () => {
      from the registry so the two screens cannot drift apart. */
   assert.notEqual(by.Qualified.n, NONE, 'qualified went back to declining');
   /* One booking in the fixture entities, reached through its lead. */
+  /* One paid-tagged won deal in the fixture. Every stage below the clicks is
+     the paid population now — the whole-CRM counts belong to the CRM and
+     Sales screens, not to a funnel whose first two stages are ad delivery. */
   assert.equal(by.Bookings.n, '1');
 });
 
@@ -655,7 +664,9 @@ test('the funnel counts CRM leads, never a fractional platform conversion', () =
      conversions as a double and it was being added to Meta's integers. */
   const { mktFunnel } = PROJECTIONS.marketing(platformEntities());
   const by = Object.fromEntries(mktFunnel.map((s) => [s.label, s]));
-  assert.equal(by.Leads.n, '4');
+  /* Three of the four fixture leads carry a paid channel; l4 does not and is
+     deliberately outside a funnel sitting under ad impressions. */
+  assert.equal(by.Leads.n, '3');
   assert.ok(!String(by.Leads.n).includes('.'), 'a lead count printed with decimals');
   assert.equal(by.Qualified.n, '1', 'qualified uses the registry’s own INTERESTED rule');
 });

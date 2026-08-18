@@ -50,7 +50,14 @@
                   <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="50" x2="640" y2="50"></line><line x1="0" y1="100" x2="640" y2="100"></line><line x1="0" y1="150" x2="640" y2="150"></line></g>
                   <g>
                     <% chart.bars.forEach(function (bar) { %>
-                      <% if (bar.meta.h > 0) { %><rect x="<%= bar.x %>" y="<%= bar.meta.y %>" width="<%= bar.width %>" height="<%= bar.meta.h %>" fill="var(--color-accent-700)"><title><%= bar.label %> · <%= bar.spendText %> spend</title></rect><% } %>
+                      <%
+                      /* The tooltip rides an invisible full-height rect rather
+                         than the Meta block: a bucket where Meta did not spend
+                         has no Meta block, and four of eight were silently
+                         un-hoverable. */
+                      %>
+                      <rect x="<%= bar.x %>" y="20" width="<%= bar.width %>" height="160" fill="transparent"><title><%= bar.label %> · <%= bar.spendText %> spend · <%= bar.revenueText %> attributed</title></rect>
+                      <% if (bar.meta.h > 0) { %><rect x="<%= bar.x %>" y="<%= bar.meta.y %>" width="<%= bar.width %>" height="<%= bar.meta.h %>" fill="var(--color-accent-700)"></rect><% } %>
                       <% if (bar.google.h > 0) { %><rect x="<%= bar.x %>" y="<%= bar.google.y %>" width="<%= bar.width %>" height="<%= bar.google.h %>" fill="var(--color-accent-2-600)"></rect><% } %>
                       <% if (bar.other.h > 0) { %><rect x="<%= bar.x %>" y="<%= bar.other.y %>" width="<%= bar.width %>" height="<%= bar.other.h %>" fill="var(--color-neutral-700)"></rect><% } %>
                     <% }); %>

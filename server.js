@@ -1161,22 +1161,50 @@ if (!AUTH_OFF) {
  *
  * Against a file store this is a no-op: every `hydrate` returns immediately and
  * the synchronous file reads happen as they always did. */
+/* Every one of these is timed and the result is on the response.
+ *
+ * "The app is slow" was true — about two seconds before the first byte, on a
+ * warm instance, for a route returning thirty-seven bytes — and nothing said
+ * which of the nine reads below was spending it. Guessing at that is how an
+ * afternoon goes into optimising the cheap one.
+ *
+ * `Server-Timing` is the standard header for this: the browser's network panel
+ * charts it per request with no tooling, and `curl -D -` prints it. It carries
+ * durations only, never data, so it is safe on a signed-in response. */
+function timed(name, promise, marks) {
+  if (!promise) return null;
+  const started = Date.now();
+  return Promise.resolve(promise).then(
+    (value) => { marks.push(`${name};dur=${Date.now() - started}`); return value; },
+    (err) => { marks.push(`${name};dur=${Date.now() - started};desc="failed"`); throw err; }
+  );
+}
+
 app.use((req, res, next) => {
   if (!store.usingPostgres() || !req.workspace) return next();
 
+  const marks = [];
+  const wall = Date.now();
+
   Promise.all([
-    store.hydrateDocuments({ connections, workspace, webhookTokens, definitionLog: metrics.definitionLog }),
-    runner.log.hydrate(),
-    layouts.hydrate(),
-    gatekeeper.audit.hydrate(),
-    fires.hydrate(),
-    dispatches.hydrate(),
-    metrics.evaluations.hydrate(),
-    hydrateEntities(req.workspace),
+    timed('docs', store.hydrateDocuments({ connections, workspace, webhookTokens, definitionLog: metrics.definitionLog }), marks),
+    timed('runlog', runner.log.hydrate(), marks),
+    timed('layouts', layouts.hydrate(), marks),
+    timed('audit', gatekeeper.audit.hydrate(), marks),
+    timed('rules', fires.hydrate(), marks),
+    timed('dispatches', dispatches.hydrate(), marks),
+    timed('evals', metrics.evaluations.hydrate(), marks),
+    timed('entities', hydrateEntities(req.workspace), marks),
     /* The repository keeps its own snapshot — the screens read through it while
        the metric layer reads through `entitiesFor` — so it hydrates too. */
-    typeof repo.hydrate === 'function' ? repo.hydrate() : null,
-  ]).then(() => next(), next);
+    timed('repo', typeof repo.hydrate === 'function' ? repo.hydrate() : null, marks),
+  ]).then(() => {
+    marks.push(`hydrate;dur=${Date.now() - wall}`);
+    /* Set rather than appended: nothing else writes this header, and appending
+       to an absent one is how it ends up as the string "undefined, docs;...". */
+    res.setHeader('Server-Timing', marks.join(', '));
+    next();
+  }, next);
 });
 
 app.get('/whoami', (req, res) => {
