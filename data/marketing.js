@@ -34,7 +34,15 @@ module.exports = {
        store — so the card is re-labelled to the narrower question the data
        does answer rather than left as a dash or filled with a guess. */
     { metric: 'ads.frequency_meta', label: 'Meta ad frequency', value: '2.4', delta: '+0.3', deltaColor: WARN, tip: 'How often a person who saw one of these ads saw that ad — Meta\u2019s own per-ad figure, weighted by impressions. A floor on account frequency, not the account figure: somebody who saw three different ads twice each reads as 2 here, not 6. Meta only; Google Ads reports no frequency.', ...SRC.ads },
-    { metric: 'cost.per_reservation', label: 'Cost per reservation', value: '₹3,480', delta: '−11.0%', deltaColor: UP, tip: 'Paid spend per CRM-won reservation', ...SRC.blended },
+    /* The count beside the value, on the same population the revenue card
+       uses: a reservation figure and a revenue figure that disagree about who
+       is in them is how two cards on one screen answer different questions in
+       the same typeface. */
+    { metric: 'bookings.attributed', label: 'Reservations (paid)', value: '312', delta: '—', deltaColor: NA, tip: 'Won CRM reservations whose lead was tagged to a paid channel, cancellations excluded. A floor — most reservations in this workspace carry no channel at all, and those are on the CRM and Sales screens.', ...SRC.crm },
+    /* Was dividing ad spend by EVERY reservation the CRM holds, most of which
+       no advertising paid for — ₹597 that looked like efficient advertising
+       and was mostly walk-ins. Both halves are paid now. */
+    { metric: 'cost.per_attributed_reservation', label: 'Cost per reservation', value: '₹3,480', delta: '−11.0%', deltaColor: UP, tip: 'Ad spend divided by paid-tagged CRM reservations. A ceiling: a reservation advertising produced but nobody tagged sits outside the denominator while its cost stays in the numerator.', ...SRC.blended },
     /* The GA4 half on its own, beside the total it is now part of. A figure
        folded into a headline and shown nowhere else cannot be checked, and
        this is the one somebody will want to check: it is the only measure of

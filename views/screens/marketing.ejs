@@ -15,7 +15,7 @@
               </div>
             <% }); %>
           </div>
-          <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:12px;">
+          <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px;">
             <% (mktKpis || []).forEach(function (k) { %>
               <div class="hv-4" title="Click to drill down · hover for benchmark" style="background:var(--color-surface); border-radius:10px; box-shadow:var(--shadow-sm); padding:9px 12px; cursor:pointer;">
                 <div title="<%= k.tip %>" style="display:flex; align-items:center; gap:5px;"><span style="font-size:9.5px; letter-spacing:.06em; color:var(--color-neutral-500); text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= k.label %></span><span style="flex:1;"></span><span style="font-size:8px; border:1px solid <%= k.srcBorder %>; border-radius:4px; padding:0.5px 4px; color:<%= k.srcColor %>;"><%= k.src %></span></div>
