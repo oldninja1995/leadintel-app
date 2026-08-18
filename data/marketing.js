@@ -28,10 +28,12 @@ module.exports = {
     { metric: 'ads.clicks', label: 'Clicks', value: '1.42L', delta: '+11.8%', deltaColor: UP, tip: 'Link clicks', ...SRC.ads },
     { metric: 'ads.ctr', label: 'CTR', value: '2.94%', delta: '+0.21pt', deltaColor: UP, tip: 'Click-through rate', ...SRC.ads },
     { metric: 'ads.cpm', label: 'CPM', value: '₹226', delta: '−4.1%', deltaColor: UP, tip: 'Cost per thousand impressions', ...SRC.ads },
-    /* Frequency needs impressions per *person*, and reach is not a field either
-       platform's campaign_day payload carries. No registry entry, and no
-       invented formula to make the coverage figure look better. */
-    { label: 'Frequency', value: '2.4', delta: '+0.3', deltaColor: WARN, tip: 'Average impressions per person', ...SRC.ads },
+    /* Was 'Frequency: 2.4', authored, sitting in a row of measured figures with
+       no way for a reader to tell. Account frequency is impressions over
+       deduplicated reach and is genuinely not recoverable from a day-grained
+       store — so the card is re-labelled to the narrower question the data
+       does answer rather than left as a dash or filled with a guess. */
+    { metric: 'ads.frequency_meta', label: 'Meta ad frequency', value: '2.4', delta: '+0.3', deltaColor: WARN, tip: 'How often a person who saw one of these ads saw that ad — Meta\u2019s own per-ad figure, weighted by impressions. A floor on account frequency, not the account figure: somebody who saw three different ads twice each reads as 2 here, not 6. Meta only; Google Ads reports no frequency.', ...SRC.ads },
     { metric: 'cost.per_reservation', label: 'Cost per reservation', value: '₹3,480', delta: '−11.0%', deltaColor: UP, tip: 'Paid spend per CRM-won reservation', ...SRC.blended },
     /* The GA4 half on its own, beside the total it is now part of. A figure
        folded into a headline and shown nowhere else cannot be checked, and
@@ -47,6 +49,15 @@ module.exports = {
     { label: 'Qualified', n: '1,187', pct: '46.5%', w: '24%' },
     { label: 'Bookings', n: '312', pct: '12.2%', w: '12%' },
   ],
+
+  /* The spend-vs-revenue chart is data, so it is NOT authored here.
+     Eight weeks of stacked bars and a rising revenue line were drawn straight
+     into the SVG — fixed rectangles, fixed week labels reading W1 Jun through
+     W4 Jul whatever range was selected, and a line that went up because it had
+     been drawn going up. Nothing about it moved. The marketing projection
+     builds it now; null here means the chart declines rather than draws
+     something. */
+  mktChart: null,
 
   platforms: [
     {

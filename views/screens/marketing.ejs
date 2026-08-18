@@ -33,22 +33,45 @@
                 <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-neutral-700);"></span>Other</span>
                 <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);"><span style="width:12px;height:2px;background:var(--color-accent-300);"></span>Revenue</span>
               </div>
-              <svg viewBox="0 0 640 200" style="width:100%; height:200px;" preserveAspectRatio="none">
-                <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="50" x2="640" y2="50"></line><line x1="0" y1="100" x2="640" y2="100"></line><line x1="0" y1="150" x2="640" y2="150"></line></g>
-                <g>
-                  <rect x="20" y="128" width="26" height="24" fill="var(--color-neutral-700)"></rect><rect x="20" y="92" width="26" height="36" fill="var(--color-accent-2-600)"></rect><rect x="20" y="152" width="26" height="28" fill="var(--color-accent-700)" transform="translate(0,-72)"></rect>
-                  <rect x="98" y="122" width="26" height="28" fill="var(--color-neutral-700)"></rect><rect x="98" y="84" width="26" height="38" fill="var(--color-accent-2-600)"></rect><rect x="98" y="52" width="26" height="32" fill="var(--color-accent-700)"></rect>
-                  <rect x="176" y="130" width="26" height="26" fill="var(--color-neutral-700)"></rect><rect x="176" y="94" width="26" height="36" fill="var(--color-accent-2-600)"></rect><rect x="176" y="60" width="26" height="34" fill="var(--color-accent-700)"></rect>
-                  <rect x="254" y="118" width="26" height="34" fill="var(--color-neutral-700)"></rect><rect x="254" y="80" width="26" height="38" fill="var(--color-accent-2-600)"></rect><rect x="254" y="44" width="26" height="36" fill="var(--color-accent-700)"></rect>
-                  <rect x="332" y="124" width="26" height="30" fill="var(--color-neutral-700)"></rect><rect x="332" y="88" width="26" height="36" fill="var(--color-accent-2-600)"></rect><rect x="332" y="50" width="26" height="38" fill="var(--color-accent-700)"></rect>
-                  <rect x="410" y="114" width="26" height="38" fill="var(--color-neutral-700)"></rect><rect x="410" y="74" width="26" height="40" fill="var(--color-accent-2-600)"></rect><rect x="410" y="36" width="26" height="38" fill="var(--color-accent-700)"></rect>
-                  <rect x="488" y="120" width="26" height="34" fill="var(--color-neutral-700)"></rect><rect x="488" y="78" width="26" height="42" fill="var(--color-accent-2-600)"></rect><rect x="488" y="38" width="26" height="40" fill="var(--color-accent-700)"></rect>
-                  <rect x="566" y="108" width="26" height="44" fill="var(--color-neutral-700)"></rect><rect x="566" y="66" width="26" height="42" fill="var(--color-accent-2-600)"></rect><rect x="566" y="24" width="26" height="42" fill="var(--color-accent-700)"></rect>
-                </g>
-                <path d="M33,140 L111,118 L189,124 L267,96 L345,102 L423,72 L501,66 L579,38" fill="none" stroke="var(--color-accent-300)" stroke-width="2" stroke-linejoin="round"></path>
-                <circle cx="579" cy="38" r="3.5" fill="var(--color-accent-200)"></circle>
-              </svg>
-              <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--color-neutral-700); padding:2px 8px 0;"><span>W1 Jun</span><span>W2</span><span>W3</span><span>W4</span><span>W1 Jul</span><span>W2</span><span>W3</span><span>W4</span></div>
+              <%
+              /* Drawn from data. This was eight stacked bars at fixed heights,
+                 a revenue line that rose because somebody drew it rising, and
+                 axis labels reading W1 Jun to W4 Jul whichever range was
+                 selected — the largest thing on the screen and the only one
+                 that never moved. See spendVsRevenue in projections.js. */
+              var chart = (typeof mktChart !== 'undefined' && mktChart) ? mktChart : null;
+              %>
+              <% if (!chart || chart.empty) { %>
+                <div style="height:200px; display:grid; place-items:center; font-size:11.5px; color:var(--color-neutral-600); text-align:center; padding:0 24px;">
+                  <%= (chart && chart.reason) || 'This chart is built from ingested spend and revenue, and this build is serving authored content.' %>
+                </div>
+              <% } else { %>
+                <svg viewBox="0 0 640 200" style="width:100%; height:200px;" preserveAspectRatio="none">
+                  <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="50" x2="640" y2="50"></line><line x1="0" y1="100" x2="640" y2="100"></line><line x1="0" y1="150" x2="640" y2="150"></line></g>
+                  <g>
+                    <% chart.bars.forEach(function (bar) { %>
+                      <% if (bar.meta.h > 0) { %><rect x="<%= bar.x %>" y="<%= bar.meta.y %>" width="<%= bar.width %>" height="<%= bar.meta.h %>" fill="var(--color-accent-700)"><title><%= bar.label %> · <%= bar.spendText %> spend</title></rect><% } %>
+                      <% if (bar.google.h > 0) { %><rect x="<%= bar.x %>" y="<%= bar.google.y %>" width="<%= bar.width %>" height="<%= bar.google.h %>" fill="var(--color-accent-2-600)"></rect><% } %>
+                      <% if (bar.other.h > 0) { %><rect x="<%= bar.x %>" y="<%= bar.other.y %>" width="<%= bar.width %>" height="<%= bar.other.h %>" fill="var(--color-neutral-700)"></rect><% } %>
+                    <% }); %>
+                  </g>
+                  <% if (chart.line) { %>
+                    <path d="<%= chart.line %>" fill="none" stroke="var(--color-accent-300)" stroke-width="2" stroke-linejoin="round"></path>
+                  <% } %>
+                  <% if (chart.last) { %>
+                    <circle cx="<%= chart.last.cx %>" cy="<%= chart.last.cy %>" r="3.5" fill="var(--color-accent-200)"><title><%= chart.last.label %> · <%= chart.last.revenueText %> attributed</title></circle>
+                  <% } %>
+                </svg>
+                <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--color-neutral-700); padding:2px 8px 0;">
+                  <% chart.bars.forEach(function (bar) { %><span><%= bar.label %></span><% }); %>
+                </div>
+                <%
+                /* Two units on one canvas, said rather than left to be inferred:
+                   a line sitting above a bar does not mean revenue beat spend
+                   that week, it means the two are scaled separately. */
+                %>
+                <div style="font-size:10px; color:var(--color-neutral-700); padding:6px 8px 0;"><%= chart.note %></div>
+              <% } %>
             </div>
             <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px; display:flex; flex-direction:column;">
               <div style="display:flex; align-items:center; margin-bottom:10px;"><div style="font-size:13px; font-weight:500;">Marketing funnel</div><div style="flex:1;"></div></div>
