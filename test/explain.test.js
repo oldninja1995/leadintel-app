@@ -96,7 +96,13 @@ test('a zero denominator does not produce an infinite share', () => {
 test('related metrics come off the dependency graph, not a judgement', () => {
   const related = explain.related(require('../lib/metrics/registry').get('revenue.net'));
   assert.ok(related.feeds.includes('roas.net'));
-  assert.ok(related.feeds.includes('booking.value'));
+  /* `booking.value` used to be here. It became a source metric when it learned
+     to fall back to the CRM's won deals where there is no PMS folio, and the
+     registry forbids a source and dependencies together — so it left the graph
+     rather than declaring a lineage it no longer computes through. ADR and
+     RevPAR still derive from revenue.net and are the assertion now. */
+  assert.ok(related.feeds.includes('rate.adr'));
+  assert.ok(related.feeds.includes('rate.revpar'));
   assert.deepEqual(related.dependsOn, []);
 });
 
