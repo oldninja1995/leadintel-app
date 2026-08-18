@@ -1547,6 +1547,116 @@ app.get('/connections', (req, res, next) => {
 app.get('/connections/:source', (req, res) =>
   res.redirect(`/connections?source=${encodeURIComponent(req.params.source)}`));
 
+/* Re-authorise a Google source in the browser, instead of by hand.
+ *
+ * A Google refresh token dies — revoked, or expired because the OAuth consent
+ * screen is still in Testing, where Google gives them seven days. When it does,
+ * every request from that connector fails at the token exchange before a single
+ * figure is asked for, and the repair was: open the OAuth playground, pick the
+ * scope, click through consent, copy a string, paste it into this screen. Once
+ * is tolerable. Weekly is how a connector ends up permanently amber.
+ *
+ * So the app does the exchange it was already half doing. It holds the client
+ * id and secret; what it lacked was the authorisation code, and that needs a
+ * person at a Google consent screen — which is a redirect, not an integration.
+ *
+ * **The one thing this cannot do for you** is register its own redirect URI in
+ * the Google Cloud project. That address has to be on the client's authorised
+ * list or Google refuses before consent is even shown, so the start route says
+ * exactly which address to add rather than letting the reader discover it from
+ * a redirect_uri_mismatch.
+ */
+const GOOGLE_SCOPES = {
+  google_ads: 'https://www.googleapis.com/auth/adwords',
+  /* Deliberately not the adwords scope. The Data API refuses a token carrying
+     it, with a message that reads like a permissions problem — see the note at
+     the top of lib/ingest/http/google-analytics.js. */
+  google_analytics: 'https://www.googleapis.com/auth/analytics.readonly',
+};
+
+function oauthRedirectUri(req, source) {
+  /* The public address, not the one the function sees. Behind a proxy
+     `req.host` can be the internal name, and a redirect URI that does not match
+     the registered one to the character is refused. */
+  const base = (process.env.LEADINTEL_PUBLIC_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+  return `${base}/connections/${source}/oauth/callback`;
+}
+
+app.get('/connections/:source/oauth/start',
+  gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'oauth' })),
+  async (req, res) => {
+    const source = req.params.source;
+    const scope = GOOGLE_SCOPES[source];
+    const back = (message, key = 'error') =>
+      res.redirect(303, `/connections?source=${encodeURIComponent(source)}&${key}=${encodeURIComponent(message)}`);
+
+    if (!scope) return back(`${source} does not authorise through Google.`);
+
+    let stored;
+    try {
+      stored = connections.secretsFor(req.workspace, source) || {};
+    } catch (err) {
+      return back(`the stored credential could not be read — ${err.message}`);
+    }
+    if (!stored.clientId || !stored.clientSecret) {
+      return back('Save the OAuth client id and secret first — this flow asks Google for a refresh token against them.');
+    }
+
+    /* Signed into the state so the callback knows the request began here and
+       for which source. A callback that trusted its query alone would take a
+       code from anywhere. */
+    const state = auth.sessions.seal(`${req.workspace}:${source}:${Date.now()}`);
+    return res.redirect(302, googleAds.consentUrl({
+      clientId: stored.clientId,
+      redirectUri: oauthRedirectUri(req, source),
+      scope,
+      state,
+    }));
+  });
+
+app.get('/connections/:source/oauth/callback',
+  gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'oauth' })),
+  async (req, res) => {
+    const source = req.params.source;
+    const back = (message, key = 'error') =>
+      res.redirect(303, `/connections?source=${encodeURIComponent(source)}&${key}=${encodeURIComponent(message)}`);
+
+    if (req.query.error) {
+      /* `access_denied` is somebody pressing Cancel, which is not a fault. */
+      return back(req.query.error === 'access_denied'
+        ? 'Authorisation was cancelled — nothing has changed.'
+        : `Google refused the authorisation: ${req.query.error}`);
+    }
+    if (!req.query.code) return back('Google returned no authorisation code.');
+    const opened = auth.sessions.unseal(String(req.query.state || ''));
+    if (!opened || !opened.startsWith(`${req.workspace}:${source}:`)) {
+      return back('That authorisation did not start here, so it was not accepted.');
+    }
+
+    try {
+      const stored = connections.secretsFor(req.workspace, source) || {};
+      const refreshToken = await googleAds.refreshTokenFromCode({
+        code: String(req.query.code),
+        redirectUri: oauthRedirectUri(req, source),
+        credentials: stored,
+      });
+
+      connections.set(req.workspace, source, { ...stored, refreshToken }, { by: req.user && req.user.name });
+      await connections.flush();
+      /* Which sources read fixtures changes when a credential does, so the
+         snapshot has to be rebuilt rather than merely marked stale. */
+      dropEntities(req.workspace, { now: true });
+      gatekeeper.audit.record({
+        user: req.user, action: 'connection.manage', outcome: 'allowed',
+        workspace: req.workspace, detail: { source, action: 'oauth' },
+      });
+
+      return back(`${source}: a new refresh token was stored. Press Test, then Sync now.`, 'saved');
+    } catch (err) {
+      return back(err.message);
+    }
+  });
+
 /* Sync every connected source, now.
  *
  * The per-source button lives inside its card, and the cards are `<details>`

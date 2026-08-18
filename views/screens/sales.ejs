@@ -57,6 +57,17 @@
             </div>
           <% } %>
           <% if (salesCalls) { %>
+            <%# Every figure on this tab is call activity, and call activity is
+                the lead-event stream. Six dashes with no explanation read as a
+                broken screen; the reason belongs above them, once. %>
+            <p class="li-conn-notice li-conn-notice--warn" style="margin-bottom:12px;">
+              <i class="ph ph-phone-slash"></i>
+              <span><strong>Call activity is not being ingested.</strong>
+              Calls, talk time, connect rate and response are lead <em>events</em>, and TeleCRM has no
+              account-wide endpoint for them &mdash; they arrive by webhook, and this workspace has never
+              minted the token. Mint it on the Connections screen and this tab fills from the next call
+              onward; it cannot be backfilled.</span>
+            </p>
             <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:12px;">
               <% (callKpis || []).forEach(function (k) { %>
                 <div style="background:var(--color-surface); border-radius:10px; box-shadow:var(--shadow-sm); padding:9px 12px;"><div style="font-size:9.5px; letter-spacing:.06em; color:var(--color-neutral-500); text-transform:uppercase;"><%= k.label %></div><div style="display:flex; align-items:baseline; gap:6px; margin-top:3px;"><span style="font-size:15px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:10px; color:<%= k.deltaColor %>;"><%= k.delta %></span></div></div>

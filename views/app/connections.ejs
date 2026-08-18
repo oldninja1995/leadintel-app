@@ -342,6 +342,17 @@ const openSource = canManage
                       how somebody changes that answer without waiting for a cron
                       tick. %>
                   <button type="submit" formaction="/connections/<%= c.source %>/sync" class="li-conn-secondary" title="Pull this source now, without waiting for the schedule"><i class="ph ph-arrows-clockwise"></i>Sync now</button>
+                  <%# A Google refresh token expires — in seven days while the
+                      OAuth consent screen is in Testing — and replacing it meant
+                      the OAuth playground and a copied string. This does the same
+                      exchange in the browser. A link rather than a submit button:
+                      it navigates to Google, and posting the credential form on
+                      the way would save half-filled fields. %>
+                  <% if (c.source === 'google_ads' || c.source === 'google_analytics') { %>
+                    <a class="li-conn-secondary li-conn-oauth" href="/connections/<%= c.source %>/oauth/start" title="Sign in with Google and store a fresh refresh token">
+                      <i class="ph ph-google-logo"></i>Re-authorise
+                    </a>
+                  <% } %>
                   <%# A year of history, a week per round trip. The window is
                       too wide for one request — see the backfill route — so the
                       button carries where the last press stopped and continues

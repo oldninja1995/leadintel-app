@@ -419,6 +419,17 @@
 .li-conn-syncall button i { font-size: 13px; }
 .li-conn-syncall button:hover { background: var(--color-accent-600); }
 
+/* The Re-authorise control is an anchor, because it navigates to Google rather
+   than submitting the credential form it sits inside. It borrows the action
+   row's button shape so a reader cannot tell — and should not have to. */
+.li-conn-actions .li-conn-oauth {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid var(--color-neutral-800); border-radius: 7px; padding: 7px 14px;
+  font-size: 12px; font-weight: 500; text-decoration: none; color: var(--color-neutral-400);
+}
+.li-conn-actions .li-conn-oauth:hover { border-color: var(--color-neutral-700); color: var(--color-neutral-200); }
+.li-conn-actions .li-conn-oauth i { font-size: 13px; }
+
 .li-conn-secondary { background: transparent !important; border-color: var(--color-neutral-800) !important; color: var(--color-neutral-400) !important; }
 .li-conn-secondary:hover { border-color: var(--color-neutral-700) !important; color: var(--color-neutral-200) !important; }
 .li-conn-danger { background: transparent !important; border-color: color-mix(in srgb, var(--c-down) 45%, transparent) !important; color: var(--c-down) !important; }
