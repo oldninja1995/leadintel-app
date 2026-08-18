@@ -1213,7 +1213,22 @@ app.use((req, res, next) => {
   const marks = [];
   const wall = Date.now();
 
-  Promise.all([
+  /* One round trip for every store below, before any of them asks.
+     They then find their rows already fetched and return without a query —
+     see store.prefetch. The limits repeat the ones each hydrate uses, because
+     a prime is keyed on the limit and a mismatch means the store quietly
+     fetches for itself instead of silently getting the wrong history. */
+  const ready = timed('prefetch', store.prefetch({
+    documents: { connections, workspace, webhookTokens, layouts, definitionLog: metrics.definitionLog },
+    lists: [dispatches, metrics.evaluations],
+    logs: [
+      { store: runner.log, kind: 'hydrate', limit: 500 },
+      { store: gatekeeper.audit, kind: 'last', limit: 1000 },
+      { store: fires, kind: 'last', limit: 2000 },
+    ],
+  }), marks);
+
+  ready.then(() => Promise.all([
     /* `layouts` joins the batch rather than fetching on its own.
      *
      * It is document-shaped — one key, and a `hydrate(value)` that takes the
@@ -1231,7 +1246,7 @@ app.use((req, res, next) => {
     /* The repository keeps its own snapshot — the screens read through it while
        the metric layer reads through `entitiesFor` — so it hydrates too. */
     timed('repo', typeof repo.hydrate === 'function' ? repo.hydrate() : null, marks),
-  ]).then(() => {
+  ])).then(() => {
     marks.push(`hydrate;dur=${Date.now() - wall}`);
     /* Set rather than appended: nothing else writes this header, and appending
        to an absent one is how it ends up as the string "undefined, docs;...". */
