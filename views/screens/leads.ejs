@@ -2,7 +2,7 @@
           <% if (leadList) { %>
             <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
               <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:19px;">Lead Intelligence</h1>
-              <span style="font-size:11.5px; color:var(--color-neutral-600);">1,847 leads · every lead carries full campaign attribution</span>
+              <span style="font-size:11.5px; color:var(--color-neutral-600);"><%= typeof leadNote !== 'undefined' ? leadNote : '' %><% if (typeof leadTagged !== 'undefined' && leadTagged) { %> · <%= leadTagged %><% } %></span>
               <div style="flex:1;"></div>
               <div class="hv-7" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-accent-300); border:1px solid var(--color-accent-600); border-radius:7px; padding:5px 11px; cursor:pointer;"><i class="ph ph-plus" style="font-size:13px;"></i>New lead</div>
             </div>
