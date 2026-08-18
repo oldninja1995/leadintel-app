@@ -1547,6 +1547,76 @@ app.get('/connections', (req, res, next) => {
 app.get('/connections/:source', (req, res) =>
   res.redirect(`/connections?source=${encodeURIComponent(req.params.source)}`));
 
+/* Sync every connected source, now.
+ *
+ * The per-source button lives inside its card, and the cards are `<details>`
+ * that start closed — so the control existed and could not be found without
+ * knowing which source to expand first. "Sync all" belongs where the tally is:
+ * at the top, visible before anything is opened.
+ *
+ * Most-stale-first and bounded by wall clock, the same shape /cron/sync uses
+ * and for the same reason — twelve sources do not fit in one function
+ * invocation, and a press that dies at the ceiling would report nothing having
+ * done real work. What did not fit is named in the message rather than left
+ * for somebody to notice was missing.
+ *
+ * Only configured sources: an unconnected one would fail on every press and
+ * bury the sources that actually ran under eight identical credential
+ * errors. */
+app.post('/connections/sync',
+  express.urlencoded({ extended: false }), express.json(),
+  gatekeeper.gate('connection.manage', () => ({ source: 'all', action: 'sync' })),
+  async (req, res) => {
+    const live = ingest.liveSources({ connections, workspace: req.workspace, httpConnectors });
+    /* Most starved first, so a press that runs out of time has spent it on the
+       sources furthest behind. */
+    const wanted = runner.due().filter((s) => live.has(s.id));
+    const rest = ingest.sources.list().filter((s) => live.has(s.id) && !wanted.some((w) => w.id === s.id));
+    const queue = [...wanted, ...rest];
+
+    if (!queue.length) {
+      return res.redirect(303, `/connections?saved=${encodeURIComponent('No source has a credential stored, so there is nothing to sync.')}`);
+    }
+
+    const startedAt = Date.now();
+    const BUDGET_MS = 40_000;
+    const ran = [];
+    const failed = [];
+    let slowest = 0;
+
+    for (const source of queue) {
+      /* Room for ANOTHER, not merely time left — a run started at 39s against a
+         40s budget is killed at 60s by the platform, mid-write. The longest run
+         so far is the estimate; the first is always attempted. */
+      const elapsed = Date.now() - startedAt;
+      if (ran.length && elapsed + slowest * 1.25 > BUDGET_MS) break;
+
+      const at = Date.now();
+      try {
+        const result = await runner.runOne(source.id);
+        if (result.ok === false) failed.push(`${source.name}: ${result.error || 'failed'}`);
+        else ran.push(`${source.name} ${result.written || 0}`);
+      } catch (err) {
+        failed.push(`${source.name}: ${err.message}`);
+      }
+      slowest = Math.max(slowest, Date.now() - at);
+    }
+
+    const skipped = queue.length - ran.length - failed.length;
+    const note = [
+      ran.length ? `${ran.length} source(s) synced — ${ran.join(', ')} row(s) written` : 'nothing synced',
+      failed.length ? `${failed.length} failed: ${failed.join('; ')}` : null,
+      skipped > 0 ? `${skipped} did not fit this press — press again to continue` : null,
+    ].filter(Boolean).join(' · ');
+
+    const key = failed.length && !ran.length ? 'error' : 'saved';
+    return res.redirect(303, `/connections?${key}=${encodeURIComponent(note)}`);
+  });
+
+/* Registered BEFORE `/connections/:source`, and that ordering is the whole of
+   it: both are two segments, so Express hands "sync" to the credential-save
+   route as a source name and answers 'unknown source "sync"'. A more distinctive
+   path would collide identically — only the order fixes it. */
 app.post('/connections/:source',
   express.urlencoded({ extended: false }), express.json(),
   gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'set' })),
@@ -1720,72 +1790,6 @@ app.post('/layout/:screen', express.urlencoded({ extended: false }), async (req,
  * the raw store deduplicates the overlap, so a double press costs time and
  * never correctness.
  */
-/* Sync every connected source, now.
- *
- * The per-source button lives inside its card, and the cards are `<details>`
- * that start closed — so the control existed and could not be found without
- * knowing which source to expand first. "Sync all" belongs where the tally is:
- * at the top, visible before anything is opened.
- *
- * Most-stale-first and bounded by wall clock, the same shape /cron/sync uses
- * and for the same reason — twelve sources do not fit in one function
- * invocation, and a press that dies at the ceiling would report nothing having
- * done real work. What did not fit is named in the message rather than left
- * for somebody to notice was missing.
- *
- * Only configured sources: an unconnected one would fail on every press and
- * bury the sources that actually ran under eight identical credential
- * errors. */
-app.post('/connections/sync',
-  express.urlencoded({ extended: false }), express.json(),
-  gatekeeper.gate('connection.manage', () => ({ source: 'all', action: 'sync' })),
-  async (req, res) => {
-    const live = ingest.liveSources({ connections, workspace: req.workspace, httpConnectors });
-    /* Most starved first, so a press that runs out of time has spent it on the
-       sources furthest behind. */
-    const wanted = runner.due().filter((s) => live.has(s.id));
-    const rest = ingest.sources.list().filter((s) => live.has(s.id) && !wanted.some((w) => w.id === s.id));
-    const queue = [...wanted, ...rest];
-
-    if (!queue.length) {
-      return res.redirect(303, `/connections?saved=${encodeURIComponent('No source has a credential stored, so there is nothing to sync.')}`);
-    }
-
-    const startedAt = Date.now();
-    const BUDGET_MS = 40_000;
-    const ran = [];
-    const failed = [];
-    let slowest = 0;
-
-    for (const source of queue) {
-      /* Room for ANOTHER, not merely time left — a run started at 39s against a
-         40s budget is killed at 60s by the platform, mid-write. The longest run
-         so far is the estimate; the first is always attempted. */
-      const elapsed = Date.now() - startedAt;
-      if (ran.length && elapsed + slowest * 1.25 > BUDGET_MS) break;
-
-      const at = Date.now();
-      try {
-        const result = await runner.runOne(source.id);
-        if (result.ok === false) failed.push(`${source.name}: ${result.error || 'failed'}`);
-        else ran.push(`${source.name} ${result.written || 0}`);
-      } catch (err) {
-        failed.push(`${source.name}: ${err.message}`);
-      }
-      slowest = Math.max(slowest, Date.now() - at);
-    }
-
-    const skipped = queue.length - ran.length - failed.length;
-    const note = [
-      ran.length ? `${ran.length} source(s) synced — ${ran.join(', ')} row(s) written` : 'nothing synced',
-      failed.length ? `${failed.length} failed: ${failed.join('; ')}` : null,
-      skipped > 0 ? `${skipped} did not fit this press — press again to continue` : null,
-    ].filter(Boolean).join(' · ');
-
-    const key = failed.length && !ran.length ? 'error' : 'saved';
-    return res.redirect(303, `/connections?${key}=${encodeURIComponent(note)}`);
-  });
-
 /* Sync one source, now.
  *
  * The scheduler runs what is *due*, which is the right rule for a machine and
