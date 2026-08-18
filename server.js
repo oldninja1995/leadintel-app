@@ -16,6 +16,9 @@ const schema = require('./lib/schema');
 const ingest = require('./lib/ingest');
 const { SyncRunner, RunLog } = require('./lib/ingest/runner');
 const httpConnectors = require('./lib/ingest/http');
+/* The creative-to-lead resolver, for the status endpoint below — see
+   lib/creative-goals.js adOfLead. */
+const creativeGoals = require('./lib/creative-goals');
 const backfill = require('./lib/ingest/backfill');
 /* Directly, for the account picker — that call is a Connections-screen concern
    rather than part of any sync. */
@@ -103,7 +106,7 @@ function snapshotFor(workspaceId) {
      On the file store nothing changes: the replay is a local read, there is no
      transfer to save, and every test exercises this path. */
   if (!store.usingPostgres()) return build();
-  return snapshot.through(workspaceId, { connected: [...connected], build });
+  return snapshot.through(workspaceId, { connected: [...connected], build, shape: ingest.SHAPE });
 }
 
 /* Filling the cache is the async half; reading it is not.
@@ -1312,6 +1315,11 @@ app.get('/ingest/status', (req, res) => {
     transport: runner.transport.name,
     sources: runner.status(),
     match,
+    /* The creative-level join, which is a different question from the identity
+       ladder above it: that one resolves a booking to a lead, this one resolves
+       a lead to the ad that produced it. Creative Intelligence's five CRM
+       columns are empty exactly when this is zero. */
+    creativeMatch: creativeGoals.adMatch(entitiesFor(req.workspace)),
     unattributedRevenuePaise: unattributed,
   });
 });
