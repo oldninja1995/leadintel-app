@@ -1720,6 +1720,48 @@ app.post('/layout/:screen', express.urlencoded({ extended: false }), async (req,
  * the raw store deduplicates the overlap, so a double press costs time and
  * never correctness.
  */
+/* Sync one source, now.
+ *
+ * The scheduler runs what is *due*, which is the right rule for a machine and
+ * the wrong one for a person looking at a screen that says the CRM last synced
+ * thirty-two hours ago. Waiting for the next cron tick to find out whether a
+ * credential works, or whether today's leads have landed, is not a thing an
+ * operator should have to do.
+ *
+ * `runOne` rather than `runDue`: this asks for one named source regardless of
+ * staleness, which is what the button says it does. It is still the same code
+ * path the scheduler takes, so a manual run and a scheduled one cannot
+ * disagree about what a sync is.
+ *
+ * Bounded by the platform's function ceiling like every other pull here — a
+ * source with a year of history to fetch is a backfill, and the button beside
+ * this one is the one for that. */
+app.post('/connections/:source/sync',
+  express.urlencoded({ extended: false }), express.json(),
+  gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'sync' })),
+  async (req, res) => {
+    const source = req.params.source;
+    const definition = ingest.sources.get(source);
+    if (!definition) return res.redirect(303, `/connections?error=${encodeURIComponent(`unknown source "${source}"`)}`);
+
+    try {
+      const result = await runner.runOne(source);
+      const failed = (result.partialFailures || []).length;
+      const note = result.ok === false
+        ? `${definition.name}: sync failed — ${result.error || 'no reason given'}`
+        : `${definition.name}: ${result.written || 0} row(s) written from ${result.pulled || 0} pulled`
+          + (failed ? ` · ${failed} kind(s) failed, see the card` : '');
+
+      /* Errors go to `error` so the card colours them, successes to `saved`.
+         A failed sync reported in the success colour is how somebody walks away
+         believing a connector works. */
+      const key = result.ok === false ? 'error' : 'saved';
+      return res.redirect(303, `/connections?source=${encodeURIComponent(source)}&${key}=${encodeURIComponent(note)}`);
+    } catch (err) {
+      return res.redirect(303, `/connections?source=${encodeURIComponent(source)}&error=${encodeURIComponent(err.message)}`);
+    }
+  });
+
 app.post('/connections/:source/backfill',
   express.urlencoded({ extended: false }), express.json(),
   gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'backfill' })),

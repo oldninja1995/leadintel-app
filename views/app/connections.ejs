@@ -327,6 +327,11 @@ const openSource = canManage
                 </button>
                 <% if (c.configured) { %>
                   <button type="submit" formaction="/connections/<%= c.source %>/test" class="li-conn-secondary"><i class="ph ph-pulse"></i>Test</button>
+                  <%# Runs this source now, whether or not the scheduler thinks it
+                      is due. The card above says when it last succeeded; this is
+                      how somebody changes that answer without waiting for a cron
+                      tick. %>
+                  <button type="submit" formaction="/connections/<%= c.source %>/sync" class="li-conn-secondary" title="Pull this source now, without waiting for the schedule"><i class="ph ph-arrows-clockwise"></i>Sync now</button>
                   <%# A year of history, a week per round trip. The window is
                       too wide for one request — see the backfill route — so the
                       button carries where the last press stopped and continues
