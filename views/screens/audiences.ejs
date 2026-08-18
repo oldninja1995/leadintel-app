@@ -5,29 +5,47 @@
           </div>
           <div style="display:grid; grid-template-columns:1.4fr 1fr 1fr; gap:12px; margin-bottom:12px;">
             <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
-              <div style="display:flex; align-items:center; margin-bottom:10px;"><div style="font-size:13px; font-weight:500;">Revenue by age & gender</div><div style="flex:1;"></div><span style="display:flex; gap:10px; font-size:11px; color:var(--color-neutral-400);"><span style="display:flex; align-items:center; gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-500);"></span>Female</span><span style="display:flex; align-items:center; gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-neutral-600);"></span>Male</span></span></div>
+              <div style="display:flex; align-items:center; margin-bottom:10px;"><div style="font-size:13px; font-weight:500;">Leads by age &amp; gender</div><div style="flex:1;"></div><span style="display:flex; gap:10px; font-size:11px; color:var(--color-neutral-400);"><span style="display:flex; align-items:center; gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-500);"></span>Female</span><span style="display:flex; align-items:center; gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-neutral-600);"></span>Male</span></span></div>
+              <%
+              /* Drawn from Meta's age x gender breakdown. The design titled this
+                 "Revenue by age & gender" and drew ten fixed bars that never moved;
+                 nothing in this stack reports revenue by demographic, so it counts
+                 leads and the title says leads. */
+              var bands = (typeof audAge !== 'undefined' && audAge) ? audAge : [];
+              %>
+              <% if (!bands.length) { %>
+                <div style="height:130px; display:grid; place-items:center; font-size:11.5px; color:var(--color-neutral-600); text-align:center; padding:0 18px;">
+                  <%= typeof audAgeNote !== 'undefined' ? audAgeNote : '' %>
+                </div>
+              <% } else { %>
               <svg viewBox="0 0 340 130" style="width:100%; height:130px;" preserveAspectRatio="none">
-                <g fill="var(--color-accent-500)"><rect x="18" y="58" width="18" height="62" rx="3"></rect><rect x="82" y="26" width="18" height="94" rx="3"></rect><rect x="146" y="40" width="18" height="80" rx="3"></rect><rect x="210" y="72" width="18" height="48" rx="3"></rect><rect x="274" y="92" width="18" height="28" rx="3"></rect></g>
-                <g fill="var(--color-neutral-600)"><rect x="40" y="70" width="18" height="50" rx="3"></rect><rect x="104" y="44" width="18" height="76" rx="3"></rect><rect x="168" y="52" width="18" height="68" rx="3"></rect><rect x="232" y="80" width="18" height="40" rx="3"></rect><rect x="296" y="98" width="18" height="22" rx="3"></rect></g>
+                <g fill="var(--color-accent-500)">
+                  <% bands.forEach(function (band) { %>
+                    <rect x="<%= band.x %>" y="<%= band.female.y %>" width="<%= band.width %>" height="<%= band.female.h %>" rx="3"><title><%= band.label %> female &middot; <%= band.femaleLeads %> leads</title></rect>
+                  <% }); %>
+                </g>
+                <g fill="var(--color-neutral-600)">
+                  <% bands.forEach(function (band) { %>
+                    <rect x="<%= band.maleX %>" y="<%= band.male.y %>" width="<%= band.width %>" height="<%= band.male.h %>" rx="3"><title><%= band.label %> male &middot; <%= band.maleLeads %> leads</title></rect>
+                  <% }); %>
+                </g>
               </svg>
-              <div style="display:flex; justify-content:space-around; font-size:10px; color:var(--color-neutral-700); margin-top:4px;"><span>18–24</span><span>25–34</span><span>35–44</span><span>45–54</span><span>55+</span></div>
-              <div style="font-size:11px; color:var(--color-neutral-500); margin-top:8px; border-top:1px solid var(--color-neutral-900); padding-top:8px;">25–34 female drives <b style="color:var(--color-neutral-200); font-weight:500;">₹14.2L (27%)</b> — highest booking value ₹31,800 avg.</div>
+              <div style="display:flex; justify-content:space-around; font-size:10px; color:var(--color-neutral-700); margin-top:4px;">
+                <% bands.forEach(function (band) { %><span><%= band.label %></span><% }); %>
+              </div>
+              <%
+              /* The note is the empty state when there are no bands, so it must not
+                 also print underneath one. */
+              %>
+              <div style="font-size:11px; color:var(--color-neutral-500); margin-top:8px; border-top:1px solid var(--color-neutral-900); padding-top:8px;">
+                <%= typeof audAgeNote !== 'undefined' ? audAgeNote : '' %>
+              </div>
+              <% } %>
             </div>
             <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
-              <div style="font-size:13px; font-weight:500; margin-bottom:10px;">Device & OS</div>
-              <div style="display:flex; align-items:center; gap:14px;">
-                <svg viewBox="0 0 110 110" style="width:96px; height:96px; flex:none;">
-                  <circle cx="55" cy="55" r="42" fill="none" stroke="var(--color-neutral-900)" stroke-width="13"></circle>
-                  <circle cx="55" cy="55" r="42" fill="none" stroke="var(--color-accent-400)" stroke-width="13" stroke-dasharray="195.2 263.9" transform="rotate(-90 55 55)"></circle>
-                  <circle cx="55" cy="55" r="42" fill="none" stroke="var(--color-accent-700)" stroke-width="13" stroke-dasharray="47.5 263.9" stroke-dashoffset="-195.2" transform="rotate(-90 55 55)"></circle>
-                  <text x="55" y="60" text-anchor="middle" fill="var(--color-neutral-200)" font-size="13" font-weight="500" font-family="Inter">74%</text>
-                </svg>
-                <div style="flex:1; display:flex; flex-direction:column; gap:7px; font-size:11.5px;">
-                  <div style="display:flex; gap:7px; align-items:center;"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-400);"></span><span style="flex:1;color:var(--color-neutral-400);">Mobile</span><span style="font-weight:500;">74%</span></div>
-                  <div style="display:flex; gap:7px; align-items:center;"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-700);"></span><span style="flex:1;color:var(--color-neutral-400);">Desktop</span><span style="font-weight:500;">18%</span></div>
-                  <div style="display:flex; gap:7px; align-items:center;"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-neutral-700);"></span><span style="flex:1;color:var(--color-neutral-400);">Tablet</span><span style="font-weight:500;">8%</span></div>
-                  <div style="font-size:10.5px; color:var(--color-neutral-600); border-top:1px solid var(--color-neutral-900); padding-top:6px;">Android 61% · iOS 39%</div>
-                </div>
+              <div style="font-size:13px; font-weight:500; margin-bottom:10px;">Device &amp; OS</div>
+              <div style="height:96px; display:grid; place-items:center; text-align:center; font-size:11.5px; color:var(--color-neutral-600); padding:0 12px;">
+                Not measured. A device split is a Meta breakdown of its own or a Google Analytics dimension, and neither is among the fields this workspace pulls &mdash; the ring here read 74% mobile whatever the range said.
               </div>
             </div>
             <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
