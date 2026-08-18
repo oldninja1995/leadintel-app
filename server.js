@@ -1187,9 +1187,15 @@ app.use((req, res, next) => {
   const wall = Date.now();
 
   Promise.all([
-    timed('docs', store.hydrateDocuments({ connections, workspace, webhookTokens, definitionLog: metrics.definitionLog }), marks),
+    /* `layouts` joins the batch rather than fetching on its own.
+     *
+     * It is document-shaped — one key, and a `hydrate(value)` that takes the
+     * row already fetched — so it belonged in the getMany all along. Every
+     * store left outside it costs a full round trip, and the Server-Timing
+     * numbers put that at about 190ms each on this deployment: these reads do
+     * not overlap, whatever Promise.all suggests. */
+    timed('docs', store.hydrateDocuments({ connections, workspace, webhookTokens, layouts, definitionLog: metrics.definitionLog }), marks),
     timed('runlog', runner.log.hydrate(), marks),
-    timed('layouts', layouts.hydrate(), marks),
     timed('audit', gatekeeper.audit.hydrate(), marks),
     timed('rules', fires.hydrate(), marks),
     timed('dispatches', dispatches.hydrate(), marks),
