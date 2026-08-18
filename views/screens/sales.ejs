@@ -15,7 +15,7 @@
                 <tbody>
                   <% (salesRows || []).forEach(function (r) { %>
                     <tr class="hv-1" style="border-top:1px solid var(--color-neutral-900); cursor:pointer;">
-                      <td style="padding:9px 8px 9px 0;"><span style="display:flex; align-items:center; gap:8px;"><span style="width:24px; height:24px; border-radius:99px; background:var(--color-neutral-800); display:grid; place-items:center; font-size:9px; font-weight:600; color:var(--color-neutral-300);"><%= r.init %></span><span style="color:var(--color-neutral-200); font-weight:500; white-space:nowrap;"><%= r.name %></span></span></td>
+                      <td style="padding:9px 8px 9px 0;"><span style="display:flex; align-items:center; gap:8px;"><span style="width:24px; height:24px; border-radius:99px; background:var(--color-neutral-800); display:grid; place-items:center; font-size:9px; font-weight:600; color:var(--color-neutral-300);"><%= r.init %></span><span style="color:var(--color-neutral-200); font-weight:500; white-space:nowrap;" title="<%= (typeof r.who !== 'undefined' && r.who) ? r.who : r.name %>"><%= r.name %></span></span></td>
                       <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-200); font-weight:500;"><%= r.rev %></td>
                       <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= r.bookings %></td>
                       <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:<%= r.closeColor %>;"><%= r.close %></td>
