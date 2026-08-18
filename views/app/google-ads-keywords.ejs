@@ -7,16 +7,22 @@
  * about a megabyte of markup below the fold, downloaded and scrolled past every
  * time. A tab would have kept the markup on the page; a screen does not.
  *
+ * **Ten rows, then a page of its own.** Every table here previews its first ten
+ * rows and says how many it has. `?table=` opens one of them alone, in full,
+ * with nothing else competing for the page. That is the same argument made one
+ * level down: the top of a table is what you judge it by, and the whole of it
+ * is a separate thing to want.
+ *
  * Ordered the way the work is done, which is not the hierarchy Google draws:
  *
  *   1. terms with money and nothing to show for it — the worklist
  *   2. the *words* inside those terms — where a negative keyword is decided
  *   3. keywords — what was actually bid on
- *   4. every search term — the full record, uncapped
+ *   4. every search term — the full record
  *
- * Nothing here is truncated. That is the point of the screen: a top-25 view of
- * a five-thousand-row report hides exactly the long tail that the rollup in (2)
- * exists to find. Where a table is long it says how long above itself.
+ * No table is silently capped: a preview always states the total and links to
+ * the rest. A top-25 view of a five-thousand-row report that says nothing about
+ * the other 4,975 is the failure mode this is written against.
  *
  * Markup borrows the OTA screen's vocabulary — `li-ota-panel`, `li-ota-scroll`,
  * `li-ota-table`, `li-num` — for the reason google-ads.ejs does: those classes
@@ -37,6 +43,22 @@ const s = d.termSummary || {};
    a list of decisions rather than a record of what happened. */
 const wasted = terms.filter((t) => t.wasted);
 const wastedWords = words.filter((w) => w.wasted);
+
+const PREVIEW = 10;
+
+/* Which table, if any, the reader asked to see whole. An unknown value shows
+   the overview rather than an error — a mistyped query string is not a fault
+   worth a page. */
+const TABLES = ['wasted', 'words', 'keywords', 'terms'];
+const only = TABLES.indexOf(String(d.table || '')) > -1 ? String(d.table) : null;
+const shows = (name) => !only || only === name;
+const whole = (name) => only === name;
+
+/* The range and any filter, carried on every link out of here so following one
+   does not reset the window the reader chose. */
+const qs = d.qs || '';
+const join = (extra) => (qs ? `${qs}&${extra}` : `?${extra}`);
+const rows = (list, name) => (whole(name) ? list : list.slice(0, PREVIEW));
 %>
 
 <% if (!d.connected) { %>
@@ -48,13 +70,18 @@ const wastedWords = words.filter((w) => w.wasted);
 <% } %>
 
 <p class="li-ota-foot">
-  <i class="ph ph-arrow-left"></i>
-  <a href="/google-ads">Back to Google Ads Analytics</a> — campaigns, ad groups, ads and
-  reservation value. This screen is the keyword and search-term detail beneath them,
-  over the same range (<%= txt(d.rangeLabel) %>).
+  <% if (only) { %>
+    <a href="/google-ads/keywords<%= qs %>">Back to Keyword Analytics</a> —
+    one table, in full, over <%= txt(d.rangeLabel) %>.
+  <% } else { %>
+    <a href="/google-ads<%= qs %>">Back to Google Ads Analytics</a> — campaigns, ad groups, ads
+    and reservation value. This screen is the keyword and search-term detail beneath them,
+    over the same range (<%= txt(d.rangeLabel) %>). Each table below previews ten rows.
+  <% } %>
 </p>
 
 <!-- What the range holds ---------------------------------------------------->
+<% if (!only) { %>
 <section class="li-ota-panel">
   <div class="li-ota-panel-head">
     <h2>What this range holds</h2>
@@ -89,8 +116,10 @@ const wastedWords = words.filter((w) => w.wasted);
     </table>
   </div>
 </section>
+<% } %>
 
 <!-- Wasted spend, as a worklist ---------------------------------------------->
+<% if (shows('wasted')) { %>
 <section class="li-ota-panel">
   <div class="li-ota-panel-head">
     <h2>Spend with nothing to show for it</h2>
@@ -112,7 +141,10 @@ const wastedWords = words.filter((w) => w.wasted);
   <% } else { %>
   <p class="li-ota-foot">
     <strong><%= num(wasted.length) %></strong> terms<% if (s.wastedSpendText) { %>,
-    costing <strong><%= s.wastedSpendText %></strong><% } %>. All of them, uncapped.
+    costing <strong><%= s.wastedSpendText %></strong><% } %>.
+    <% if (!whole('wasted') && wasted.length > PREVIEW) { %>
+      Showing the <%= PREVIEW %> most expensive.
+    <% } %>
   </p>
   <div class="li-ota-scroll">
     <table class="li-ota-table">
@@ -124,7 +156,7 @@ const wastedWords = words.filter((w) => w.wasted);
         </tr>
       </thead>
       <tbody>
-        <% wasted.forEach((t) => { %>
+        <% rows(wasted, 'wasted').forEach((t) => { %>
           <tr>
             <td><%= txt(t.term) %></td>
             <td><%= txt(t.adgroup) %></td>
@@ -139,10 +171,19 @@ const wastedWords = words.filter((w) => w.wasted);
       </tbody>
     </table>
   </div>
+  <% if (!whole('wasted') && wasted.length > PREVIEW) { %>
+    <p class="li-ota-foot">
+      <a href="/google-ads/keywords<%= join('table=wasted') %>">
+        View all <%= num(wasted.length) %> wasted terms
+      </a> &rarr;
+    </p>
+  <% } %>
   <% } %>
 </section>
+<% } %>
 
 <!-- Words, not phrases ------------------------------------------------------->
+<% if (shows('words')) { %>
 <section class="li-ota-panel">
   <div class="li-ota-panel-head">
     <h2>Where the money goes, by word</h2>
@@ -160,6 +201,7 @@ const wastedWords = words.filter((w) => w.wasted);
   <p class="li-ota-foot">
     <%= num(words.length) %> words, each appearing in two or more terms.
     <strong><%= num(wastedWords.length) %></strong> of them have converted nobody.
+    <% if (!whole('words') && words.length > PREVIEW) { %>Showing the top <%= PREVIEW %> by spend.<% } %>
     Not stemmed and not stopword-filtered beyond the shortest tokens: this is the account's own
     vocabulary, and guessing which words are meaningful is how a tool starts hiding the answer.
   </p>
@@ -172,7 +214,7 @@ const wastedWords = words.filter((w) => w.wasted);
         </tr>
       </thead>
       <tbody>
-        <% words.forEach((w) => { %>
+        <% rows(words, 'words').forEach((w) => { %>
           <tr>
             <td><%= txt(w.word) %><% if (w.wasted) { %> <span class="li-chip">wasted</span><% } %></td>
             <td class="li-num"><%= num(w.terms) %></td>
@@ -184,6 +226,13 @@ const wastedWords = words.filter((w) => w.wasted);
       </tbody>
     </table>
   </div>
+  <% if (!whole('words') && words.length > PREVIEW) { %>
+    <p class="li-ota-foot">
+      <a href="/google-ads/keywords<%= join('table=words') %>">
+        View all <%= num(words.length) %> words
+      </a> &rarr;
+    </p>
+  <% } %>
   <p class="li-ota-foot">
     Spend is counted once per term per word, so these columns deliberately do <strong>not</strong>
     sum to account spend — a two-word term contributes its cost to both of its words. The
@@ -191,8 +240,10 @@ const wastedWords = words.filter((w) => w.wasted);
   </p>
   <% } %>
 </section>
+<% } %>
 
 <!-- Keywords ----------------------------------------------------------------->
+<% if (shows('keywords')) { %>
 <section class="li-ota-panel">
   <div class="li-ota-panel-head">
     <h2>Keywords</h2>
@@ -211,6 +262,11 @@ const wastedWords = words.filter((w) => w.wasted);
   <% } else if (!keywords.length) { %>
     <p class="li-ota-foot">No keyword rows in this range.</p>
   <% } else { %>
+  <% if (!whole('keywords') && keywords.length > PREVIEW) { %>
+    <p class="li-ota-foot">
+      <%= num(keywords.length) %> keywords. Showing the <%= PREVIEW %> highest-spending.
+    </p>
+  <% } %>
   <div class="li-ota-scroll">
     <table class="li-ota-table">
       <thead>
@@ -222,7 +278,7 @@ const wastedWords = words.filter((w) => w.wasted);
         </tr>
       </thead>
       <tbody>
-        <% keywords.forEach((k) => { %>
+        <% rows(keywords, 'keywords').forEach((k) => { %>
           <tr>
             <td><%= txt(k.keyword) %></td>
             <td><span class="li-chip"><%= chip(k.matchType) %></span></td>
@@ -240,6 +296,13 @@ const wastedWords = words.filter((w) => w.wasted);
       </tbody>
     </table>
   </div>
+  <% if (!whole('keywords') && keywords.length > PREVIEW) { %>
+    <p class="li-ota-foot">
+      <a href="/google-ads/keywords<%= join('table=keywords') %>">
+        View all <%= num(keywords.length) %> keywords
+      </a> &rarr;
+    </p>
+  <% } %>
   <p class="li-ota-foot">
     Cost per <em>conversion</em>, not per lead: Google's conversion count sums every action the
     account defines — a booking enquiry and a phone click alike. Until one of them is nominated
@@ -247,15 +310,17 @@ const wastedWords = words.filter((w) => w.wasted);
   </p>
   <% } %>
 </section>
+<% } %>
 
 <!-- Every search term -------------------------------------------------------->
+<% if (shows('terms')) { %>
 <section class="li-ota-panel">
   <div class="li-ota-panel-head">
     <h2>Search terms</h2>
     <p>
-      The full record: what people actually typed, as opposed to what was bid on. Sorted by
-      spend, uncapped — the long tail is the half a top-N view removes, and it is where the
-      word rollup above gets its evidence.
+      What people actually typed, as opposed to what was bid on. Sorted by spend — the long
+      tail is where the word rollup above gets its evidence, which is why the whole report is
+      reachable rather than capped.
     </p>
   </div>
 
@@ -263,7 +328,8 @@ const wastedWords = words.filter((w) => w.wasted);
     <p class="li-ota-foot">No search term rows in this range.</p>
   <% } else { %>
   <p class="li-ota-foot">
-    All <strong><%= num(terms.length) %></strong> rows.
+    <strong><%= num(terms.length) %></strong> terms.
+    <% if (!whole('terms') && terms.length > PREVIEW) { %>Showing the <%= PREVIEW %> highest-spending.<% } %>
   </p>
   <div class="li-ota-scroll">
     <table class="li-ota-table">
@@ -276,7 +342,7 @@ const wastedWords = words.filter((w) => w.wasted);
         </tr>
       </thead>
       <tbody>
-        <% terms.forEach((t) => { %>
+        <% rows(terms, 'terms').forEach((t) => { %>
           <tr>
             <td><%= txt(t.term) %><% if (t.wasted) { %> <span class="li-chip">wasted</span><% } %></td>
             <td><%= txt(t.adgroup) %></td>
@@ -294,5 +360,13 @@ const wastedWords = words.filter((w) => w.wasted);
       </tbody>
     </table>
   </div>
+  <% if (!whole('terms') && terms.length > PREVIEW) { %>
+    <p class="li-ota-foot">
+      <a href="/google-ads/keywords<%= join('table=terms') %>">
+        View all <%= num(terms.length) %> search terms
+      </a> &rarr;
+    </p>
+  <% } %>
   <% } %>
 </section>
+<% } %>

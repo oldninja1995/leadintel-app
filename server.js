@@ -2276,6 +2276,10 @@ async function googleAdsPayload(req) {
        screens — following it should not silently reset the window the reader
        chose, which is what a bare href does. */
     qs: req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '',
+    /* Which single table the reader asked to see in full, if any. A preview of
+       ten rows is enough to judge a table by; five thousand rows is a page of
+       its own, asked for rather than delivered by default. */
+    table: String(req.query.table || ''),
     connected: live.has('google_ads'),
     campaigns, campaignTotal, adGroups, ads, keywords, conversions,
     searchTerms: terms, termSummary, words,

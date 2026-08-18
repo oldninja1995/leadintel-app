@@ -28,7 +28,7 @@ const SCREENS = [
      than nested as a tab: the account's search terms are five thousand rows and
      they were loading beneath the six campaigns somebody opens that screen to
      read. Both render from one payload — see googleAdsPayload in server.js. */
-  { slug: 'google-ads/keywords', view: 'google-ads-keywords', gate: null, app: 'google-ads-keywords', name: 'Keyword Analytics', icon: 'ph ph-magnifying-glass', group: 'Marketing' },
+  { slug: 'google-ads/keywords', view: 'google-ads-keywords', gate: null, app: 'google-ads-keywords', parent: 'google-ads', name: 'Keyword Analytics', icon: 'ph ph-magnifying-glass', group: 'Marketing' },
   { slug: 'creatives',   view: 'creatives',   gate: 'isCreative', name: 'Creative Intelligence', icon: 'ph ph-film-strip',       group: 'Marketing' },
   { slug: 'audiences',   view: 'audiences',   gate: 'isAud',      name: 'Audience Analytics',   icon: 'ph ph-users',             group: 'Marketing' },
   { slug: 'attribution', view: 'attribution', gate: 'isAttr',     name: 'Attribution',          icon: 'ph ph-tree-structure',    group: 'Marketing' },
@@ -69,6 +69,10 @@ function navGroups(activeSlug) {
     byGroup.get(s.group).push({
       ...s,
       go: '/' + s.slug,
+      /* Nested under the screen it belongs to rather than listed beside it.
+         Keyword Analytics is Google Ads Analytics one level down, and a flat
+         sibling in the same group claims it is a separate subject. */
+      child: Boolean(s.parent),
       /* The design pairs a badge with a flag that gates it; no screen carries
          a count yet, so the badge is empty and the flag is off. */
       showBadge: false,
