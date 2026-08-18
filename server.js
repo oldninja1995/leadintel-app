@@ -1953,8 +1953,15 @@ app.get('/ota', (req, res, next) => { renderOta(req, res).catch(next); });
  */
 const GOOGLE_KEYWORD_TYPES = new Set(['SEARCH', 'DISPLAY', 'MULTI_CHANNEL', 'UNKNOWN', null]);
 
-async function renderGoogleAds(req, res) {
-  const screen = (await repo.screens()).find((s) => s.slug === 'google-ads');
+/* Google Ads, read once and rendered twice.
+ *
+ * The account's search terms alone are five thousand rows, and they sat on the
+ * same page as the six campaigns somebody opens this screen to see — a megabyte
+ * of table below the fold, scrolled past every time. Keywords and the terms that
+ * matched them are now a screen of their own, and this returns the whole payload
+ * so both render from one read rather than from two free to disagree.
+ */
+async function googleAdsPayload(req) {
   const { over } = periodFor(req.query);
   const entities = metrics.period.within(entitiesFor(req.workspace), over);
 
@@ -1964,6 +1971,14 @@ async function renderGoogleAds(req, res) {
      this keyword doing over the range", and a row per day would be a different
      screen. Summed here rather than in the entity, because the entity is the
      day — that is what makes a period narrow it. */
+  /* ── search term detail ───────────────────────────────────────────────────
+   *
+   * The rates are derived here rather than in the view so the two cannot
+   * disagree, and both follow the registry's rule: a ratio with no denominator
+   * is null, not zero. A term with no impressions has no click-through rate —
+   * saying 0% would claim nobody clicked something nobody was shown. */
+  const rate = (num, den) => (den > 0 ? `${((num / den) * 100).toFixed(2)}%` : null);
+
   const rollUp = (rows, keyOf, shape) => {
     const by = new Map();
     for (const r of rows || []) {
@@ -1998,6 +2013,11 @@ async function renderGoogleAds(req, res) {
         /* Cost per click, same rule: no clicks means no cost *per* click, so it
            is unknown rather than zero or infinite. */
         cpcText: a.clicks > 0 ? asMoney(a.spend / a.clicks) : null,
+        /* The same rule once more — a rate with no denominator is unknown, not
+           zero. Carried on every rolled-up row because the keyword screen reads
+           them, and computing it a second time there would be free to disagree. */
+        ctr: rate(a.clicks, a.impressions),
+        convRate: rate(a.conversions, a.clicks),
       }))
       .sort((x, y) => y.spend - x.spend);
   };
@@ -2035,13 +2055,6 @@ async function renderGoogleAds(req, res) {
     term: r.term, termStatus: r.termStatus, adgroupId: r.adgroupId,
   }));
 
-  /* ── search term detail ───────────────────────────────────────────────────
-   *
-   * The rates are derived here rather than in the view so the two cannot
-   * disagree, and both follow the registry's rule: a ratio with no denominator
-   * is null, not zero. A term with no impressions has no click-through rate —
-   * saying 0% would claim nobody clicked something nobody was shown. */
-  const rate = (num, den) => (den > 0 ? `${((num / den) * 100).toFixed(2)}%` : null);
   const adgroupName = new Map(adGroups.map((g) => [g.adgroupId, g.adgroup]));
 
   const terms = searchTerms.map((t) => ({
@@ -2086,8 +2099,7 @@ async function renderGoogleAds(req, res) {
   const words = [...byWord.values()]
     .filter((w) => w.terms > 1)
     .map((w) => ({ ...w, spendText: asMoney(w.spend), wasted: w.spend > 0 && !w.conversions }))
-    .sort((a, b) => b.spend - a.spend)
-    .slice(0, 25);
+    .sort((a, b) => b.spend - a.spend);
 
   /* Conversions carry no spend — they are a breakdown of the campaign's — so
      they are rolled up on their own terms rather than through `rollUp`. */
@@ -2132,10 +2144,20 @@ async function renderGoogleAds(req, res) {
    * Null, never zero, when GA4 has no revenue rows in range: a booking engine
    * with no purchase event configured must not report ₹0 of reservations as
    * though it had measured none. */
+  /* Read once — three figures below ask whether a source is connected, and
+     three separate calls could each answer differently mid-request. */
+  const live = ingest.liveSources({ connections, workspace: req.workspace, httpConnectors });
+
   const paidSearchRows = (entities.webChannelRevenueDays || [])
     .filter((r) => /^paid\s*search$/i.test(String(r.channelGroup || '')));
   const paidSearchRevenue = paidSearchRows.length
     ? paidSearchRows.reduce((t, r) => t + (r.revenue || 0), 0)
+    : null;
+  /* The count beside the value, so an average online booking can be read
+     rather than inferred. A falsy total means the property reports revenue
+     with no purchase count — unknown, not none. */
+  const paidSearchBookings = paidSearchRows.length
+    ? (paidSearchRows.reduce((t, r) => t + (r.reservations || 0), 0) || null)
     : null;
 
   /* Divided by the spend of the same campaigns the table above renders, over
@@ -2145,19 +2167,97 @@ async function renderGoogleAds(req, res) {
     ? paidSearchRevenue / campaignTotal.spend
     : null;
 
+  /* ── The CRM's half of the same question ─────────────────────────────────
+   *
+   * GA4 prices the bookings that completed on the website. It cannot see the
+   * guest who clicked a search ad, rang reservations and was closed by a
+   * salesperson — that booking exists only as a TeleCRM deal, tagged with the
+   * channel the lead arrived on. Charging Google's whole spend against GA4's
+   * half alone understates the account by exactly the phone half of a business
+   * that still takes most of its bookings by phone.
+   *
+   * **Only deals the CRM tagged `google`.** A Meta-sourced booking is Meta's
+   * return; blending would make this a figure about the property rather than
+   * about this account, divided by a spend that bought only one of them.
+   *
+   * Cancelled bookings are excluded on the registry's rule — `booking_status`
+   * is a workspace custom field with no fixed vocabulary, so anything not
+   * spelled cancelled still counts, and a status this does not recognise fails
+   * towards including real revenue rather than hiding it.
+   *
+   * Zero is a real answer once the CRM is connected — it means nothing Google
+   * produced has been tagged and won — so it prints as a figure. Null only
+   * when there is no CRM to have recorded anything. */
+  const crmDeals = (entities.deals || []).filter((d) => d.channel === 'google'
+    && d.outcome === 'won'
+    && !/cancel/i.test(String(d.bookingStatus || '')));
+  const crmRevenue = live.has('telecrm')
+    ? crmDeals.reduce((t, d) => t + (d.revenue || 0), 0)
+    : null;
+  const crmRoas = crmRevenue !== null && campaignTotal.spend > 0
+    ? crmRevenue / campaignTotal.spend
+    : null;
+
+  /* ── Cumulative ──────────────────────────────────────────────────────────
+   *
+   * The two books added, against the one spend that paid for both. This is the
+   * figure the account is actually judged on: neither half alone divides a
+   * whole budget honestly.
+   *
+   * Added rather than reconciled, and the card says so. A booking made on the
+   * website AND entered into TeleCRM is in both books and is counted twice
+   * here. Nothing can net that off until a PMS gives both one folio, so the
+   * overlap is declared rather than quietly assumed away — the alternative was
+   * the opposite error, which this screen was already making: a ROAS that left
+   * out every phone booking Google produced while keeping its cost in the
+   * denominator.
+   *
+   * Null only when NEITHER book reported. An absent GA4 does not make a CRM
+   * figure unknowable; it makes that half nothing. Propagating null the way a
+   * formula would blanks the headline on every window without an online
+   * purchase — the same trap `revenue.total_measured` documents in the
+   * registry, which is why this is a sum here too. */
+  const cumulativeRevenue = crmRevenue === null && paidSearchRevenue === null
+    ? null
+    : (crmRevenue || 0) + (paidSearchRevenue || 0);
+  const cumulativeRoas = cumulativeRevenue !== null && campaignTotal.spend > 0
+    ? cumulativeRevenue / campaignTotal.spend
+    : null;
+
+  const asRoas = (v) => (v === null ? null : `${(Math.round(v * 10) / 10).toFixed(1)}x`);
+
   const paidSearch = {
     revenue: paidSearchRevenue,
     revenueText: paidSearchRevenue !== null ? asMoney(paidSearchRevenue) : null,
+    bookings: paidSearchBookings,
     roas: paidSearchRoas,
-    roasText: paidSearchRoas !== null ? `${(Math.round(paidSearchRoas * 10) / 10).toFixed(1)}x` : null,
+    roasText: asRoas(paidSearchRoas),
     days: paidSearchRows.length,
     /* Why the figure is absent, said on the card rather than left as a dash
        somebody has to come and ask about. */
     absent: paidSearchRevenue === null
-      ? (ingest.liveSources({ connections, workspace: req.workspace, httpConnectors }).has('google_analytics')
+      ? (live.has('google_analytics')
         ? 'Google Analytics reports no revenue for Paid Search in this range — the booking engine may not be sending purchase events.'
         : 'Google Analytics is not connected, so the value of a paid-search booking is not measured.')
       : null,
+
+    crmRevenue,
+    crmRevenueText: crmRevenue !== null ? asMoney(crmRevenue) : null,
+    crmBookings: crmDeals.length || null,
+    crmRoas,
+    crmRoasText: asRoas(crmRoas),
+    crmAbsent: crmRevenue === null
+      ? 'The CRM is not connected, so a booking Google produced by phone is not counted.'
+      : null,
+
+    cumulativeRevenue,
+    cumulativeRevenueText: cumulativeRevenue !== null ? asMoney(cumulativeRevenue) : null,
+    cumulativeRoas,
+    cumulativeRoasText: asRoas(cumulativeRoas),
+    /* Which books are actually in the total, so the caveat beneath names the
+       ones that contributed rather than both regardless. */
+    books: [crmRevenue !== null ? 'CRM' : null, paidSearchRevenue !== null ? 'GA4' : null].filter(Boolean),
+    overlaps: crmRevenue !== null && paidSearchRevenue !== null,
   };
 
   /* Whether keywords *apply*, which is not the same question as whether any
@@ -2170,18 +2270,35 @@ async function renderGoogleAds(req, res) {
     ? `every campaign in this range is ${types.join(', ')}`
     : null;
 
+  return {
+    rangeLabel: rangeLabel(over),
+    /* The range and any filter, carried on the link between the two Google
+       screens — following it should not silently reset the window the reader
+       chose, which is what a bare href does. */
+    qs: req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '',
+    connected: live.has('google_ads'),
+    campaigns, campaignTotal, adGroups, ads, keywords, conversions,
+    searchTerms: terms, termSummary, words,
+    keywordsNotApplicable, paidSearch,
+  };
+}
+
+/* Both Google screens render through here.
+ *
+ * The shell, the palette and the range chips are the same on either, and the
+ * only difference is which screen record the layout is handed — so that
+ * difference stays one argument rather than a second copy of this block, free
+ * to drift the moment one of them gains a filter. */
+async function renderGoogleAds(req, res, slug) {
+  const screen = (await repo.screens()).find((s) => s.slug === slug);
+  const data = await googleAdsPayload(req);
+
   res.render('layout', {
     screen,
     screens: await repo.screens(),
-    shell: await shellData('google-ads', req.query, req.path, req.workspace, req.user),
+    shell: await shellData(slug, req.query, req.path, req.workspace, req.user),
     hasView: false,
-    data: {
-      rangeLabel: rangeLabel(over),
-      connected: ingest.liveSources({ connections, workspace: req.workspace, httpConnectors }).has('google_ads'),
-      campaigns, campaignTotal, adGroups, ads, keywords, conversions,
-      searchTerms: terms, termSummary, words,
-      keywordsNotApplicable, paidSearch,
-    },
+    data,
     drawer: null,
     palette: await palette(),
     notifications: notifications(req.workspace),
@@ -2191,7 +2308,11 @@ async function renderGoogleAds(req, res) {
   });
 }
 
-app.get('/google-ads', (req, res, next) => { renderGoogleAds(req, res).catch(next); });
+app.get('/google-ads', (req, res, next) => { renderGoogleAds(req, res, 'google-ads').catch(next); });
+/* Registered here rather than left to `start()`, which walks the screen list
+   and would give this slug the generic design-screen route — a route that
+   reads a data module and audits a schema neither of which this screen has. */
+app.get('/google-ads/keywords', (req, res, next) => { renderGoogleAds(req, res, 'google-ads/keywords').catch(next); });
 
 /* Creative thumbnails, proxied.
  *

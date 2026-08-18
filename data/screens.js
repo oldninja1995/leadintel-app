@@ -24,6 +24,11 @@ const SCREENS = [
      different platform. Google's hierarchy is campaign -> ad group -> ad with
      keywords beneath, which is why it is a screen of its own rather than a tab. */
   { slug: 'google-ads',  view: 'google-ads',  gate: null, app: 'google-ads', name: 'Google Ads Analytics', icon: 'ph ph-google-logo', group: 'Marketing' },
+  /* Keyword Analytics is Google Ads Analytics' other half, split off rather
+     than nested as a tab: the account's search terms are five thousand rows and
+     they were loading beneath the six campaigns somebody opens that screen to
+     read. Both render from one payload — see googleAdsPayload in server.js. */
+  { slug: 'google-ads/keywords', view: 'google-ads-keywords', gate: null, app: 'google-ads-keywords', name: 'Keyword Analytics', icon: 'ph ph-magnifying-glass', group: 'Marketing' },
   { slug: 'creatives',   view: 'creatives',   gate: 'isCreative', name: 'Creative Intelligence', icon: 'ph ph-film-strip',       group: 'Marketing' },
   { slug: 'audiences',   view: 'audiences',   gate: 'isAud',      name: 'Audience Analytics',   icon: 'ph ph-users',             group: 'Marketing' },
   { slug: 'attribution', view: 'attribution', gate: 'isAttr',     name: 'Attribution',          icon: 'ph ph-tree-structure',    group: 'Marketing' },
