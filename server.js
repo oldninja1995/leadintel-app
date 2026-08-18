@@ -52,7 +52,6 @@ const PORT = process.env.PORT || 3000;
 /* Vercel sets VERCEL=1 on every runtime. It decides two things: nothing listens
    on a socket, and the in-process sync timer is not started — see /cron/sync. */
 const SERVERLESS = Boolean(process.env.VERCEL);
-const repo = createRepository();
 
 /* Phase 9 — the raw store is partitioned per workspace: `var/raw/<workspace>/`.
    Isolation is a property of *where the data is*, not of a filter applied on
@@ -118,12 +117,26 @@ function snapshotFor(workspaceId) {
  * So the resolution happens once, at the request edge, exactly as it does for
  * the document stores: `hydrateEntities` is awaited by the middleware and every
  * synchronous reader afterwards finds a resolved value. */
+/* In flight, so two callers in one request build once.
+ *
+ * The edge hydrates the metric layer and the repository concurrently and both
+ * now come through here. Without this they would both miss the cache and both
+ * build, which is the duplication this was meant to remove. */
+const building = new Map();
+
 async function hydrateEntities(workspaceId) {
   if (!shouldRebuild(workspaceId)) return entityCache.get(workspaceId);
-  const entities = await snapshotFor(workspaceId);
-  entityCache.set(workspaceId, entities);
-  staleAt.delete(workspaceId);
-  return entities;
+  if (building.has(workspaceId)) return building.get(workspaceId);
+
+  const work = (async () => {
+    const entities = await snapshotFor(workspaceId);
+    entityCache.set(workspaceId, entities);
+    staleAt.delete(workspaceId);
+    return entities;
+  })().finally(() => building.delete(workspaceId));
+
+  building.set(workspaceId, work);
+  return work;
 }
 
 function entitiesFor(workspaceId) {
@@ -219,6 +232,7 @@ function shouldRebuild(workspaceId) {
   return Boolean(since) && Date.now() - since >= MIN_REBUILD_MS;
 }
 
+
 /* Which medium the stores run on is decided once, in lib/store, from whether
    DATABASE_URL is set. Every store takes a `backend` and a null one means "use
    the file path", so a local run and the whole test suite are unaffected. */
@@ -229,6 +243,19 @@ const dispatches = new reports.Dispatches(undefined, { backend: backends.dispatc
 const connections = new Connections({ backend: backends.docs });
 /* Which cards each person keeps on each screen — see lib/layout.js. */
 const layouts = new Layouts(undefined, { backend: backends.docs });
+
+/* The repository reads through the same snapshot the metric layer does.
+ *
+ * `hydrateEntities` builds once per workspace, caches, and is invalidated by a
+ * sync or a credential write — so handing it over means one build per request
+ * rather than two of the same thing, and means a screen's tables and the KPI
+ * cards above them cannot be one refresh apart. It is a function reference, so
+ * the ordering does not matter: nothing calls it until a request arrives. */
+const repo = createRepository({
+  snapshot: (workspaceId) => entitiesFor(workspaceId),
+  fillSnapshot: (workspaceId) => hydrateEntities(workspaceId),
+});
+
 
 /* Three stores are constructed inside the modules that own them rather than
    here — the definition log and the evaluation store by lib/metrics, the audit
