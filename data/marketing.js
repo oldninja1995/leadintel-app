@@ -45,7 +45,7 @@ module.exports = {
     /* What one of those reservations was worth, beside how many there were and
        what each cost. CRM over CRM — see the registry note for why this is not
        the CRM+GA4 total divided by a CRM count. */
-    { metric: 'revenue.per_attributed_reservation', label: 'Reservation AOV', value: '₹42,800', delta: '—', deltaColor: NA, tip: 'Blended reservation value divided by the blended reservation count — CRM paid-tagged plus GA4 paid search on both sides. Both books, so the average is not inflated by counting one system’s revenue against another’s bookings.', ...SRC.crm },
+    { metric: 'revenue.per_attributed_reservation', label: 'Reservation AOV', value: '₹42,800', delta: '—', deltaColor: NA, tip: 'Blended reservation value divided by the blended reservation count — CRM paid-tagged plus GA4 paid search on both sides. Both books, so the average is not inflated by counting one system’s revenue against another’s bookings.', ...SRC.blended },
     { metric: 'cost.per_attributed_reservation', label: 'Cost per reservation', value: '₹3,480', delta: '−11.0%', deltaColor: UP, tip: 'Ad spend divided by paid-tagged CRM reservations. A ceiling: a reservation advertising produced but nobody tagged sits outside the denominator while its cost stays in the numerator.', ...SRC.blended },
     /* The GA4 half on its own, beside the total it is now part of. A figure
        folded into a headline and shown nowhere else cannot be checked, and
