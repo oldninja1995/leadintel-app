@@ -10,9 +10,17 @@ module.exports = {
        booking, paid or not, so pointing this card at it would have credited
        paid media with the whole direct and organic contribution. Leads carry a
        channel now and deals inherit it, so the question is answerable. */
-    { metric: 'revenue.attributed', label: 'Attributed revenue', value: '₹32.5L', delta: '+18.2%', deltaColor: UP, sub: 'leads tagged to a paid channel only', tip: 'Revenue credited to paid media on the workspace model', icon: 'ph ph-currency-inr', spark: spark([40, 44, 47, 52, 51, 58, 62, 66, 71, 75]), ...SRC.blended },
+    /* Both books, because paid media produces two kinds of booking here and
+       the card was showing one. `revenue.attributed` — the CRM half alone —
+       is still in the registry and is what the AI layer quotes when the
+       question is specifically about tagged leads. */
+    { metric: 'revenue.attributed_total', label: 'Attributed revenue', value: '₹32.5L', delta: '+18.2%', deltaColor: UP, sub: 'CRM-tagged leads + GA4 paid search', tip: 'Reservation value on leads the CRM tagged to a paid channel, plus what the booking engine took from paid-search sessions. Two books added, not reconciled — a website booking also entered into the CRM is counted twice.', icon: 'ph ph-currency-inr', spark: spark([40, 44, 47, 52, 51, 58, 62, 66, 71, 75]), ...SRC.blended },
     { metric: 'cost.per_lead', label: 'Blended CPL', value: '₹427', delta: '−18.0%', deltaColor: UP, sub: '', tip: 'Paid spend per lead — pick a channel above for that platform', icon: 'ph ph-user-focus', spark: spark([78, 74, 72, 68, 64, 61, 58, 54, 50, 47]), ...SRC.blended },
-    { metric: 'roas.attributed', label: 'ROAS', value: '4.8x', delta: '+0.6x', deltaColor: UP, sub: 'tagged reservation value ÷ ad spend', tip: 'Reservation value on leads tagged to a paid channel, over ad spend. Cancellations excluded; nothing else netted off. A floor — an untagged lead is outside the numerator while its spend stays in the denominator.', icon: 'ph ph-chart-line-up', spark: spark([48, 46, 52, 55, 54, 61, 63, 68, 73, 78]), ...SRC.blended },
+    /* Divided by the same spend as before, over a numerator that now holds
+       both halves of the return. It read 1.3x while the platform table on the
+       same screen credited Google 3.7x, because the table had folded GA4 in
+       and this had not. */
+    { metric: 'roas.attributed_total', label: 'ROAS', value: '4.8x', delta: '+0.6x', deltaColor: UP, sub: 'CRM-tagged + GA4 paid search ÷ ad spend', tip: 'Paid-tagged CRM reservation value plus GA4 paid-search revenue, over ad spend. Cancellations excluded; nothing else netted off. Still a floor — an untagged lead is outside the numerator while its spend stays in the denominator.', icon: 'ph ph-chart-line-up', spark: spark([48, 46, 52, 55, 54, 61, 63, 68, 73, 78]), ...SRC.blended },
   ],
 
   mktKpis: [
@@ -25,6 +33,11 @@ module.exports = {
        invented formula to make the coverage figure look better. */
     { label: 'Frequency', value: '2.4', delta: '+0.3', deltaColor: WARN, tip: 'Average impressions per person', ...SRC.ads },
     { metric: 'cost.per_reservation', label: 'Cost per reservation', value: '₹3,480', delta: '−11.0%', deltaColor: UP, tip: 'Paid spend per CRM-won reservation', ...SRC.blended },
+    /* The GA4 half on its own, beside the total it is now part of. A figure
+       folded into a headline and shown nowhere else cannot be checked, and
+       this is the one somebody will want to check: it is the only measure of
+       what a booking made on the website was worth. */
+    { metric: 'revenue.paid_search', label: 'Paid search value (GA4)', value: '₹4.4L', delta: '—', deltaColor: NA, tip: 'What the booking engine took from sessions Google Analytics classified as Paid Search — GA4\u2019s attribution, not Google Ads\u2019 own. Included in Attributed revenue above.', ...SRC.blended },
   ],
 
   mktFunnel: [
