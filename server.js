@@ -47,6 +47,7 @@ const hardening = require('./lib/http/hardening');
 const observability = require('./lib/http/observability');
 const store = require('./lib/store');
 const snapshot = require('./lib/store/snapshot');
+const entityFreshness = require('./lib/store/freshness');
 const { Layouts } = require('./lib/layout');
 
 const app = express();
@@ -93,8 +94,12 @@ const entityCache = new Map();
    for it — see lib/ingest/raw-store.js. The metric layer reads through here, so
    it must see the same entities the screens do or a headline could be computed
    over invented rows the table below it no longer shows. */
+function connectedFor(workspaceId) {
+  return ingest.liveSources({ connections, workspace: workspaceId, httpConnectors });
+}
+
 function snapshotFor(workspaceId) {
-  const connected = ingest.liveSources({ connections, workspace: workspaceId, httpConnectors });
+  const connected = connectedFor(workspaceId);
   const build = () => ingest.snapshot({ store: ingest.storeFor(workspaceId), connected });
 
   /* On Postgres the built snapshot is materialised and read back as one
@@ -128,18 +133,67 @@ function snapshotFor(workspaceId) {
 const building = new Map();
 
 async function hydrateEntities(workspaceId) {
-  if (!shouldRebuild(workspaceId)) return entityCache.get(workspaceId);
+  if (!shouldRebuild(workspaceId) && !(await storeMoved(workspaceId))) return entityCache.get(workspaceId);
   if (building.has(workspaceId)) return building.get(workspaceId);
 
   const work = (async () => {
+    /* Read before the build, not after — see lib/store/freshness.js. */
+    const marker = await snapshotFreshness.marker(workspaceId);
     const entities = await snapshotFor(workspaceId);
     entityCache.set(workspaceId, entities);
+    snapshotFreshness.record(workspaceId, marker);
     staleAt.delete(workspaceId);
+    /* Values evaluated over the previous snapshot describe a store that has
+       moved. They expire on their own within METRIC_TTL, which is thirty
+       seconds of a screen contradicting the table beneath it. */
+    dropMetricValues();
     return entities;
   })().finally(() => building.delete(workspaceId));
 
   building.set(workspaceId, work);
   return work;
+}
+
+/* Whether the store has moved under a cached snapshot.
+ *
+ * `dropEntities` marks the snapshot stale **in the process that did the
+ * write**, which is the whole invalidation path and is enough for one long-
+ * lived server. On Vercel it is not: the cron that syncs and the instance that
+ * renders are different lambdas, so a page-serving instance's `staleAt` is
+ * never set by a sync it did not perform. `shouldRebuild` then answers false
+ * for the life of that instance and it serves its warm-up snapshot for hours.
+ *
+ * That is not theoretical — it is how Google Ads spend read ₹83,809 for
+ * 1–19 Aug on the Marketing dashboard while the store held ₹93,427: the
+ * connector had reconnected and backfilled that morning, and the instance
+ * answering the page had been warm since before it.
+ *
+ * So freshness is asked of the store rather than remembered locally, using the
+ * marker lib/store/snapshot.js already defines — `count:max(seq):connected`,
+ * one aggregate query against an index. A TTL on the snapshot itself would
+ * either serve stale figures or replay for nothing; this rebuilds if and only
+ * if the store changed. The probe is throttled to MARKER_TTL so a burst of
+ * requests costs one query, not one apiece.
+ *
+ * File-store runs — every test, every local start — keep the old path exactly:
+ * there is one process, its own writes mark it stale, and there is no marker
+ * to ask for. */
+const MARKER_TTL = 15_000;
+
+/* Postgres only. The file store is one process that sees its own writes, has no
+   marker to ask for, and is what every test and every local run uses — passing
+   no `markerFor` keeps that path exactly as it was. */
+const snapshotFreshness = entityFreshness.tracker({
+  ttl: MARKER_TTL,
+  markerFor: (workspaceId) => (store.usingPostgres()
+    ? snapshot.markerFor(workspaceId, [...connectedFor(workspaceId)], ingest.SHAPE)
+    : Promise.resolve(null)),
+  onError: (workspaceId, err) => console.warn(`snapshot: freshness could not be read for "${workspaceId}" —`, err.message),
+});
+
+async function storeMoved(workspaceId) {
+  if (!entityCache.has(workspaceId)) return false;
+  return snapshotFreshness.moved(workspaceId);
 }
 
 function entitiesFor(workspaceId) {
@@ -222,7 +276,7 @@ const staleAt = new Map();
 function dropEntities(workspaceId = null, { now = false } = {}) {
   const ids = workspaceId ? [workspaceId] : [...entityCache.keys()];
   for (const id of ids) {
-    if (now) { entityCache.delete(id); staleAt.delete(id); continue; }
+    if (now) { entityCache.delete(id); staleAt.delete(id); snapshotFreshness.forget(id); continue; }
     if (!staleAt.has(id)) staleAt.set(id, Date.now());
   }
   if (!workspaceId && now) entityCache.clear();
@@ -693,6 +747,13 @@ const USE_REGISTRY_VALUES = repo.name === 'ingested';
 
 const METRIC_TTL = 30_000;
 let evaluated = { stamp: 0, byGrain: new Map() };
+
+/* Thrown away when the entity snapshot is rebuilt, because every value in it
+   was evaluated over the snapshot that has just been replaced. Hoisted so
+   `hydrateEntities` above can call it without knowing where the cache lives. */
+function dropMetricValues() {
+  evaluated = { stamp: Date.now(), byGrain: new Map() };
+}
 
 /* Keyed by grain and period, because a screen about one campaign, a screen
    about the workspace, and a card about the last 24 hours are three different

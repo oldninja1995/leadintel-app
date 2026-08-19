@@ -48,6 +48,67 @@ test('every collection declares the date it is filtered on', () => {
   }
 });
 
+test('every dated collection canonical produces is declared, not only the ones a screen read', () => {
+  /* The guard the Google grains needed and did not have. A collection missing
+     from FIELD is *silently* never narrowed — the range control moves, the
+     table does not, and nothing throws. That is how the Google Ads screen came
+     to answer all-time under every chip while the campaign table beside it
+     narrowed correctly: ad groups, ads, keywords, search terms and conversion
+     actions were all absent here.
+   *
+   * Written against canonical's own output rather than a hand-kept list, so a
+   * collection added later fails this test instead of quietly joining them. */
+  const canonical = require('../lib/ingest/canonical');
+
+  /* What is legitimately not filtered by a date field:
+       creatives  — an ad plus its daily series; narrowed by creativesWithin
+       audiences  — keyed by id, not a dated row
+       problems   — ingest diagnostics, not measurements */
+  const exempt = new Set(['creatives', 'audiences', 'problems']);
+
+  const undeclared = Object.keys(canonical.build([]))
+    .filter((collection) => !exempt.has(collection) && !period.FIELD[collection]);
+
+  assert.deepEqual(undeclared, [], `these collections would never be narrowed: ${undeclared.join(', ')}`);
+});
+
+test("Google's own grains narrow with the range", () => {
+  /* Reproduces what production showed: identical ad-group, keyword and
+     search-term tables under "Today" and "This year", summing to more spend
+     than the whole year held, beneath a campaign table that narrowed. */
+  const googleEntities = () => ({
+    googleAdGroups: [
+      { adgroupId: 'G-1', adgroup: 'brand', date: '2026-07-14', spend: 500000 },
+      { adgroupId: 'G-1', adgroup: 'brand', date: '2026-08-06', spend: 200000 },
+    ],
+    googleAds: [
+      { adId: 'A-1', date: '2026-07-14', spend: 100000 },
+      { adId: 'A-2', date: '2026-08-06', spend: 100000 },
+    ],
+    googleKeywords: [
+      { keyword: 'munnar resort', date: '2026-07-14', spend: 90000 },
+      { keyword: 'munnar resort', date: '2026-08-06', spend: 10000 },
+    ],
+    googleSearchTerms: [
+      { term: 'munnar resort booking', date: '2026-07-14', spend: 40000 },
+      { term: 'munnar resort booking', date: '2026-08-06', spend: 60000 },
+    ],
+    googleConversions: [
+      { action: 'Enquiry', date: '2026-07-14', conversions: 3 },
+      { action: 'Enquiry', date: '2026-08-06', conversions: 1 },
+    ],
+  });
+
+  const august = period.within(googleEntities(), { from: '2026-08-01T00:00:00.000Z', to: '2026-09-01T00:00:00.000Z' });
+  for (const collection of ['googleAdGroups', 'googleAds', 'googleKeywords', 'googleSearchTerms', 'googleConversions']) {
+    assert.equal(august[collection].length, 1, `${collection} was not narrowed`);
+    assert.equal(august[collection][0].date, '2026-08-06');
+  }
+
+  const july = period.within(googleEntities(), { from: '2026-07-01T00:00:00.000Z', to: '2026-08-01T00:00:00.000Z' });
+  assert.equal(july.googleAdGroups[0].spend, 500000);
+});
+
 test('a booking belongs to the night stayed, not the day booked', () => {
   /* The load-bearing choice: revenue has to sit beside occupancy and RevPAR,
      which come from inventory rows that are per night by construction. */
