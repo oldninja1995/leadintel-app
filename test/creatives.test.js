@@ -739,3 +739,65 @@ test('the version token follows the image, not the ad', () => {
   const v = (g) => g.match(/v=(\w+)/)[1];
   assert.equal(v(one.grad), v(two.grad));
 });
+
+/* ── the census is a control, not a caption ─────────────────────────────── */
+
+/* The bug this exists to stop coming back: the census carried two `go` keys
+   and the second one had lost its expressions, so every chip linked to
+   `/creatives?view=&sort=&goal=&action=`. Clicking SCALE showed all 212
+   creatives — the link was there, the filter it pointed at was not, and
+   nothing on the screen said so. */
+test('each census count links to the board narrowed to that recommendation', () => {
+  const out = project(FLEET);
+
+  assert.ok(out.creativeCensus.length, 'the census is empty, so this proves nothing');
+
+  for (const chip of out.creativeCensus) {
+    assert.match(
+      chip.go,
+      new RegExp(`^/creatives\\?view=\\w+&sort=\\w+&goal=\\w+&action=${chip.action}$`),
+      `${chip.label} links to ${chip.go}, which does not ask for ${chip.action}`
+    );
+    assert.equal(chip.active, false, 'nothing is filtered until something is asked for');
+  }
+});
+
+test('the count that is in force clears itself, and says it is in force', () => {
+  const asked = project(FLEET).creativeCensus[0].action;
+  const out = project(FLEET, { action: asked });
+
+  const chip = out.creativeCensus.find((c) => c.action === asked);
+  assert.equal(chip.active, true);
+  assert.ok(!/action=/.test(chip.go), 'the chip in force must clear the filter rather than re-apply it');
+  assert.notEqual(chip.bg, 'transparent', 'the chip in force has to look different from the ones beside it');
+  assert.match(chip.title, /click again/);
+
+  /* And the board is actually narrowed. */
+  const shown = out.creatives.length;
+  assert.ok(shown > 0, 'a filter that empties the board is not a filter');
+  assert.ok(shown <= project(FLEET).creatives.length, 'the filter widened the board');
+});
+
+test('narrowing to one recommendation leaves every figure on the card alone', () => {
+  /* The filter is applied after scoring on purpose: a creative is scored
+     against its cohort, so a card must read identically whether or not the
+     board is narrowed. Filtering first would rebuild the cohort from the
+     filtered set and quietly change the numbers. */
+  const all = project(FLEET);
+  const asked = all.creativeCensus[0].action;
+  const narrowed = project(FLEET, { action: asked });
+
+  for (const row of narrowed.creatives) {
+    const same = all.creatives.find((r) => r.title === row.title);
+    assert.equal(row.bestScore, same.bestScore, `${row.title} scored differently once the board was narrowed`);
+    assert.equal(row.spend, same.spend);
+  }
+
+  /* The counts stay the whole account's, or the control would erase its own
+     way back: a census counted from the filtered board would read
+     "11 SCALE" and nothing else. */
+  assert.deepEqual(
+    narrowed.creativeCensus.map((c) => c.count),
+    all.creativeCensus.map((c) => c.count)
+  );
+});
