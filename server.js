@@ -1398,7 +1398,12 @@ app.use((req, res, next) => {
          snapshot came from memory — reporting the previous request's read
          there would describe work this one did not do. */
       if (!read || read === before) return '';
-      return `${read.source} ${read.ms}ms${read.kb ? ` ${read.kb}KB` : ''}`;
+      const parts = [`${read.source} ${read.ms}ms`];
+      if (read.marker !== undefined) parts.push(`marker:${read.marker}ms`);
+      if (read.fetch !== undefined) parts.push(`fetch:${read.fetch}ms`);
+      if (read.parse !== undefined) parts.push(`parse:${read.parse}ms`);
+      if (read.kb !== undefined) parts.push(`${read.kb}KB`);
+      return parts.join(' ');
     }))(snapshot.lastRead()), marks),
     /* The repository keeps its own snapshot — the screens read through it while
        the metric layer reads through `entitiesFor` — so it hydrates too. */
