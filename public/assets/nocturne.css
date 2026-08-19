@@ -67,7 +67,7 @@
   --color-drawer: #191b28;      /* the slide-over, floating over a scrim */
   --color-section-deep: #1c1f3d;/* far stop of the section gradient */
   --color-shell-foot: #14161f;  /* the sidebar's vertical fall */
-  --color-canvas: #ffffff;      /* a report slide: paper, in both themes */
+  --color-canvas: #14161f;      /* the report slide's own ground */
   --color-well: #1a1c28;        /* a recess — pipeline columns, chart plates */
   --color-well-deep: #16171f;   /* an empty recess, waiting to be filled */
   --color-on-accent: #14161f;   /* text on an accent fill — dark, on a pale accent */
@@ -335,7 +335,7 @@ textarea.input { min-height: 90px; resize: vertical; }
  */
 
 :root[data-theme='light'] {
-  --color-bg: #f4f5f9;
+  --color-bg: #f0f2f7;
   --color-surface: #ffffff;
   --color-text: #1c1e2a;
   --color-divider: color-mix(in srgb, #1c1e2a 12%, transparent);
@@ -383,13 +383,13 @@ textarea.input { min-height: 90px; resize: vertical; }
   /* The grounds, in their light values. A recess is a *tint* on white, not a
      darker slab: on a light theme depth reads as a step down in lightness of a
      few percent plus the shadow above it, and anything heavier reads as a hole. */
-  --color-raised: #ffffff;
+  --color-raised: #f8f9fc;
   --color-drawer: #ffffff;
   --color-section-deep: #d7dbf5;
-  --color-shell-foot: #e9ecf4;
+  --color-shell-foot: #e7eaf2;
   --color-canvas: #ffffff;
-  --color-well: #eef0f8;
-  --color-well-deep: #e4e7f2;
+  --color-well: #e6e9f2;
+  --color-well-deep: #dce0ec;
   /* The accent darkens on white, so what sits on it has to lighten. */
   --color-on-accent: #ffffff;
 
@@ -411,7 +411,7 @@ textarea.input { min-height: 90px; resize: vertical; }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme='dark']) {
-    --color-bg: #f4f5f9;
+    --color-bg: #f0f2f7;
     --color-surface: #ffffff;
     --color-text: #1c1e2a;
     --color-divider: color-mix(in srgb, #1c1e2a 12%, transparent);
@@ -455,13 +455,13 @@ textarea.input { min-height: 90px; resize: vertical; }
     /* The grounds, in their light values. A recess is a *tint* on white, not a
        darker slab: on a light theme depth reads as a step down in lightness of a
        few percent plus the shadow above it, and anything heavier reads as a hole. */
-    --color-raised: #ffffff;
+    --color-raised: #f8f9fc;
     --color-drawer: #ffffff;
     --color-section-deep: #d7dbf5;
-    --color-shell-foot: #e9ecf4;
+    --color-shell-foot: #e7eaf2;
     --color-canvas: #ffffff;
-    --color-well: #eef0f8;
-    --color-well-deep: #e4e7f2;
+    --color-well: #e6e9f2;
+    --color-well-deep: #dce0ec;
     /* The accent darkens on white, so what sits on it has to lighten. */
     --color-on-accent: #ffffff;
 
