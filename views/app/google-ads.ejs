@@ -289,7 +289,11 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
   <div class="li-ota-scroll">
     <table class="li-ota-table">
       <thead>
-        <tr><th>Action</th><th>Category</th><th class="li-num">Conversions</th><th class="li-num">Value</th></tr>
+        <tr>
+          <th>Action</th><th>Category</th><th>Counted as</th>
+          <th class="li-num">All conversions</th><th class="li-num">Conversions</th>
+          <th class="li-num">Value</th>
+        </tr>
       </thead>
       <tbody>
         <% d.conversions.forEach((c) => { %>
@@ -297,12 +301,22 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
             <td><%= txt(c.action) %></td>
             <td><%= chip(c.category) %></td>
             <%
+            /* Why a row can read 3,400 in one column and 0 in the next. Google
+               splits conversion actions into primary — counted in the
+               Conversions column and used for bidding — and secondary, which it
+               records and deliberately leaves out of both. Five of this
+               account's six are secondary, so the single-column table said they
+               had never fired. */
+            %>
+            <td><% if (c.counting) { %><span class="li-chip" title="<%= c.counting %>"><%= c.conversions > 0 ? 'primary' : 'secondary' %></span><% } else { %>—<% } %></td>
+            <%
             /* Left fractional on purpose: Google splits conversion credit across
                touches, so rounding 4.166666 to 4 would discard the fraction on
                every row and quietly understate the total. */
             %>
-            <td class="li-num"><%= txt(c.conversions) %></td>
-            <td class="li-num"><%= txt(c.valueText) %></td>
+            <td class="li-num" title="Everything this action recorded, primary or not."><%= txt(c.allConversions) %></td>
+            <td class="li-num" title="What Google counts toward the Conversions column and bids on. Zero for a secondary action by construction, not because nothing happened."><%= txt(c.conversions) %></td>
+            <td class="li-num" title="<%= c.allValueText && c.allValueText !== c.valueText ? 'All-conversions value: ' + c.allValueText : 'Conversion value as Google Ads recorded it. ₹0 means no value is assigned to this action in the account — the booking engine’s revenue is on Website Analytics, from GA4.' %>"><%= txt(c.valueText) %></td>
           </tr>
         <% }); %>
       </tbody>

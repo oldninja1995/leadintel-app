@@ -554,20 +554,20 @@ const LITERAL_BINDINGS = [
   {
     screen: 'sales',
     find: '<th style="padding:9px 8px; text-align:right; font-weight:500;">BOOKINGS</th>',
-    replace: '<th style="padding:9px 8px; text-align:right; font-weight:500;">LEADS</th><th style="padding:9px 8px; text-align:right; font-weight:500;">BOOKINGS</th>',
+    replace: '<th style="padding:9px 8px; text-align:right; font-weight:500;">LEADS</th><th data-li-slot="bookings" style="padding:9px 8px; text-align:right; font-weight:500;">BOOKINGS</th>',
     layout: true,
     why: 'a close rate whose denominator is not on the table cannot be checked',
   },
   {
     screen: 'sales',
     find: '<td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= r.bookings %></td>',
-    replace: '<td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= r.leads %></td><td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= r.bookings %></td>',
+    replace: '<td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= r.leads %></td><td data-li-slot="bookings" style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= r.bookings %></td>',
     why: 'the leads each executive was given, beside what they did with them',
   },
   {
     screen: 'sales',
     find: '<th style="padding:11px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= team.bookings %></th>',
-    replace: '<th style="padding:11px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= team.leads %></th><th style="padding:11px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= team.bookings %></th>',
+    replace: '<th style="padding:11px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= team.leads %></th><th data-li-slot="bookings" style="padding:11px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= team.bookings %></th>',
     why: 'summed like every other total on this footer, never averaged',
   },
   {

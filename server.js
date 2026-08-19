@@ -2658,9 +2658,14 @@ async function googleAdsPayload(req) {
   const byAction = new Map();
   for (const c of entities.googleConversions || []) {
     if (!c.action) continue;
-    const acc = byAction.get(c.action) || { action: c.action, category: c.category, conversions: 0, value: 0 };
+    const acc = byAction.get(c.action)
+      || { action: c.action, category: c.category, conversions: 0, value: 0, all: null, allValue: null };
     if (c.conversions !== null) acc.conversions += c.conversions;
     if (c.conversionValue !== null) acc.value += c.conversionValue;
+    /* Summed into null rather than onto 0, so an action whose rows predate
+       these fields reports "not fetched" instead of "none". */
+    if (c.allConversions !== null && c.allConversions !== undefined) acc.all = (acc.all || 0) + c.allConversions;
+    if (c.allConversionValue !== null && c.allConversionValue !== undefined) acc.allValue = (acc.allValue || 0) + c.allConversionValue;
     byAction.set(c.action, acc);
   }
   const conversions = [...byAction.values()]
@@ -2670,8 +2675,27 @@ async function googleAdsPayload(req) {
          touches, and rounding would discard the fraction on every row. */
       conversions: Math.round(a.conversions * 1e6) / 1e6,
       valueText: asMoney(a.value),
+      /* Everything the action recorded, beside what Google counts.
+       *
+       * An action reporting 0 conversions and 3,400 all-conversions is not a
+       * broken action — it is a **secondary** one, which Google records and
+       * deliberately keeps out of the Conversions column and out of bidding.
+       * Five of this account's six are secondary, so without this the table
+       * said they had never fired. */
+      allConversions: a.all === null ? null : Math.round(a.all * 1e6) / 1e6,
+      allValueText: a.allValue === null ? null : asMoney(a.allValue),
+      /* Said in words on the row, because "primary" and "secondary" is the
+         whole reason the two columns differ and it is not guessable from the
+         numbers. Only claimed when there is something to compare. */
+      counting: a.all === null
+        ? null
+        : (a.conversions > 0
+          ? 'Primary — counted in Conversions and used for bidding.'
+          : 'Secondary — recorded but deliberately kept out of the Conversions column and out of bidding, which is why it reads 0 there.'),
     }))
-    .sort((x, y) => y.conversions - x.conversions);
+    /* Ranked by what the action actually recorded, so the secondary ones stop
+       sinking to the bottom on a figure that is zero by construction. */
+    .sort((x, y) => (y.allConversions ?? y.conversions) - (x.allConversions ?? x.conversions));
 
   /* ── Paid search reservation value, and the ROAS it makes possible ────────
    *

@@ -417,3 +417,68 @@ test('two conversion actions on one campaign-day stay separate rows', () => {
   });
   assert.notEqual(row('Booking enquiry'), row('Phone click'));
 });
+
+/* ── conversion actions: primary and secondary ──────────────────────────── */
+
+/* The bug this closes: five of the account's six conversion actions rendered 0.
+ * `metrics.conversions` counts **primary** actions only — Google records
+ * secondary ones and deliberately keeps them out of that column and out of
+ * bidding — so View Content, Confirm Booking, Select Room and the two YouTube
+ * actions read zero by construction. `metrics.all_conversions` was already
+ * being fetched and was dropped at the canonical layer. */
+test('both conversion counts are asked for, and the value beside each', () => {
+  const q = QUERIES.conversion_day;
+  for (const field of ['metrics.conversions', 'metrics.conversions_value',
+    'metrics.all_conversions', 'metrics.all_conversions_value']) {
+    assert.ok(q.includes(field), `the conversion query does not select ${field}`);
+  }
+  assert.ok(q.includes('segments.conversion_action_name'), 'unsegmented, every action sums into one figure that names none of them');
+});
+
+test('a secondary action keeps the count Google records for it', async () => {
+  const rows = [
+    { segments: { date: '2026-07-14', conversionActionName: 'Submit lead form', conversionActionCategory: 'SUBMIT_LEAD_FORM' },
+      campaign: { id: '778899' }, customer: { currencyCode: 'INR' },
+      metrics: { conversions: '472.788822', conversionsValue: '0', allConversions: '472.788822', allConversionsValue: '0' } },
+    /* Secondary: recorded, and zero in the column Google bids on. */
+    { segments: { date: '2026-07-14', conversionActionName: 'View Content', conversionActionCategory: 'PAGE_VIEW' },
+      campaign: { id: '778899' }, customer: { currencyCode: 'INR' },
+      metrics: { conversions: '0', conversionsValue: '0', allConversions: '3401.5', allConversionsValue: '125000' } },
+  ];
+
+  /* Raw, not normalised — `build` normalises internally, and handing it rows
+     that have already been through `normaliseRecord` reads every field as
+     null. */
+  const { googleConversions } = canonical.build(rows.map((body, i) => ({
+    source: 'google_ads', kind: 'conversion_day', externalId: `c-${i}`, body,
+  })));
+
+  const view = googleConversions.find((c) => c.action === 'View Content');
+  assert.ok(view, 'the secondary action was dropped entirely');
+  assert.equal(view.conversions, 0, 'a secondary action is zero in the Conversions column by construction');
+  assert.equal(view.allConversions, 3401.5, 'what the action actually recorded was thrown away');
+  /* Carried as Google reports it. Unlike `cost_micros`, conversion value comes
+     in whole account-currency units and is not converted here — the same as the
+     `conversions_value` field beside it, which this follows deliberately rather
+     than introducing a second convention on one table. */
+  assert.equal(view.allConversionValue, 125000, 'the value beside it was thrown away too');
+
+  const lead = googleConversions.find((c) => c.action === 'Submit lead form');
+  assert.equal(lead.conversions, 472.788822, 'left fractional — Google splits credit across touches');
+});
+
+test('a row ingested before those fields existed reports unknown, not zero', () => {
+  /* The store is append-only and holds rows written before the query asked for
+     these, so the absent case has to be distinguishable from "recorded none" —
+     otherwise every historic row would claim the action never fired. */
+  const record = {
+    source: 'google_ads', kind: 'conversion_day', externalId: 'old',
+    body: { segments: { date: '2026-07-14', conversionActionName: 'Select Room', conversionActionCategory: 'BEGIN_CHECKOUT' },
+      campaign: { id: '778899' }, customer: { currencyCode: 'INR' },
+      metrics: { conversions: '0', conversionsValue: '0' } },
+  };
+  const { googleConversions } = canonical.build([record]);
+
+  assert.equal(googleConversions[0].allConversions, null, 'an unfetched figure must not read as zero');
+  assert.equal(googleConversions[0].allConversionValue, null);
+});

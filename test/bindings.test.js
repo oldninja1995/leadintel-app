@@ -224,3 +224,43 @@ test('no view still carries a label a later binding replaced', () => {
     );
   }
 });
+
+/* Binding twice must change nothing.
+ *
+ * The header of tools/literal-bindings.js states it — "applying this twice is a
+ * no-op: after the first pass the literal is gone" — and it stopped being true
+ * the moment a binding *added* markup rather than replacing it. A binding whose
+ * replacement still contains its own `find` re-fires on the next run, so
+ * `node tools/rebind.js` would add the same column again, and again. Caught by
+ * --check reporting three literals as unbound on a view they had just been
+ * bound into.
+ *
+ * The fix is a marker on the anchor — the same trick the creative bindings use
+ * — and this is the guard, because the failure looks like a duplicated column
+ * in a generated file that nobody re-reads. */
+test('a binding never re-emits the literal it matched', () => {
+  for (const binding of LITERAL_BINDINGS) {
+    if (binding.removes) continue;
+    assert.ok(
+      !String(binding.replace).includes(binding.find),
+      `${binding.screen}: "${binding.find}" appears in its own replacement, so rebinding would apply it again`
+    );
+  }
+});
+
+test('rebinding an already-bound screen is a no-op', () => {
+  /* End to end rather than by inspection: run every screen's bindings over
+     their own output and assert nothing moves. */
+  const fs = require('fs');
+  const path = require('path');
+  const screens = [...new Set(LITERAL_BINDINGS.map((b) => b.screen))];
+
+  for (const screen of screens) {
+    for (const dir of ['screens', 'app']) {
+      const file = path.join(__dirname, '..', 'views', dir, `${screen}.ejs`);
+      if (!fs.existsSync(file)) continue;
+      const bound = fs.readFileSync(file, 'utf8');
+      assert.equal(bindLiterals(bound, screen), bound, `views/${dir}/${screen}.ejs changes when its bindings are applied again`);
+    }
+  }
+});
