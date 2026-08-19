@@ -367,16 +367,7 @@ test('the headline names the stage and the figures that carried the score', () =
   assert.match(line, /—/, 'the line must name actual figures, not just a verdict');
 });
 
-test('no winner is named per stage', () => {
-  /* There was a `bestByStage` here, drawn as three Best TOFU / MOFU / BOFU
-     tiles. The stage is guessed from ad set targeting and campaign objectives,
-     and on the real account that guess does not hold — see the funnel test,
-     where 28 creatives read BOFU and not one reads MOFU. Naming a winner per
-     stage is a confident answer to a question the data cannot answer, and it
-     is a different thing from letting the stage choose which questions a
-     creative is asked, which it still does. */
-  assert.equal(typeof scoring.bestByStage, 'undefined');
-
+test('the best at each stage is reported separately from the best overall', () => {
   const ctx = world({
     T: { leads: 40, interested: 8, bookings: 1, revenuePer: 200000 },
     M: { leads: 40, interested: 16, bookings: 3, revenuePer: 400000 },
@@ -389,7 +380,10 @@ test('no winner is named per stage', () => {
     creative('B', 'Bottom', { leads: 40 }),
   ], ctx);
 
-  /* The stage still selects the model — that is the half that survives. */
+  const best = scoring.bestByStage(rows);
+  assert.deepEqual(best.map((b) => b.stage), ['TOFU', 'MOFU', 'BOFU']);
+
+  /* The stage selects the model as well as the tile. */
   assert.deepEqual(rows.map((r) => r.stage), ['TOFU', 'MOFU', 'BOFU']);
   assert.equal(rows[0].weights, scoring.WEIGHTS_BY_STAGE.TOFU);
 });

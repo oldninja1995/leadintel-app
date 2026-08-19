@@ -186,16 +186,21 @@ const LITERAL_BINDINGS = [
       '            <% }); %>',
       '          </div>',
       '          <% } %>',
+      '          <% if ((typeof bestByStage !== "undefined") && bestByStage && bestByStage.length > 1) { %>',
+      '          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">',
+      '            <% bestByStage.forEach(function (b) { %>',
+      '              <div class="hv-3" data-action="<%= b.go %>" title="<%= b.why %>" style="display:flex; align-items:center; gap:7px; background:var(--color-surface); border:1px solid var(--color-neutral-900); border-radius:9px; padding:6px 11px; cursor:pointer; font-size:11px;">',
+      '                <span><%= b.marker %></span>',
+      '                <span style="color:var(--color-neutral-500);">Best <%= b.label %></span>',
+      '                <span style="color:var(--color-neutral-200); font-weight:500;"><%= b.title %></span>',
+      '                <span style="color:var(--color-accent-300); font-variant-numeric:tabular-nums;"><%= b.score %></span>',
+      '              </div>',
+      '            <% }); %>',
+      '          </div>',
+      '          <% } %>',
       '          <div data-li-slot="grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">',
     ].join('\n'),
-    /* Three Best TOFU / MOFU / BOFU tiles used to sit here. They are gone: the
-       stage is guessed from ad set targeting and campaign objectives, and on
-       this account that guess does not hold — the funnel test records 28
-       creatives reading BOFU and not one MOFU. Naming a winner per stage is a
-       confident answer to a question the data cannot answer. The stage still
-       chooses which questions a creative is asked; it no longer crowns
-       anybody. */
-    why: 'the census and the notes are what a reader wants before the grid',
+    why: 'the best creative at each funnel stage is a different question from the best overall, and both are asked',
   },
   /* The screen carried two scores and defined neither. A number on a badge that
      the reader cannot interpret is worse than no badge: it gets quoted and then
