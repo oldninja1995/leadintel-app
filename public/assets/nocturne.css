@@ -93,6 +93,29 @@
   --shadow-md: 0 0 0 1px #595d6c, 0 6px 18px rgba(0,0,0,0.55);
   --shadow-lg: 0 0 0 1px #9397ab, 0 16px 40px rgba(0,0,0,0.65);
 
+  /* Signal palette — the nine hues the creative verdict, fatigue and trend
+     modules judge with. They were hardcoded in lib/, where a theme cannot
+     reach them; the modules now emit these names instead. */
+  --signal-good: #9ce0b4;
+  --signal-good-soft: #8fd4b0;
+  --signal-info: #a9d4ff;
+  --signal-warn: #ffcf85;
+  --signal-warn-soft: #ffe0a3;
+  --signal-caution: #ffb27a;
+  --signal-bad: #ff9a9a;
+  --signal-special: #c9b6ff;
+  --signal-none: #c9ccd6;
+
+  --signal-good-bg: rgba(120, 200, 150, .14);
+  --signal-good-soft-bg: rgba(120, 200, 150, .10);
+  --signal-info-bg: rgba(140, 180, 230, .14);
+  --signal-warn-bg: rgba(200, 190, 120, .16);
+  --signal-warn-soft-bg: rgba(20, 22, 31, .86);
+  --signal-caution-bg: rgba(220, 160, 110, .16);
+  --signal-bad-bg: rgba(220, 140, 140, .16);
+  --signal-special-bg: rgba(150, 130, 220, .16);
+  --signal-none-bg: rgba(20, 22, 31, .86);
+
   --scrim: rgba(8, 9, 14, .62);
   --shadow-pop: 0 24px 64px rgba(0, 0, 0, .55);  /* palette, modal */
   --shadow-drop: 0 16px 40px rgba(0, 0, 0, .5);  /* menu under a control */
@@ -312,17 +335,19 @@ textarea.input { min-height: 90px; resize: vertical; }
 
 /* ── Light mode ───────────────────────────────────────────────────────────
  *
- * A palette swap, not a second stylesheet. The system was already fully
- * tokenised — 1,188 `var(--color-*)` references across the views against 18
- * hardcoded values — so light mode is a redefinition of the same tokens and
- * every component follows without being touched.
+ * A redefinition of the same tokens, not a second stylesheet: the system is
+ * fully tokenised, so every component follows without being touched.
  *
- * **The neutral ramp is inverted, not re-picked.** 100 is the lightest step in
- * dark mode and is used for primary text; in light mode it has to be the
- * darkest, or every `--color-neutral-100` in the app turns white-on-white. So
- * the ramp reverses end for end and the *semantic* steps keep their meaning:
- * 500 stays the muted label colour, 800 stays the hairline border. Nothing that
- * reads `--color-neutral-500` needs to know which theme is on.
+ * **The neutral ramp keeps its semantics and re-picks its values.** A step has
+ * to mean the same thing in both themes — 100 is primary text, 500 is the muted
+ * label, 800 is the hairline — so the ORDER reverses, because 100 is the
+ * lightest step on a dark ground and has to be the darkest on a light one.
+ *
+ * What it must not do is reverse the *values*, which is what this file did at
+ * first. Contrast is not symmetric: a mid grey carries against near-black and
+ * vanishes against white, so lifting the dark ramp's values end for end landed
+ * the whole light ramp about a step and a half short of where it reads. The
+ * values below are solved against this ground instead — see the ramp itself.
  *
  * The accent ramp is NOT inverted. An accent's job is to stand out against the
  * ground, and both grounds are neutral — so the mid steps hold and only the
@@ -340,14 +365,26 @@ textarea.input { min-height: 90px; resize: vertical; }
   --color-text: #1c1e2a;
   --color-divider: color-mix(in srgb, #1c1e2a 12%, transparent);
 
-  /* Reversed, so a step means the same thing in both themes. */
-  --color-neutral-100: #1c1e2a;
-  --color-neutral-200: #292b31;
-  --color-neutral-300: #3f424d;
-  --color-neutral-400: #595d6c;
-  --color-neutral-500: #75798c;
-  --color-neutral-600: #9397ab;
-  --color-neutral-700: #cfd3e5;
+  /* Solved for contrast on this ground, not reversed from the dark ramp.
+     Reversing preserves the ORDER of the steps and destroys their contrast: a
+     mid grey carries on near-black and disappears on white, so the whole ramp
+     landed about a step and a half short. Measured against #f0f2f7, the
+     reversal gave 500 a ratio of 3.85, 600 of 2.58 and 700 of 1.33 — the
+     sidebar's group headings and every chart's axis labels were painted at
+     1.3:1, which is not a light colour, it is an invisible one.
+
+     These are picked to hit 16, 13.5, 11, 8.8, 7, 5.6 and 4.5 against the
+     ground, so every step that carries text clears AA, and they come out
+     evenly spaced (16-17 per channel) because contrast compresses towards the
+     dark end. 800 and 900 are untouched: they draw hairlines and fills, where
+     a ratio is not the measure. */
+  --color-neutral-100: #1b1c20;
+  --color-neutral-200: #2b2c33;
+  --color-neutral-300: #373942;
+  --color-neutral-400: #434550;
+  --color-neutral-500: #4f525f;
+  --color-neutral-600: #5b5e6d;
+  --color-neutral-700: #636777;
   --color-neutral-800: #e4e7f5;
   --color-neutral-900: #f3f5fe;
 
@@ -404,6 +441,31 @@ textarea.input { min-height: 90px; resize: vertical; }
 
   /* The scrim stays dark — it is the room going dim, which is not a colour the
      theme owns — but it lifts, because 62% black over white is a blackout. */
+  /* The same nine, each walked down its own hue until it clears AA on the
+     well. They do not share a lightness: at equal perceptual lightness a
+     green carries far more luminance than a red, so one L for all of them
+     passes for some hues and fails for others. Amber and pale amber come out
+     at the same value — a light ground has room for one amber, not two. */
+  --signal-good: #20763e;
+  --signal-good-soft: #28754d;
+  --signal-info: #0065cb;
+  --signal-warn: #945a00;
+  --signal-warn-soft: #945a00;
+  --signal-caution: #ae4900;
+  --signal-bad: #c02020;
+  --signal-special: #5b34cc;
+  --signal-none: #5f6781;
+
+  --signal-good-bg: rgba(32, 118, 62, .11);
+  --signal-good-soft-bg: rgba(40, 117, 77, .11);
+  --signal-info-bg: rgba(0, 101, 203, .11);
+  --signal-warn-bg: rgba(148, 90, 0, .11);
+  --signal-warn-soft-bg: rgba(148, 90, 0, .11);
+  --signal-caution-bg: rgba(174, 73, 0, .11);
+  --signal-bad-bg: rgba(192, 32, 32, .11);
+  --signal-special-bg: rgba(91, 52, 204, .11);
+  --signal-none-bg: rgba(95, 103, 129, .11);
+
   --scrim: rgba(28, 30, 42, .42);
   --shadow-pop: 0 24px 64px rgba(28, 30, 42, .20);
   --shadow-drop: 0 16px 40px rgba(28, 30, 42, .16);
@@ -416,13 +478,13 @@ textarea.input { min-height: 90px; resize: vertical; }
     --color-text: #1c1e2a;
     --color-divider: color-mix(in srgb, #1c1e2a 12%, transparent);
 
-    --color-neutral-100: #1c1e2a;
-    --color-neutral-200: #292b31;
-    --color-neutral-300: #3f424d;
-    --color-neutral-400: #595d6c;
-    --color-neutral-500: #75798c;
-    --color-neutral-600: #9397ab;
-    --color-neutral-700: #cfd3e5;
+    --color-neutral-100: #1b1c20;
+    --color-neutral-200: #2b2c33;
+    --color-neutral-300: #373942;
+    --color-neutral-400: #434550;
+    --color-neutral-500: #4f525f;
+    --color-neutral-600: #5b5e6d;
+    --color-neutral-700: #636777;
     --color-neutral-800: #e4e7f5;
     --color-neutral-900: #f3f5fe;
 
@@ -476,6 +538,31 @@ textarea.input { min-height: 90px; resize: vertical; }
 
     /* The scrim stays dark — it is the room going dim, which is not a colour the
        theme owns — but it lifts, because 62% black over white is a blackout. */
+    /* The same nine, each walked down its own hue until it clears AA on the
+       well. They do not share a lightness: at equal perceptual lightness a
+       green carries far more luminance than a red, so one L for all of them
+       passes for some hues and fails for others. Amber and pale amber come out
+       at the same value — a light ground has room for one amber, not two. */
+    --signal-good: #20763e;
+    --signal-good-soft: #28754d;
+    --signal-info: #0065cb;
+    --signal-warn: #945a00;
+    --signal-warn-soft: #945a00;
+    --signal-caution: #ae4900;
+    --signal-bad: #c02020;
+    --signal-special: #5b34cc;
+    --signal-none: #5f6781;
+
+    --signal-good-bg: rgba(32, 118, 62, .11);
+    --signal-good-soft-bg: rgba(40, 117, 77, .11);
+    --signal-info-bg: rgba(0, 101, 203, .11);
+    --signal-warn-bg: rgba(148, 90, 0, .11);
+    --signal-warn-soft-bg: rgba(148, 90, 0, .11);
+    --signal-caution-bg: rgba(174, 73, 0, .11);
+    --signal-bad-bg: rgba(192, 32, 32, .11);
+    --signal-special-bg: rgba(91, 52, 204, .11);
+    --signal-none-bg: rgba(95, 103, 129, .11);
+
     --scrim: rgba(28, 30, 42, .42);
     --shadow-pop: 0 24px 64px rgba(28, 30, 42, .20);
     --shadow-drop: 0 16px 40px rgba(28, 30, 42, .16);

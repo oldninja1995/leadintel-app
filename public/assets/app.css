@@ -31,9 +31,11 @@ a:hover { color: var(--color-accent-200); }
 table thead th { position: sticky; top: 0; background: var(--color-surface); z-index: 2; }
 
 /* Semantic status colours, resolved once instead of repeated inline.
-   The lightnesses are picked against the ground they sit on: L 0.7–0.8 carries
-   on near-black and fails on white, where the same hue has to come down to
-   roughly L 0.55 before a 11px "+93.2%" is readable. */
+   The dark values are one OKLCH lightness across three hues, which works on
+   near-black. It does not invert: at equal perceptual lightness a green carries
+   far more luminance than a red, so a single L on white passes for the red and
+   fails for the other two. The light values are solved per hue instead, each
+   against #e6e9f2 — the well, the darkest ground that carries text. */
 :root {
   --c-up: oklch(0.76 0.13 155);
   --c-down: oklch(0.7 0.14 25);
@@ -42,18 +44,18 @@ table thead th { position: sticky; top: 0; background: var(--color-surface); z-i
 }
 
 :root[data-theme='light'] {
-  --c-up: oklch(0.56 0.14 155);
-  --c-down: oklch(0.55 0.19 25);
-  --c-warn: oklch(0.58 0.13 85);
-  --c-code-bg: #eef0f8;
+  --c-up: #247644;
+  --c-down: #c02020;
+  --c-warn: #866212;
+  --c-code-bg: #e6e9f2;
 }
 
 @media (prefers-color-scheme: light) {
   :root:not([data-theme='dark']) {
-    --c-up: oklch(0.56 0.14 155);
-    --c-down: oklch(0.55 0.19 25);
-    --c-warn: oklch(0.58 0.13 85);
-    --c-code-bg: #eef0f8;
+    --c-up: #247644;
+    --c-down: #c02020;
+    --c-warn: #866212;
+    --c-code-bg: #e6e9f2;
   }
 }
 
