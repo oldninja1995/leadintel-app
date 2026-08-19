@@ -539,6 +539,44 @@ const LITERAL_BINDINGS = [
     removes: true,
     why: 'every dimension the product has is already a chip — it could add nothing',
   },
+
+  /* ── Sales Analytics: the close rate's own denominator ───────────────────
+   *
+   * The leaderboard drew REVENUE, BOOKINGS and CLOSE RATE and not the lead
+   * count the third is computed from, so "7.1%" sat beside "38 bookings" and
+   * the reader had to divide backwards to learn it was over 535 leads. The
+   * projection had the figure all along — it is what `close` divides by, and it
+   * appeared only as a tooltip on the footer.
+   *
+   * Three bindings because the column is three places: the header, the row and
+   * the team footer. Each anchors on the BOOKINGS cell it sits before, so the
+   * funnel reads leads -> bookings -> close rate in that order. */
+  {
+    screen: 'sales',
+    find: '<th style="padding:9px 8px; text-align:right; font-weight:500;">BOOKINGS</th>',
+    replace: '<th style="padding:9px 8px; text-align:right; font-weight:500;">LEADS</th><th style="padding:9px 8px; text-align:right; font-weight:500;">BOOKINGS</th>',
+    layout: true,
+    why: 'a close rate whose denominator is not on the table cannot be checked',
+  },
+  {
+    screen: 'sales',
+    find: '<td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= r.bookings %></td>',
+    replace: '<td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= r.leads %></td><td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= r.bookings %></td>',
+    why: 'the leads each executive was given, beside what they did with them',
+  },
+  {
+    screen: 'sales',
+    find: '<th style="padding:11px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= team.bookings %></th>',
+    replace: '<th style="padding:11px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= team.leads %></th><th style="padding:11px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= team.bookings %></th>',
+    why: 'summed like every other total on this footer, never averaged',
+  },
+  {
+    screen: 'sales',
+    find: 'min-width:1020px',
+    replace: 'min-width:1100px',
+    layout: true,
+    why: 'eleven columns became twelve; the table scrolls rather than crushing them',
+  },
 ];
 
 function bindLiterals(html, screen, { onBind } = {}) {

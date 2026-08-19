@@ -11,11 +11,11 @@ module.exports = {
   ],
 
   salesRows: [
-    { name: 'Reshma Menon', init: 'RM', abv: 'RM', bookings: '38', rev: '₹9.4L', close: '21.4%', closeColor: UP, resp: '21 min', respColor: UP, calls: '284', wa: '412', rating: '4.8', comp: '96%', compColor: UP, coach: 'Model performer — pair on objection handling' },
-    { name: 'Arun Kurian', init: 'AK', abv: 'AK', bookings: '31', rev: '₹7.8L', close: '18.9%', closeColor: UP, resp: '34 min', respColor: UP, calls: '261', wa: '388', rating: '4.6', comp: '92%', compColor: UP, coach: 'Strong close, slow on first touch after 6pm' },
-    { name: 'Sneha Nair', init: 'SN', abv: 'SN', bookings: '27', rev: '₹6.2L', close: '16.2%', closeColor: NA, resp: '52 min', respColor: NA, calls: '243', wa: '341', rating: '4.4', comp: '88%', compColor: NA, coach: 'Cancellation rate 4.4% — review payment follow-up' },
-    { name: 'Vishnu Joseph', init: 'VJ', abv: 'VJ', bookings: '19', rev: '₹4.1L', close: '12.8%', closeColor: WARN, resp: '1h 48m', respColor: DOWN, calls: '198', wa: '224', rating: '4.1', comp: '74%', compColor: WARN, coach: 'Response time is the single biggest gap' },
-    { name: 'Tara George', init: 'TG', abv: 'TG', bookings: '14', rev: '₹3.0L', close: '11.1%', closeColor: WARN, resp: '2h 12m', respColor: DOWN, calls: '164', wa: '186', rating: '4.0', comp: '68%', compColor: DOWN, coach: 'New joiner — shadow Reshma for two weeks' },
+    { name: 'Reshma Menon', init: 'RM', abv: 'RM', leads: '177', bookings: '38', rev: '₹9.4L', close: '21.4%', closeColor: UP, resp: '21 min', respColor: UP, calls: '284', wa: '412', rating: '4.8', comp: '96%', compColor: UP, coach: 'Model performer — pair on objection handling' },
+    { name: 'Arun Kurian', init: 'AK', abv: 'AK', leads: '164', bookings: '31', rev: '₹7.8L', close: '18.9%', closeColor: UP, resp: '34 min', respColor: UP, calls: '261', wa: '388', rating: '4.6', comp: '92%', compColor: UP, coach: 'Strong close, slow on first touch after 6pm' },
+    { name: 'Sneha Nair', init: 'SN', abv: 'SN', leads: '167', bookings: '27', rev: '₹6.2L', close: '16.2%', closeColor: NA, resp: '52 min', respColor: NA, calls: '243', wa: '341', rating: '4.4', comp: '88%', compColor: NA, coach: 'Cancellation rate 4.4% — review payment follow-up' },
+    { name: 'Vishnu Joseph', init: 'VJ', abv: 'VJ', leads: '148', bookings: '19', rev: '₹4.1L', close: '12.8%', closeColor: WARN, resp: '1h 48m', respColor: DOWN, calls: '198', wa: '224', rating: '4.1', comp: '74%', compColor: WARN, coach: 'Response time is the single biggest gap' },
+    { name: 'Tara George', init: 'TG', abv: 'TG', leads: '126', bookings: '14', rev: '₹3.0L', close: '11.1%', closeColor: WARN, resp: '2h 12m', respColor: DOWN, calls: '164', wa: '186', rating: '4.0', comp: '68%', compColor: DOWN, coach: 'New joiner — shadow Reshma for two weeks' },
   ],
 
   callKpis: [

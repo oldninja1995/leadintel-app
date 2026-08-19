@@ -87,6 +87,25 @@ test('every binding names a screen, a reason, and an expression', () => {
       continue;
     }
 
+    /* A binding may instead make *room* — a column header, a widened table.
+     *
+     * Adding a column to a table is two edits and only one of them reads data:
+     * the `<th>` is a word, and the `<td>` beside it is the expression. Marking
+     * the header a relabel would be a lie (nothing was relabelled) and marking
+     * it a removal would be worse, so it says what it is.
+     *
+     * Guarded rather than exempt: a layout binding is only honest if something
+     * on the same screen actually fills the room it made, so the screen must
+     * carry at least one binding that reads data. That is what stops this
+     * becoming the category anybody reaches for when a binding will not pass. */
+    if (binding.layout) {
+      const fills = LITERAL_BINDINGS.some((b) => (
+        b.screen === binding.screen && !b.layout && /<%=[^%]*[A-Za-z_$][\w.$]*/.test(b.replace || '')
+      ));
+      assert.ok(fills, `${binding.find} makes room on "${binding.screen}" and nothing on that screen fills it`);
+      continue;
+    }
+
     assert.match(binding.replace, /<%=[^%]*[A-Za-z_$][\w.$]*/, `${binding.find} does not bind to an expression`);
   }
 });
