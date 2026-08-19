@@ -21,9 +21,13 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
 <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
-<link rel="stylesheet" href="/assets/nocturne.css">
-<link rel="stylesheet" href="/assets/app.css">
-<link rel="stylesheet" href="/assets/app-ui.css">
+<%# Fingerprinted like every other reference. Left bare, these three were the
+    one door through which a browser could cache an asset under a URL that does
+    not change when the file does — which is the whole reason /assets is now
+    served immutable for a year. %>
+<link rel="stylesheet" href="<%= asset('nocturne.css') %>">
+<link rel="stylesheet" href="<%= asset('app.css') %>">
+<link rel="stylesheet" href="<%= asset('app-ui.css') %>">
 </head>
 <body>
 <div class="li-login">
