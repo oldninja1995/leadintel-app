@@ -5,6 +5,12 @@
  * whose static implementation is the only thing that touches `data/`.
  */
 
+/* When this module began loading. A serverless instance pays everything
+   between here and the first response before it serves anybody, and until it
+   is measured the only thing anyone can say about a cold start is that it felt
+   slow. Reported on `/health` and on the first response an instance sends. */
+const LOADED_AT = Date.now();
+
 const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
@@ -926,6 +932,12 @@ app.get('/health', (req, res) => {
   const report = timings.report({ budgetMs: 200 });
   res.json({
     status: 'ok',
+    /* What this instance paid before it could answer anybody: `modules` is the
+       require graph, `routes` is start() — reading the screen list and
+       registering a route per screen — and `total` is the two plus whatever
+       sat between them. Durations only, and the same numbers the first
+       response of an instance carries as `boot;dur=`. */
+    boot: bootTimings(),
     uptimeSeconds: report.uptimeSeconds,
     requests: report.requests,
     budgetMs: report.budgetMs,
@@ -1262,6 +1274,32 @@ if (!AUTH_OFF) {
  * `Server-Timing` is the standard header for this: the browser's network panel
  * charts it per request with no tooling, and `curl -D -` prints it. It carries
  * durations only, never data, so it is safe on a signed-in response. */
+/* One more mark on a response that may already carry some.
+ *
+ * `Server-Timing` is set by the hydration middleware before the route runs, so
+ * a route with something to report has to append rather than set — setting it
+ * loses the reads that got it here, and appending to an absent header is how
+ * it ends up reading "undefined, render;dur=…". Durations only, like the rest
+ * of the header. */
+function mark(res, name, ms, desc = null) {
+  if (res.headersSent) return;
+  const mark = `${name};dur=${ms}${desc ? `;desc="${String(desc).replace(/"/g, '')}"` : ''}`;
+  const existing = res.getHeader('Server-Timing');
+  res.setHeader('Server-Timing', existing ? `${existing}, ${mark}` : mark);
+}
+
+/* The wall clock a route can hang marks off, so timing a step is two lines
+   rather than a variable and a subtraction each time. */
+function stopwatch() {
+  let last = Date.now();
+  return () => {
+    const now = Date.now();
+    const span = now - last;
+    last = now;
+    return span;
+  };
+}
+
 function timed(name, promise, marks) {
   if (!promise) return null;
   const started = Date.now();
@@ -1287,6 +1325,23 @@ function timed(name, promise, marks) {
  * (/ingest/status, /connections) ask for the full window themselves; see
  * RunLog.hydrate. */
 const EDGE_RUN_WINDOW = 5;
+
+/* A cold start is invisible from outside: the response that paid for it looks
+   like any other, only slower, and no header says why. The first response an
+   instance sends now carries what that instance spent coming up — which is how
+   "the first page after a while is slow" becomes a number somebody can work
+   on. Once per instance, because it describes the instance and not the
+   request. */
+let announced = false;
+
+app.use((req, res, next) => {
+  if (!announced) {
+    announced = true;
+    const boot = bootTimings();
+    mark(res, 'boot', boot.total === null ? 0 : boot.total, `modules:${boot.modules}ms routes:${boot.routes}ms`);
+  }
+  next();
+});
 
 app.use((req, res, next) => {
   if (!store.usingPostgres() || !req.workspace) return next();
@@ -1335,9 +1390,11 @@ app.use((req, res, next) => {
     timed('repo', typeof repo.hydrate === 'function' ? repo.hydrate() : null, marks),
   ])).then(() => {
     marks.push(`hydrate;dur=${Date.now() - wall}`);
-    /* Set rather than appended: nothing else writes this header, and appending
-       to an absent one is how it ends up as the string "undefined, docs;...". */
-    res.setHeader('Server-Timing', marks.join(', '));
+    /* Appended, because the boot mark above may already be there — and
+       appending to an *absent* header is how it ends up as the string
+       "undefined, docs;…", which is what the `existing` test is for. */
+    const existing = res.getHeader('Server-Timing');
+    res.setHeader('Server-Timing', existing ? `${existing}, ${marks.join(', ')}` : marks.join(', '));
     next();
   }, next);
 });
@@ -3476,6 +3533,11 @@ function tabsOffered(groups, query) {
 
 function screenRoute(screen) {
   return async (req, res, next) => {
+    /* Three marks, because "the page is slow" has three possible answers on
+       this route and they need different fixes: reading the payload, resolving
+       the registry over it, and rendering the template. Everything before them
+       is already on the header from the hydration middleware. */
+    const since = stopwatch();
     try {
       const groups = tabsOffered(await repo.subviewGroups(screen.view), req.query);
       const { flags, tabLists } = subviewState(groups, screen.slug, req.query);
@@ -3518,7 +3580,9 @@ function screenRoute(screen) {
         if (chosen) payload.metricScope = { dimension: chosen, value: String(active[chosen]).toLowerCase() };
       }
 
+      mark(res, 'payload', since());
       const unfiltered = resolveMetrics(payload, req.workspace, params.over, { hidden: hiddenCards, editing });
+      mark(res, 'metrics', since());
 
       /* Filtering sits between the repository and the view: it narrows rows the
          repository returned rather than asking it a narrower question, because
@@ -3576,7 +3640,13 @@ function screenRoute(screen) {
         }),
         filterNote: note && { ...note, clearUrl: clearUrl(req.originalUrl, result.active) },
         attrPreview,
-      }, (err, html) => (err ? next(err) : res.send(html)));
+      }, (err, html) => {
+        if (err) return next(err);
+        /* Everything between the last mark and here: the shell, the palette,
+           the filter seed and the template itself. */
+        mark(res, 'render', since(), `${Math.round(html.length / 1024)}KB`);
+        return res.send(html);
+      });
     } catch (err) {
       next(err);
     }
@@ -3701,7 +3771,17 @@ async function start() {
    repository — so what a caller needs is the promise, not the app. A long-lived
    process starts listening as a side effect of this; a serverless one awaits
    `ready` per invocation and gets the same already-built app back. */
+const MODULES_MS = Date.now() - LOADED_AT;
+const startedAt = Date.now();
 const ready = start();
+let routesMs = null;
+ready.then(() => { routesMs = Date.now() - startedAt; }, () => { routesMs = -1; });
+
+/* The cold start, in three numbers. A warm instance reports the same ones —
+   they describe how this instance came up, not how the request went. */
+function bootTimings() {
+  return { modules: MODULES_MS, routes: routesMs, total: routesMs === null ? null : (startedAt - LOADED_AT) + routesMs };
+}
 
 /* The app itself is the export, with `ready` hung off it.
  *
