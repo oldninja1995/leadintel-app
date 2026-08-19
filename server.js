@@ -317,6 +317,11 @@ const layouts = new Layouts(undefined, { backend: backends.docs });
 const repo = createRepository({
   snapshot: (workspaceId) => entitiesFor(workspaceId),
   fillSnapshot: (workspaceId) => hydrateEntities(workspaceId),
+  /* The coverage report is a boot diagnostic for a process that boots once.
+     Here it ran on every cold instance, inside the first request, and cost
+     ~1.1s of it — `repo;dur=3026` against `entities;dur=1919` for the same
+     already-built entity set. */
+  announce: !SERVERLESS,
 });
 
 
@@ -1384,7 +1389,17 @@ app.use((req, res, next) => {
     timed('runlog', runner.log.hydrate({ perTag: EDGE_RUN_WINDOW }), marks),
     timed('rules', fires.hydrate(), marks),
     timed('dispatches', dispatches.hydrate(), marks),
-    timed('entities', hydrateEntities(req.workspace), marks),
+    /* The note says which of the two very different things a slow entity
+       hydration was: reading half a megabyte back and inflating it, or
+       replaying the store because the marker moved. */
+    timed('entities', ((before) => hydrateEntities(req.workspace).then(() => {
+      const read = snapshot.lastRead();
+      /* Same object as before the call means nothing was read and the
+         snapshot came from memory — reporting the previous request's read
+         there would describe work this one did not do. */
+      if (!read || read === before) return '';
+      return `${read.source} ${read.ms}ms${read.kb ? ` ${read.kb}KB` : ''}`;
+    }))(snapshot.lastRead()), marks),
     /* The repository keeps its own snapshot — the screens read through it while
        the metric layer reads through `entitiesFor` — so it hydrates too. */
     timed('repo', typeof repo.hydrate === 'function' ? repo.hydrate() : null, marks),
