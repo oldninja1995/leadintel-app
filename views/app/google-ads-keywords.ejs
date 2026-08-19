@@ -35,6 +35,10 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
 
 const terms = d.searchTerms || [];
 const keywords = d.keywords || [];
+/* The same keywords, split by the campaign bidding on them — see
+   googleAdsPayload in server.js for why the grouping is keyed by campaign and
+   keyword rather than by keyword alone. */
+const byCampaign = d.keywordsByCampaign || [];
 const words = d.words || [];
 const s = d.termSummary || {};
 
@@ -49,7 +53,7 @@ const PREVIEW = 10;
 /* Which table, if any, the reader asked to see whole. An unknown value shows
    the overview rather than an error — a mistyped query string is not a fault
    worth a page. */
-const TABLES = ['wasted', 'words', 'keywords', 'terms'];
+const TABLES = ['wasted', 'words', 'keywords', 'by-campaign', 'terms'];
 const only = TABLES.indexOf(String(d.table || '')) > -1 ? String(d.table) : null;
 const shows = (name) => !only || only === name;
 const whole = (name) => only === name;
@@ -239,6 +243,84 @@ const rows = (list, name) => (whole(name) ? list : list.slice(0, PREVIEW));
     comparison is between words, not against a total.
   </p>
   <% } %>
+</section>
+<% } %>
+
+<!-- Keywords by campaign ------------------------------------------------------>
+<% if (shows('by-campaign') && byCampaign.length) { %>
+<section class="li-ota-panel">
+  <div class="li-ota-panel-head">
+    <h2>Keywords by campaign</h2>
+    <p>
+      What each campaign is actually bidding on, and on what terms. Match type is the setting
+      that decides how far Google may stray from the words: <strong>exact</strong> is that
+      phrase and its close variants, <strong>phrase</strong> is that phrase inside a longer one,
+      and <strong>broad</strong> lets Google serve anything it reads as related — which is where
+      a search-term report fills with strangers. A campaign bidding entirely broad and a campaign
+      bidding entirely exact are two different accounts, and the mix beside each name says which
+      one this is.
+    </p>
+  </div>
+
+  <% byCampaign.forEach((c) => { %>
+    <div class="li-ota-panel-head" style="margin-top:14px;">
+      <h3 style="font-size:13px; margin:0;">
+        <%= txt(c.campaign) %>
+        <span class="li-chip"><%= c.count %> keyword<%= c.count === 1 ? '' : 's' %></span>
+        <% if (c.matchMix) { %><span class="li-chip"><%= c.matchMix %></span><% } %>
+      </h3>
+      <p>
+        <%= txt(c.spendText) %> on keywords · <%= num(c.impressions) %> impressions ·
+        <%= num(c.clicks) %> clicks<% if (c.ctr) { %> · <%= c.ctr %> CTR<% } %>
+        <% if (!c.named && c.campaignId) { %>
+          · keyword rows in this range name this campaign id, and no spend row does, so it cannot be named
+        <% } else if (!c.named) { %>
+          · these keyword rows carry no campaign id at all, so they cannot be attributed to one
+        <% } %>
+      </p>
+    </div>
+    <div class="li-ota-scroll">
+      <table class="li-ota-table">
+        <thead>
+          <tr>
+            <th>Keyword</th><th>Match</th><th class="li-num">Quality</th>
+            <th class="li-num">Spend</th><th class="li-num">Impressions</th>
+            <th class="li-num">Clicks</th><th class="li-num">CTR</th><th class="li-num">CPC</th>
+            <th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows(c.keywords, 'by-campaign').forEach((k) => { %>
+            <tr>
+              <td><%= txt(k.keyword) %></td>
+              <td><span class="li-chip"><%= chip(k.matchType) %></span></td>
+              <td class="li-num"><%= txt(k.qualityScore) %></td>
+              <td class="li-num"><%= txt(k.spendText) %></td>
+              <td class="li-num"><%= num(k.impressions) %></td>
+              <td class="li-num"><%= num(k.clicks) %></td>
+              <td class="li-num"><%= txt(k.ctr) %></td>
+              <td class="li-num"><%= txt(k.cpcText) %></td>
+              <td class="li-num"><%= num(k.conversions) %></td>
+              <td class="li-num"><%= txt(k.cplText) %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <% if (!whole('by-campaign') && c.keywords.length > PREVIEW) { %>
+      <p class="li-ota-foot">
+        <%= num(c.keywords.length) %> keywords in this campaign. Showing the <%= PREVIEW %>
+        highest-spending —
+        <a href="/google-ads/keywords<%= join('table=by-campaign') %>">view every campaign's list in full</a> &rarr;
+      </p>
+    <% } %>
+  <% }); %>
+
+  <p class="li-ota-foot">
+    A keyword bid in two campaigns appears under both, with each campaign's own spend against it.
+    Collapsing them into one row would hide which of the two is the expensive one, which is the
+    question this table is opened to answer.
+  </p>
 </section>
 <% } %>
 

@@ -2532,6 +2532,77 @@ async function googleAdsPayload(req) {
   const keywords = rollUp(entities.googleKeywords, (r) => r.keyword, (r) => ({
     keyword: r.keyword, matchType: r.matchType, qualityScore: r.qualityScore,
   }));
+
+  /* The same keywords, grouped by the campaign that bid on them.
+   *
+   * The flat table answers "what is this account bidding on"; a media buyer
+   * managing one campaign wants the list for that campaign, and there was no
+   * way to ask for it — the rollup above is keyed by the keyword text alone,
+   * so the same phrase bid in two campaigns collapsed into one row and the
+   * campaign was nowhere on it.
+   *
+   * Keyed by campaign AND keyword here, deliberately: a keyword bid in two
+   * campaigns is two lines of spend and one row would hide that one of them is
+   * the expensive one. Match type travels on every row, because it decides how
+   * far Google may stray from the words and is the difference between a term
+   * report full of near-misses and one full of strangers. */
+  const campaignNameById = new Map();
+  for (const day of googleDays) {
+    if (day.campaignId !== null && day.campaignId !== undefined) {
+      campaignNameById.set(String(day.campaignId), day.campaign);
+    }
+  }
+
+  const keywordsByCampaign = (() => {
+    const rows = rollUp(entities.googleKeywords, (r) => `${r.campaignId} ${r.keyword}`, (r) => ({
+      keyword: r.keyword, matchType: r.matchType, qualityScore: r.qualityScore, campaignId: r.campaignId,
+    }));
+
+    const by = new Map();
+    for (const row of rows) {
+      const id = row.campaignId === null || row.campaignId === undefined ? '' : String(row.campaignId);
+      if (!by.has(id)) by.set(id, []);
+      by.get(id).push(row);
+    }
+
+    return [...by.entries()]
+      .map(([id, list]) => {
+        const total = list.reduce((t, k) => ({
+          spend: t.spend + k.spend,
+          impressions: t.impressions + k.impressions,
+          clicks: t.clicks + k.clicks,
+          conversions: t.conversions + k.conversions,
+        }), { spend: 0, impressions: 0, clicks: 0, conversions: 0 });
+
+        /* "3 exact · 1 broad" — the shape of the campaign's bidding in one
+           line, so a campaign that is all broad match is visible without
+           reading every row of it. */
+        const mix = new Map();
+        for (const k of list) {
+          const match = String(k.matchType || 'unknown').replace(/_/g, ' ').toLowerCase();
+          mix.set(match, (mix.get(match) || 0) + 1);
+        }
+
+        return {
+          campaignId: id || null,
+          /* A campaign the range holds keywords for but no spend rows for
+             cannot be named — say so rather than printing a bare id as though
+             it were a name. */
+          campaign: campaignNameById.get(id) || (id ? `Unnamed campaign (${id})` : 'No campaign reported'),
+          named: Boolean(campaignNameById.get(id)),
+          keywords: list,
+          count: list.length,
+          matchMix: [...mix.entries()].sort((a, b) => b[1] - a[1]).map(([m, n]) => `${n} ${m}`).join(' · '),
+          spend: total.spend,
+          spendText: asMoney(total.spend),
+          impressions: total.impressions,
+          clicks: total.clicks,
+          conversions: total.conversions,
+          ctr: rate(total.clicks, total.impressions),
+        };
+      })
+      .sort((a, b) => b.spend - a.spend);
+  })();
   const searchTerms = rollUp(entities.googleSearchTerms, (r) => r.term, (r) => ({
     term: r.term, termStatus: r.termStatus, adgroupId: r.adgroupId,
   }));
@@ -2762,7 +2833,7 @@ async function googleAdsPayload(req) {
        its own, asked for rather than delivered by default. */
     table: String(req.query.table || ''),
     connected: live.has('google_ads'),
-    campaigns, campaignTotal, adGroups, ads, keywords, conversions,
+    campaigns, campaignTotal, adGroups, ads, keywords, keywordsByCampaign, conversions,
     searchTerms: terms, termSummary, words,
     keywordsNotApplicable, paidSearch,
   };

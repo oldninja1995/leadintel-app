@@ -263,6 +263,34 @@ test('both ad platforms land in one campaignDay shape despite different units', 
   assert.equal(google.spend, 480000, '4.8bn micros of INR in paise');
 });
 
+test('a campaign day carries the platform id as well as the name', async () => {
+  /* Every other Google grain — ad group, ad, keyword, search term, conversion —
+     is stamped with `campaignId` and nothing carried the name, so "which
+     campaign is this keyword in" could be asked and not answered. The name is
+     what a reader recognises; the id is what the rows agree on. Keyword
+     Analytics joins the two, so the id has to survive canonicalisation. */
+  const store = tmpStore();
+  await ingest.syncAll({ store, fetchedAt: FIXED });
+  const { campaignDays, googleKeywords } = ingest.snapshot({ store });
+
+  const google = campaignDays.filter((c) => c.platform === 'google_ads');
+  assert.ok(google.length, 'no Google campaign days, so this proves nothing');
+  assert.ok(
+    google.some((c) => c.campaignId !== null && c.campaignId !== undefined),
+    'no Google campaign day carries a campaign id, so keywords cannot be grouped by campaign'
+  );
+
+  /* And the join actually lands: every keyword's campaign is one the campaign
+     days can name. A keyword pointing at a campaign nothing spent on is
+     possible and is reported as unnamed rather than dropped — this asserts the
+     normal case, which is that the two agree. */
+  const named = new Set(google.map((c) => String(c.campaignId)));
+  const orphans = (googleKeywords || [])
+    .filter((k) => k.campaignId !== null && k.campaignId !== undefined)
+    .filter((k) => !named.has(String(k.campaignId)));
+  assert.deepEqual(orphans.map((k) => k.keyword), [], 'keywords name a campaign the spend rows do not');
+});
+
 test('the two July 14 spellings of one campaign collapse to one key', async () => {
   const store = tmpStore();
   await ingest.syncAll({ store, fetchedAt: FIXED });
