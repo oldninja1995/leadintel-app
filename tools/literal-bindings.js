@@ -186,21 +186,9 @@ const LITERAL_BINDINGS = [
       '            <% }); %>',
       '          </div>',
       '          <% } %>',
-      '          <% if ((typeof bestByStage !== "undefined") && bestByStage && bestByStage.length > 1) { %>',
-      '          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">',
-      '            <% bestByStage.forEach(function (b) { %>',
-      '              <div class="hv-3" data-action="<%= b.go %>" title="<%= b.why %>" style="display:flex; align-items:center; gap:7px; background:var(--color-surface); border:1px solid var(--color-neutral-900); border-radius:9px; padding:6px 11px; cursor:pointer; font-size:11px;">',
-      '                <span><%= b.marker %></span>',
-      '                <span style="color:var(--color-neutral-500);">Best <%= b.label %></span>',
-      '                <span style="color:var(--color-neutral-200); font-weight:500;"><%= b.title %></span>',
-      '                <span style="color:var(--color-accent-300); font-variant-numeric:tabular-nums;"><%= b.score %></span>',
-      '              </div>',
-      '            <% }); %>',
-      '          </div>',
-      '          <% } %>',
       '          <div data-li-slot="grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">',
     ].join('\n'),
-    why: 'the best creative at each funnel stage is a different question from the best overall, and both are asked',
+    why: 'the census and the notes are what a reader wants before the grid',
   },
   /* The screen carried two scores and defined neither. A number on a badge that
      the reader cannot interpret is worse than no badge: it gets quoted and then
@@ -380,32 +368,10 @@ const LITERAL_BINDINGS = [
 
      Anchored on the best-by-stage strip's own opening, rewritten with a marker
      so this add cannot match its own output on a later run. */
-  {
-    screen: 'creatives',
-    find: '          <% if ((typeof bestByStage !== "undefined") && bestByStage && bestByStage.length > 1) { %>',
-    replace: [
-      '          <% if ((typeof creativeCensus !== "undefined") && creativeCensus && creativeCensus.length) { %>',
-      '          <div style="display:flex; flex-wrap:wrap; align-items:center; gap:14px; background:var(--color-surface); border:1px solid var(--color-neutral-900); border-radius:11px; padding:10px 14px; margin-bottom:12px; font-size:11.5px;">',
-      '            <span style="color:var(--color-neutral-400); font-weight:500;"><%= creativeCensus.reduce(function (t, c) { return t + Number(c.count); }, 0) %> creatives analysed</span>',
-      '            <% creativeCensus.forEach(function (c) { %>',
-      '              <a href="<%= c.go %>" title="<%= c.title %>" style="color:<%= c.color %>; text-decoration:none; border-radius:7px; padding:2px 8px; background:<%= c.bg %>; border:1px solid <%= c.border %>;"><%= c.marker %> <%= c.count %> <%= c.label %></a>',
-      '            <% }); %>',
-      '          </div>',
-      '          <% } %>',
-      '          <% if ((typeof creativeNotes !== "undefined") && creativeNotes && creativeNotes.length) { %>',
-      '          <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px;">',
-      '            <% creativeNotes.forEach(function (n) { %>',
-      '              <div style="flex:1 1 240px; background:var(--color-surface); border:1px solid var(--color-neutral-900); border-radius:10px; padding:9px 12px;">',
-      '                <div style="font-size:9.5px; color:var(--color-neutral-600); text-transform:uppercase; letter-spacing:.04em;"><%= n.heading %></div>',
-      '                <div style="font-size:11px; color:var(--color-neutral-300); margin-top:3px; line-height:1.45;"><%= n.text %></div>',
-      '              </div>',
-      '            <% }); %>',
-      '          </div>',
-      '          <% } %>',
-      '          <% if (bestByStage && bestByStage.length > 1) { %>',
-    ].join('\n'),
-    why: 'a screen of cards with no summary makes the reader do the counting',
-  },
+  /* The census and the notes used to be added here, anchored on the
+     best-by-stage strip's opening line. That strip is gone — see the grid
+     binding above, which now emits both of them directly — so this binding had
+     nothing left to anchor on and nothing left to add. */
   /* Which way the creative is going, and where it is in its life — beside the
      recommendation, because the recommendation was partly decided by them. */
   {
