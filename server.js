@@ -3310,6 +3310,40 @@ app.get('/metrics/snapshots/:id/reproduce', (req, res) => {
    registry entry; none is hardcoded in markup". Walks every screen and counts
    the KPI cards that name a metric against those that do not, naming the ones
    that do not. A claim like that belongs in a response, not only in a document. */
+/* What the entity snapshot is made of, by weight.
+ *
+ * The snapshot is read back and parsed once per cold instance, and on this
+ * deployment that is the largest thing a first page load pays for:
+ * `entities;dur=1211;desc="stored 1194ms marker:31ms fetch:314ms parse:814ms
+ * 5011KB"`. Fetch and parse are both functions of size, and until now nothing
+ * said which collection the size is in — the counts existed only in the boot
+ * log, which serverless does not keep and which prints rows rather than bytes.
+ *
+ * On demand, never per request: measuring costs a stringify of the whole set,
+ * which is the same work being measured. */
+app.get('/store/entities', (req, res) => {
+  const entities = entitiesFor(req.workspace);
+  const rows = [];
+  let total = 0;
+
+  for (const [collection, value] of Object.entries(entities || {})) {
+    if (!Array.isArray(value)) continue;
+    const bytes = JSON.stringify(value).length;
+    total += bytes;
+    rows.push({
+      collection,
+      rows: value.length,
+      kb: Math.round(bytes / 1024),
+      /* The number to act on: a wide row repeated a hundred thousand times is
+         a different problem from a hundred thousand rows. */
+      bytesPerRow: value.length ? Math.round(bytes / value.length) : 0,
+    });
+  }
+
+  rows.sort((a, b) => b.kb - a.kb);
+  res.json({ totalKb: Math.round(total / 1024), collections: rows });
+});
+
 app.get('/metrics/coverage', async (req, res) => {
   try {
     const screens = await repo.screens();
