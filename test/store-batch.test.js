@@ -77,6 +77,42 @@ test('every query the request edge batches declares its order or is keyed', () =
   assert.equal(PgDocs.manyQuery(['a']).order, undefined);
 });
 
+test('a per-source window is partitioned, and still carries each last success', () => {
+  /* Why the window changed shape: the chrome on every screen prints one line
+     about freshness, and the edge was hydrating the last 500 runs to draw it —
+     429 rows and 198KB per request for twelve sources' latest attempt. */
+  const q = new PgLineLog('runs').hydrateQuery(500, { perTag: 5 });
+
+  assert.match(q.text, /row_number\(\) OVER \(PARTITION BY tag ORDER BY seq DESC\)/);
+  assert.deepEqual(q.params, ['runs', 5], 'the per-source window must bind its own size, not the flat limit');
+
+  /* The half that must never be dropped: a source failing for six hours has
+     its last success outside any recent window, and without this it reports as
+     never-synced rather than as down. */
+  assert.match(q.text, /DISTINCT ON \(tag\)[^]*ok IS TRUE/);
+});
+
+test('the flat window is still available and unchanged', () => {
+  const q = new PgLineLog('runs').hydrateQuery(500);
+  assert.match(q.text, /ORDER BY seq DESC LIMIT \$2/);
+  assert.deepEqual(q.params, ['runs', 500]);
+});
+
+test('rows fetched for a per-source window cannot answer a full hydrate', async () => {
+  /* The trap this closes: a prime claimed by the wrong caller hands it a
+     shorter history than it asked for, and it reports a count over a window it
+     never read. There is no database in the test environment, so "went to the
+     database" is observable as a throw. */
+  const log = new PgLineLog('runs');
+  const rows = [{ seq: 1, line: JSON.stringify({ source: 'telecrm', ok: true }) }];
+
+  log.primeHydrate(PgLineLog.hydrateKey({ perTag: 5 }), rows);
+  await assert.rejects(() => log.hydrate({ limit: 500 }), /DATABASE_URL/);
+
+  log.primeHydrate(PgLineLog.hydrateKey({ perTag: 5 }), rows);
+  assert.deepEqual(await log.hydrate({ perTag: 5 }), [{ source: 'telecrm', ok: true }]);
+});
+
 test('the ordered log queries select the column they are ordered by', () => {
   /* Aggregating by a column the subquery does not return is a runtime error,
      and it would only ever surface on the deployment that folds. */

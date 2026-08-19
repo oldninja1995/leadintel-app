@@ -1279,6 +1279,15 @@ function timed(name, promise, marks) {
   );
 }
 
+/* How much of each source's run history a page render needs.
+ *
+ * Five, because the chrome asks two questions of it — when did this source
+ * last succeed, and is it failing now — and both are answered by the newest
+ * entries. The screens that show a count over the last twenty runs
+ * (/ingest/status, /connections) ask for the full window themselves; see
+ * RunLog.hydrate. */
+const EDGE_RUN_WINDOW = 5;
+
 app.use((req, res, next) => {
   if (!store.usingPostgres() || !req.workspace) return next();
 
@@ -1303,7 +1312,7 @@ app.use((req, res, next) => {
     documents: { connections, workspace, webhookTokens, layouts, definitionLog: metrics.definitionLog },
     lists: [dispatches],
     logs: [
-      { store: runner.log, kind: 'hydrate', limit: 500 },
+      { store: runner.log, kind: 'hydrate', perTag: EDGE_RUN_WINDOW },
       { store: fires, kind: 'last', limit: 2000 },
     ],
   }), marks);
@@ -1317,7 +1326,7 @@ app.use((req, res, next) => {
      * numbers put that at about 190ms each on this deployment: these reads do
      * not overlap, whatever Promise.all suggests. */
     timed('docs', store.hydrateDocuments({ connections, workspace, webhookTokens, layouts, definitionLog: metrics.definitionLog }), marks),
-    timed('runlog', runner.log.hydrate(), marks),
+    timed('runlog', runner.log.hydrate({ perTag: EDGE_RUN_WINDOW }), marks),
     timed('rules', fires.hydrate(), marks),
     timed('dispatches', dispatches.hydrate(), marks),
     timed('entities', hydrateEntities(req.workspace), marks),
@@ -1389,7 +1398,13 @@ app.post('/ingest/webhook/:source', gatekeeper.gate('ingest.webhook', (req) => (
 /* Pipeline health, exposed: stage 1–2 sync lag and the stage 3 match rate.
    The Analytics Engine files both under operational health, and the Phase 8
    "Connector down" alert reads the first half of this. */
-app.get('/ingest/status', (req, res) => {
+app.get('/ingest/status', async (req, res, next) => {
+  /* The full window, because `recentFailures` is a count over the last twenty
+     runs of a source and the edge hydrates five. Asked for here rather than
+     before every request in the app — the same division the audit log lives
+     under. */
+  try { await runner.log.hydrate(); } catch (err) { return next(err); }
+
   const { match, unattributed } = pipelineState(req.workspace);
   res.json({
     transport: runner.transport.name,
@@ -1538,6 +1553,9 @@ async function renderConnections(req, res, {
      screen, which is both wrong and a leak. That tenant sees exactly what it
      saw before — webhook deliveries and nothing more. */
   const syncing = req.workspace === SYNC_WORKSPACE;
+  /* The full window: this screen prints "failures in the last twenty runs" on
+     every card, and the edge hydrates five of each source. */
+  if (syncing) await runner.log.hydrate();
   const status = syncing ? new Map(runner.status().map((s) => [s.source, s])) : new Map();
 
   res.render('layout', {
