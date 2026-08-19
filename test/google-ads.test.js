@@ -371,9 +371,67 @@ test('every kind the source declares has a query, and every query is per-day', (
   const declared = sources.get('google_ads').kinds;
   for (const kind of declared) {
     assert.ok(QUERIES[kind], `no GAQL query for declared kind "${kind}"`);
+
+    /* A kind may opt out, and exactly one does: `keyword` reads
+       `ad_group_criterion`, which carries no metrics — asking it for
+       `segments.date` is a GAQL error rather than an empty result, and there is
+       no money on it to need a currency. Opting out is declared in DATELESS and
+       is asserted the other way round here, so the exemption cannot be used to
+       smuggle an unsegmented metrics query past this test. */
+    if (google.DATELESS.has(kind)) {
+      assert.doesNotMatch(QUERIES[kind], /segments\./, `${kind} is declared dateless but segments the query`);
+      assert.doesNotMatch(QUERIES[kind], /metrics\./, `${kind} is declared dateless but asks for metrics, which need a window`);
+      assert.match(QUERIES[kind], /WHERE/, `${kind} brings no WHERE of its own and none is appended to it`);
+      continue;
+    }
+
     assert.match(QUERIES[kind], /segments\.date/, `${kind} is not segmented by date`);
     assert.match(QUERIES[kind], /customer\.currency_code/, `${kind} does not ask for the currency`);
   }
+});
+
+/* ── the account's current keyword list ──────────────────────────────────── */
+
+/* Why a second keyword kind exists at all: `keyword_view` is a metrics report,
+ * so Google returns only keywords that had activity inside the window. On the
+ * real account that is four rows against sixteen thousand search terms — a
+ * keyword that is enabled and got no impressions this month is simply not in
+ * it, and a screen built on it reports a campaign as having no keywords when it
+ * has thirty. */
+test('the keyword list asks the account what it is bidding on, not what delivered', () => {
+  assert.match(QUERIES.keyword, /FROM ad_group_criterion/);
+  assert.match(QUERIES.keyword, /ad_group_criterion\.type = 'KEYWORD'/);
+  /* Paused keywords are kept — a paused keyword is still in the account and is
+     a decision somebody made. Removed ones are not. */
+  assert.match(QUERIES.keyword, /ad_group_criterion\.status != 'REMOVED'/);
+  assert.doesNotMatch(QUERIES.keyword, /status != 'PAUSED'/);
+  /* The campaign's own name and status, so the picker can list a campaign whose
+     keywords were all quiet in the selected range. */
+  for (const field of ['campaign.id', 'campaign.name', 'campaign.status']) {
+    assert.ok(QUERIES.keyword.includes(field), `the keyword list does not select ${field}`);
+  }
+});
+
+test('a dateless kind is sent without a window appended to it', () => {
+  /* The bug this prevents: `queryFor` appends `WHERE segments.date …` to every
+     other kind, and appending it here would produce a query with two WHERE
+     clauses that Google rejects outright. */
+  const windowed = google.queryFor('keyword', { from: '2026-07-01', to: '2026-07-15' });
+  const bare = google.queryFor('keyword', null);
+
+  assert.equal(windowed, bare, 'the keyword list changed with the window — it has no window');
+  assert.doesNotMatch(windowed, /segments\.date/);
+  assert.equal((windowed.match(/WHERE/g) || []).length, 1, 'a second WHERE was appended');
+});
+
+test('a criterion is keyed by its own id, with no date in it', () => {
+  /* Keyed with a date it would append a new row per pull for a keyword that has
+     not changed, and the list would grow without bound. Keyed by the criterion,
+     a later pull supersedes the earlier row — which is what makes "currently"
+     true. */
+  const id = EXTERNAL_ID.keyword({ adGroupCriterion: { criterionId: '4820193' } });
+  assert.equal(id, '4820193');
+  assert.doesNotMatch(String(id), /\d{4}-\d{2}-\d{2}/);
 });
 
 test('the ad level exists, so Google is not shallower than Meta', () => {

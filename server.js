@@ -2553,6 +2553,112 @@ async function googleAdsPayload(req) {
     }
   }
 
+  /* ── the campaign picker, and what each campaign is bidding on now ────────
+   *
+   * Two sources, and the difference between them is the point.
+   *
+   * `entities.googleKeywordList` is the account's criterion list — what is in
+   * the account today, enabled or paused, with no window. It is NOT narrowed by
+   * the range control, deliberately: "what are we bidding on" has no window,
+   * and Google does not report what the list looked like in July.
+   *
+   * `keywords` above is `keyword_view`, a metrics report, which returns only
+   * keywords that had activity inside the range — four of them on this account.
+   * So the list decides which rows exist and the metrics decide what is on
+   * them, and a keyword with no activity shows a dash rather than a zero. It
+   * did not spend nothing; it was not in the report.
+   *
+   * The picker is built from the list rather than from spend, so a campaign
+   * whose keywords were all quiet this month is still in the dropdown. */
+  const listing = entities.googleKeywordList || [];
+
+  const spendByKeyword = new Map();
+  for (const row of listing) {
+    /* Keyed on the campaign and the text, matching how `keywords` is rolled up
+       one level above — a keyword bid in two campaigns is two lines of spend. */
+    spendByKeyword.set(`${row.campaignId} ${row.keyword}`, null);
+  }
+  for (const row of entities.googleKeywords || []) {
+    const key = `${row.campaignId} ${row.keyword}`;
+    const acc = spendByKeyword.get(key) || { spend: 0, impressions: 0, clicks: 0, conversions: 0, measured: false };
+    if (row.spend !== null) { acc.spend += row.spend; acc.measured = true; }
+    if (row.impressions !== null) acc.impressions += row.impressions;
+    if (row.clicks !== null) acc.clicks += row.clicks;
+    if (row.leads !== null) acc.conversions += row.leads;
+    spendByKeyword.set(key, acc);
+  }
+
+  const liveCampaigns = (() => {
+    const by = new Map();
+    for (const row of listing) {
+      const id = row.campaignId === null || row.campaignId === undefined ? '' : String(row.campaignId);
+      if (!by.has(id)) {
+        by.set(id, {
+          campaignId: id || null,
+          campaign: row.campaign || campaignNameById.get(id) || (id ? `Unnamed campaign (${id})` : 'No campaign reported'),
+          status: row.campaignStatus || null,
+          channelType: row.channelType || null,
+          keywords: [],
+        });
+      }
+      const c = by.get(id);
+      const metrics = spendByKeyword.get(`${row.campaignId} ${row.keyword}`) || null;
+      c.keywords.push({
+        keyword: row.keyword,
+        matchType: row.matchType,
+        status: row.status,
+        adgroup: row.adgroup,
+        /* Null, never zero: a keyword absent from the metrics report did not
+           spend nothing in the range — Google did not report it, which is a
+           different statement and the one the dash makes. */
+        measured: Boolean(metrics && metrics.measured),
+        spendText: metrics && metrics.measured ? asMoney(metrics.spend) : null,
+        spend: metrics && metrics.measured ? metrics.spend : null,
+        impressions: metrics ? metrics.impressions : null,
+        clicks: metrics ? metrics.clicks : null,
+        conversions: metrics ? metrics.conversions : null,
+        ctr: metrics ? rate(metrics.clicks, metrics.impressions) : null,
+        cpcText: metrics && metrics.clicks > 0 ? asMoney(metrics.spend / metrics.clicks) : null,
+      });
+    }
+
+    return [...by.values()]
+      .map((c) => {
+        const mix = new Map();
+        let paused = 0;
+        let spend = 0;
+        let measured = 0;
+        for (const k of c.keywords) {
+          const match = String(k.matchType || 'unknown').replace(/_/g, ' ').toLowerCase();
+          mix.set(match, (mix.get(match) || 0) + 1);
+          if (String(k.status || '').toUpperCase() === 'PAUSED') paused += 1;
+          if (k.measured) { measured += 1; spend += k.spend || 0; }
+        }
+        /* Spend first, then the quiet ones — but every one of them is here. */
+        c.keywords.sort((a, b) => (b.spend || 0) - (a.spend || 0) || String(a.keyword).localeCompare(String(b.keyword)));
+        return {
+          ...c,
+          count: c.keywords.length,
+          paused,
+          /* How much of the list the range actually has figures for. It is the
+             sentence the screen needs: "31 keywords, 2 with delivery in this
+             range" is the honest reading of a table mostly full of dashes. */
+          measured,
+          spendText: measured ? asMoney(spend) : null,
+          matchMix: [...mix.entries()].sort((a, b) => b[1] - a[1]).map(([m, n]) => `${n} ${m}`).join(' · '),
+        };
+      })
+      .sort((a, b) => b.count - a.count || String(a.campaign).localeCompare(String(b.campaign)));
+  })();
+
+  /* Which campaign the reader picked. Unknown or absent shows the first, which
+     is the one with the most keywords — a picker that opens on nothing makes
+     the reader choose before it will tell them anything. */
+  const askedCampaign = req.query.campaign === undefined ? null : String(req.query.campaign);
+  const selectedCampaign = liveCampaigns.find((c) => String(c.campaignId) === askedCampaign)
+    || liveCampaigns[0]
+    || null;
+
   const keywordsByCampaign = (() => {
     const rows = rollUp(entities.googleKeywords, (r) => `${r.campaignId} ${r.keyword}`, (r) => ({
       keyword: r.keyword, matchType: r.matchType, qualityScore: r.qualityScore, campaignId: r.campaignId,
@@ -2858,6 +2964,7 @@ async function googleAdsPayload(req) {
     table: String(req.query.table || ''),
     connected: live.has('google_ads'),
     campaigns, campaignTotal, adGroups, ads, keywords, keywordsByCampaign, conversions,
+    liveCampaigns, selectedCampaign,
     searchTerms: terms, termSummary, words,
     keywordsNotApplicable, paidSearch,
   };

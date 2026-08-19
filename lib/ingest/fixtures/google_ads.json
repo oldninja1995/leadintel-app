@@ -1,16 +1,116 @@
 {
   "_note": "SYNTHETIC. Not Google's data and not real. Google reports spend in micros, which is exactly the kind of unit difference stage 2 has to reconcile against Meta's rupees. See PHASES.md, Phase 4.",
-
   "campaign_day": [
-    { "campaign_id": "G-4410", "campaign_name": "Kumarakom Ayurveda Retreat | Search | Jul", "date": "2026-07-14", "currency": "INR", "cost_micros": 4800000000, "impressions": 22400, "clicks": 1180, "conversions": 9 },
-    { "campaign_id": "G-4411", "campaign_name": "brand search", "date": "2026-07-14", "currency": "INR", "cost_micros": 2030000000, "impressions": 14100, "clicks": 1640, "conversions": 14 }
+    {
+      "campaign_id": "G-4410",
+      "campaign_name": "Kumarakom Ayurveda Retreat | Search | Jul",
+      "date": "2026-07-14",
+      "currency": "INR",
+      "cost_micros": 4800000000,
+      "impressions": 22400,
+      "clicks": 1180,
+      "conversions": 9
+    },
+    {
+      "campaign_id": "G-4411",
+      "campaign_name": "brand search",
+      "date": "2026-07-14",
+      "currency": "INR",
+      "cost_micros": 2030000000,
+      "impressions": 14100,
+      "clicks": 1640,
+      "conversions": 14
+    }
   ],
-
   "adgroup_day": [
-    { "adgroup_id": "GA-771", "campaign_id": "G-4410", "adgroup_name": "Ayurveda packages", "date": "2026-07-14", "currency": "INR", "cost_micros": 2900000000, "impressions": 13800, "clicks": 690 }
+    {
+      "adgroup_id": "GA-771",
+      "campaign_id": "G-4410",
+      "adgroup_name": "Ayurveda packages",
+      "date": "2026-07-14",
+      "currency": "INR",
+      "cost_micros": 2900000000,
+      "impressions": 13800,
+      "clicks": 690
+    }
   ],
-
   "keyword_day": [
-    { "keyword_id": "KW-3301", "adgroup_id": "GA-771", "keyword": "ayurveda resort kumarakom", "match_type": "PHRASE", "date": "2026-07-14", "currency": "INR", "cost_micros": 1240000000, "clicks": 310 }
+    {
+      "keyword_id": "KW-3301",
+      "adgroup_id": "GA-771",
+      "keyword": "ayurveda resort kumarakom",
+      "match_type": "PHRASE",
+      "date": "2026-07-14",
+      "currency": "INR",
+      "cost_micros": 1240000000,
+      "clicks": 310
+    }
+  ],
+  "keyword": [
+    {
+      "keyword_id": "KW-3301",
+      "keyword": "ayurveda resort kumarakom",
+      "match_type": "PHRASE",
+      "status": "ENABLED",
+      "adgroup_id": "GA-771",
+      "adgroup_name": "Ayurveda packages",
+      "adgroup_status": "ENABLED",
+      "campaign_id": "G-4410",
+      "campaign_name": "Kumarakom Ayurveda Retreat | Search | Jul",
+      "campaign_status": "ENABLED",
+      "channel_type": "SEARCH"
+    },
+    {
+      "keyword_id": "KW-3302",
+      "keyword": "ayurveda packages kerala",
+      "match_type": "BROAD",
+      "status": "ENABLED",
+      "adgroup_id": "GA-771",
+      "adgroup_name": "Ayurveda packages",
+      "adgroup_status": "ENABLED",
+      "campaign_id": "G-4410",
+      "campaign_name": "Kumarakom Ayurveda Retreat | Search | Jul",
+      "campaign_status": "ENABLED",
+      "channel_type": "SEARCH"
+    },
+    {
+      "keyword_id": "KW-3303",
+      "keyword": "panchakarma retreat booking",
+      "match_type": "EXACT",
+      "status": "PAUSED",
+      "adgroup_id": "GA-771",
+      "adgroup_name": "Ayurveda packages",
+      "adgroup_status": "ENABLED",
+      "campaign_id": "G-4410",
+      "campaign_name": "Kumarakom Ayurveda Retreat | Search | Jul",
+      "campaign_status": "ENABLED",
+      "channel_type": "SEARCH"
+    },
+    {
+      "keyword_id": "KW-3310",
+      "keyword": "parakkat nature resort",
+      "match_type": "EXACT",
+      "status": "ENABLED",
+      "adgroup_id": "GA-780",
+      "adgroup_name": "Brand",
+      "adgroup_status": "ENABLED",
+      "campaign_id": "G-4411",
+      "campaign_name": "brand search",
+      "campaign_status": "ENABLED",
+      "channel_type": "SEARCH"
+    },
+    {
+      "keyword_id": "KW-3311",
+      "keyword": "parakkat resorts munnar",
+      "match_type": "PHRASE",
+      "status": "ENABLED",
+      "adgroup_id": "GA-780",
+      "adgroup_name": "Brand",
+      "adgroup_status": "ENABLED",
+      "campaign_id": "G-4411",
+      "campaign_name": "brand search",
+      "campaign_status": "ENABLED",
+      "channel_type": "SEARCH"
+    }
   ]
 }

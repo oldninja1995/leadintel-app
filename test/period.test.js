@@ -64,7 +64,12 @@ test('every dated collection canonical produces is declared, not only the ones a
        creatives  — an ad plus its daily series; narrowed by creativesWithin
        audiences  — keyed by id, not a dated row
        problems   — ingest diagnostics, not measurements */
-  const exempt = new Set(['creatives', 'audiences', 'problems']);
+  /* googleKeywordList is the account's criterion list — what it is bidding on
+     now. It carries no date because Google's `ad_group_criterion` has none, and
+     narrowing it by a range would answer "which keywords existed in July",
+     which nothing reports. Every other Google collection is a measurement over
+     a window and must be declared. */
+  const exempt = new Set(['creatives', 'audiences', 'problems', 'googleKeywordList']);
 
   const undeclared = Object.keys(canonical.build([]))
     .filter((collection) => !exempt.has(collection) && !period.FIELD[collection]);

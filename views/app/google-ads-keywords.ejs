@@ -39,6 +39,12 @@ const keywords = d.keywords || [];
    googleAdsPayload in server.js for why the grouping is keyed by campaign and
    keyword rather than by keyword alone. */
 const byCampaign = d.keywordsByCampaign || [];
+/* The account's current keyword list, and the campaign the reader picked. Not
+   the same thing as `byCampaign` above, which is the *measured* keywords —
+   see the panel copy and googleAdsPayload for why both exist. */
+const live = d.liveCampaigns || [];
+const sel = d.selectedCampaign || null;
+
 const words = d.words || [];
 const s = d.termSummary || {};
 
@@ -53,7 +59,7 @@ const PREVIEW = 10;
 /* Which table, if any, the reader asked to see whole. An unknown value shows
    the overview rather than an error — a mistyped query string is not a fault
    worth a page. */
-const TABLES = ['wasted', 'words', 'keywords', 'by-campaign', 'terms'];
+const TABLES = ['wasted', 'words', 'current', 'keywords', 'by-campaign', 'terms'];
 const only = TABLES.indexOf(String(d.table || '')) > -1 ? String(d.table) : null;
 const shows = (name) => !only || only === name;
 const whole = (name) => only === name;
@@ -63,6 +69,24 @@ const whole = (name) => only === name;
 const qs = d.qs || '';
 const join = (extra) => (qs ? `${qs}&${extra}` : `?${extra}`);
 const rows = (list, name) => (whole(name) ? list : list.slice(0, PREVIEW));
+
+/* Everything already in the query string except the campaign, so the picker's
+   form does not drop the range or the open-table state when it submits. A GET
+   form replaces the whole query string, which is the trap here. */
+const carry = (() => {
+  const out = [];
+  const seen = new Set(['campaign']);
+  for (const pair of String(qs).replace(/^\?/, '').split('&')) {
+    if (!pair) continue;
+    const [rawName, rawValue = ''] = pair.split('=');
+    const name = decodeURIComponent(rawName);
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    out.push({ name, value: decodeURIComponent(rawValue.replace(/\+/g, ' ')) });
+  }
+  return out;
+})();
+
 %>
 
 <% if (!d.connected) { %>
@@ -246,7 +270,96 @@ const rows = (list, name) => (whole(name) ? list : list.slice(0, PREVIEW));
 </section>
 <% } %>
 
-<!-- Keywords by campaign ------------------------------------------------------>
+<!-- Current keywords, by campaign ---------------------------------------------->
+<% if (shows('current') && live.length) { %>
+<section class="li-ota-panel">
+  <div class="li-ota-panel-head">
+    <h2>Keywords in the account</h2>
+    <p>
+      What each campaign is bidding on <strong>right now</strong> — the account's own keyword
+      list, enabled and paused alike. This does not narrow with the range above it, and cannot:
+      "what are we bidding on" has no window, and Google does not report what the list looked
+      like in a past month. The spend beside each keyword does follow the range, so a keyword
+      with a dash did not spend nothing — it had no delivery Google reported in this window.
+      That is the difference between this table and the measured one below it, which can only
+      ever show keywords that ran.
+    </p>
+  </div>
+
+  <%# A GET form, so the picker works with JavaScript switched off and the chosen
+      campaign lives in the URL — which makes it linkable and survives a reload. %>
+  <form method="get" action="/google-ads/keywords" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:12px 0;">
+    <% carry.forEach(function (p) { %><input type="hidden" name="<%= p.name %>" value="<%= p.value %>"><% }); %>
+    <label for="li-kw-campaign" style="font-size:11.5px; color:var(--color-neutral-500);">Campaign</label>
+    <select id="li-kw-campaign" name="campaign" onchange="this.form.submit()"
+            style="font: inherit; font-size:12px; padding:6px 10px; border-radius:8px; background:var(--color-surface); color:var(--color-neutral-200); border:1px solid var(--color-neutral-800);">
+      <% live.forEach(function (c) { %>
+        <option value="<%= c.campaignId %>" <%= sel && String(sel.campaignId) === String(c.campaignId) ? 'selected' : '' %>>
+          <%= txt(c.campaign) %> — <%= c.count %> keyword<%= c.count === 1 ? '' : 's' %><% if (c.paused) { %>, <%= c.paused %> paused<% } %>
+        </option>
+      <% }); %>
+    </select>
+    <%# The only control the form needs without JS; harmless with it. %>
+    <noscript><button type="submit" style="font: inherit; font-size:12px; padding:6px 12px; border-radius:8px;">Show</button></noscript>
+    <span style="font-size:11px; color:var(--color-neutral-600);">
+      <%= live.length %> campaign<%= live.length === 1 ? '' : 's' %> with keywords
+    </span>
+  </form>
+
+  <% if (sel) { %>
+    <div class="li-ota-panel-head">
+      <h3 style="font-size:13px; margin:0;">
+        <%= txt(sel.campaign) %>
+        <span class="li-chip"><%= sel.count %> keyword<%= sel.count === 1 ? '' : 's' %></span>
+        <% if (sel.matchMix) { %><span class="li-chip"><%= sel.matchMix %></span><% } %>
+        <% if (sel.status) { %><span class="li-chip"><%= chip(sel.status) %></span><% } %>
+        <% if (sel.channelType) { %><span class="li-chip"><%= chip(sel.channelType) %></span><% } %>
+      </h3>
+      <p>
+        <%= sel.measured %> of <%= sel.count %> had delivery Google reported in this range<% if (sel.spendText) { %>,
+        costing <%= sel.spendText %><% } %>. The rest are in the account and were quiet — a paused
+        keyword and one that simply got no impressions both read as a dash, which the status
+        column tells apart.
+      </p>
+    </div>
+    <div class="li-ota-scroll">
+      <table class="li-ota-table">
+        <thead>
+          <tr>
+            <th>Keyword</th><th>Match</th><th>Status</th><th>Ad group</th>
+            <th class="li-num">Spend</th><th class="li-num">Impressions</th>
+            <th class="li-num">Clicks</th><th class="li-num">CTR</th><th class="li-num">CPC</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows(sel.keywords, 'current').forEach((k) => { %>
+            <tr>
+              <td><%= txt(k.keyword) %></td>
+              <td><span class="li-chip"><%= chip(k.matchType) %></span></td>
+              <td><span class="li-chip"><%= chip(k.status) %></span></td>
+              <td><%= txt(k.adgroup) %></td>
+              <td class="li-num" title="<%= k.measured ? 'Spend in the selected range.' : 'No delivery reported for this keyword in the selected range — it is in the account and was quiet, which is not the same as spending nothing.' %>"><%= txt(k.spendText) %></td>
+              <td class="li-num"><%= k.measured ? num(k.impressions) : '—' %></td>
+              <td class="li-num"><%= k.measured ? num(k.clicks) : '—' %></td>
+              <td class="li-num"><%= txt(k.ctr) %></td>
+              <td class="li-num"><%= txt(k.cpcText) %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <% if (!whole('current') && sel.keywords.length > PREVIEW) { %>
+      <p class="li-ota-foot">
+        <%= num(sel.keywords.length) %> keywords in this campaign. Showing the <%= PREVIEW %> with
+        the most spend —
+        <a href="/google-ads/keywords<%= join('table=current&campaign=' + encodeURIComponent(sel.campaignId)) %>">view the whole list</a> &rarr;
+      </p>
+    <% } %>
+  <% } %>
+</section>
+<% } %>
+
+<!-- Keywords by campaign, as measured ------------------------------------------>
 <% if (shows('by-campaign') && byCampaign.length) { %>
 <section class="li-ota-panel">
   <div class="li-ota-panel-head">
