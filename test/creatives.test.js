@@ -68,6 +68,42 @@ test('the re-labelled cells carry the metric their label now names', () => {
   assert.equal(row.bookings, '—', 'interested lead rate needs the CRM');
   assert.equal(row.rev, '—', 'booking rate needs the CRM and PMS');
   assert.match(row.deliveryWhy, /CPM ₹211/, 'the platform figures keep a home');
+
+  /* The two cells a resort reads as counts rather than as rates. Both decline
+     the same way the rates do — no CRM behind the creative means the number of
+     interested leads is unknown, which is not zero. */
+  assert.equal(row.intLeads, '—', 'interested leads need the CRM');
+  assert.equal(row.reservations, '—', 'reservations need the CRM');
+  assert.match(row.intLeadsWhy, /unknown/, 'the tooltip says why it is absent rather than leaving a dash');
+});
+
+test('the counts carry the rate they were computed from, and the booking lag', () => {
+  /* The rate is the fair comparison between a creative that ran on ₹900 and
+     one that ran on ₹90,000; the count is the thing that happened. The card
+     shows the count, so the rate has to stay reachable or the score is
+     computed from something the screen never shows. */
+  const leads = Array.from({ length: 20 }, (_, i) => ({
+    entity: 'lead', id: `L${i}`, adId: '99201',
+    stage: i < 8 ? 'qualified' : 'new', createdAt: '2026-07-01T09:00:00.000Z',
+  }));
+  const bookings = leads.slice(0, 2).map((lead, i) => ({
+    entity: 'booking', id: `B${i}`, leadId: lead.id, checkIn: '2026-07-10',
+    revenue: { value: 4000000 }, bookingStatus: 'Checked_in',
+  }));
+
+  const [row] = creatives({
+    creatives: [{ ...CREATIVE, spend: 126000, clicks: 34, leads: 20 }],
+    leads,
+    bookings,
+  });
+
+  assert.equal(row.intLeads, '8');
+  assert.equal(row.reservations, '2');
+  assert.match(row.intLeadsWhy, /8 of 20 leads/);
+  assert.match(row.intLeadsWhy, /40\.0% interested rate/);
+  assert.match(row.reservationsWhy, /10\.0% of them booked/);
+  /* The caveat that decides whether the number can be believed yet. */
+  assert.match(row.reservationsWhy, /weeks after the click/);
 });
 
 test('a re-labelled cell still declines when its metric is missing', () => {

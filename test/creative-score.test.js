@@ -89,7 +89,15 @@ test('each stage is scored on its own model', () => {
   assert.equal(scoring.WEIGHTS_BY_STAGE.TOFU.hookRate + scoring.WEIGHTS_BY_STAGE.TOFU.holdRate, 0.30);
   assert.equal(scoring.WEIGHTS_BY_STAGE.MOFU.cpil, 0.30);
   assert.equal(scoring.WEIGHTS_BY_STAGE.BOFU.bookingRate, 0.30);
-  assert.equal(scoring.WEIGHTS_BY_STAGE.BOFU.roas, 0.25);
+  assert.equal(scoring.WEIGHTS_BY_STAGE.BOFU.roas, 0.30);
+
+  /* The measures a resort judges a creative by: the reservation, what it was
+     worth, and what came back. Cost per booking is not among them and no
+     longer carries weight anywhere — on these volumes it was a rupee figure
+     over one or two reservations. */
+  for (const [stage, set] of Object.entries(scoring.WEIGHTS_BY_STAGE)) {
+    assert.equal(set.costPerBooking, undefined, `${stage} still weighs cost per booking`);
+  }
 });
 
 test('every stage model is a complete weighting', () => {
@@ -359,7 +367,16 @@ test('the headline names the stage and the figures that carried the score', () =
   assert.match(line, /—/, 'the line must name actual figures, not just a verdict');
 });
 
-test('the best at each stage is reported separately from the best overall', () => {
+test('no winner is named per stage', () => {
+  /* There was a `bestByStage` here, drawn as three Best TOFU / MOFU / BOFU
+     tiles. The stage is guessed from ad set targeting and campaign objectives,
+     and on the real account that guess does not hold — see the funnel test,
+     where 28 creatives read BOFU and not one reads MOFU. Naming a winner per
+     stage is a confident answer to a question the data cannot answer, and it
+     is a different thing from letting the stage choose which questions a
+     creative is asked, which it still does. */
+  assert.equal(typeof scoring.bestByStage, 'undefined');
+
   const ctx = world({
     T: { leads: 40, interested: 8, bookings: 1, revenuePer: 200000 },
     M: { leads: 40, interested: 16, bookings: 3, revenuePer: 400000 },
@@ -372,6 +389,7 @@ test('the best at each stage is reported separately from the best overall', () =
     creative('B', 'Bottom', { leads: 40 }),
   ], ctx);
 
-  const best = scoring.bestByStage(rows);
-  assert.deepEqual(best.map((b) => b.stage), ['TOFU', 'MOFU', 'BOFU']);
+  /* The stage still selects the model — that is the half that survives. */
+  assert.deepEqual(rows.map((r) => r.stage), ['TOFU', 'MOFU', 'BOFU']);
+  assert.equal(rows[0].weights, scoring.WEIGHTS_BY_STAGE.TOFU);
 });

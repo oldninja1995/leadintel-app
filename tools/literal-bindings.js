@@ -48,7 +48,7 @@ const LITERAL_BINDINGS = [
     find: '>BOOKINGS<',
     replace: '>CPM<',
     relabel: true,
-    valueFrom: 'cr.bookings',
+    valueFrom: 'cr.intLeads',
     why: 'bookings need PMS revenue; CPM is fetched and judges reach cost',
   },
   {
@@ -56,7 +56,7 @@ const LITERAL_BINDINGS = [
     find: '>REVENUE<',
     replace: '>FREQUENCY<',
     relabel: true,
-    valueFrom: 'cr.rev',
+    valueFrom: 'cr.reservations',
     why: 'revenue needs the CRM; frequency is fetched and is the first fatigue signal',
   },
   {
@@ -80,21 +80,27 @@ const LITERAL_BINDINGS = [
     valueFrom: 'cr.spend',
     why: 'the measure the whole score turns on deserves the first cell; total spend moves to the score row',
   },
+  /* Two whole cells rather than two relabels, because both need a tooltip the
+     design has nowhere to put.
+   *
+   * They read as rates — interested lead rate, booking rate — and a resort
+   * reads them as counts: how many people this creative made interested, and
+   * how many rooms it filled. The rate is still the fair comparison between a
+   * creative that ran on ₹900 and one that ran on ₹90,000, so it rides on the
+   * hover along with the caveat that decides whether the number can be
+   * believed yet — a reservation can close weeks after the click that produced
+   * it, so a recent creative reads low here before it reads true. */
   {
     screen: 'creatives',
-    find: '>CPM<',
-    replace: '>INT. LEAD RATE<',
-    relabel: true,
-    valueFrom: 'cr.bookings',
-    why: 'lead quality is the thing CPM cannot see',
+    find: '<div><div style="font-size:9.5px; color:var(--color-neutral-600);">CPM</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.bookings %></div></div>',
+    replace: '<div title="<%= cr.intLeadsWhy %>"><div style="font-size:9.5px; color:var(--color-neutral-600);">INT. LEADS</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.intLeads %></div></div>',
+    why: 'lead quality is the thing CPM cannot see, and a count is what somebody asks a creative for',
   },
   {
     screen: 'creatives',
-    find: '>FREQUENCY<',
-    replace: '>BOOKING RATE<',
-    relabel: true,
-    valueFrom: 'cr.rev',
-    why: 'what the leads actually did',
+    find: '<div><div style="font-size:9.5px; color:var(--color-neutral-600);">FREQUENCY</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.rev %></div></div>',
+    replace: '<div title="<%= cr.reservationsWhy %>"><div style="font-size:9.5px; color:var(--color-neutral-600);">RESERVATIONS</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.reservations %></div></div>',
+    why: 'what the leads actually did, as the number of rooms rather than as a percentage',
   },
   {
     screen: 'creatives',
@@ -118,11 +124,14 @@ const LITERAL_BINDINGS = [
     find: '<div><div style="font-size:9.5px; color:var(--color-neutral-600);">CTR</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.ctr %></div></div>',
     replace: [
       '<div data-li-slot="ctr"><div style="font-size:9.5px; color:var(--color-neutral-600);">CTR</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.ctr %></div></div>',
-      '                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">COST / BOOKING</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.cpb %></div></div>',
       '                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">HOOK</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.hookPct %></div></div>',
       '                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">HOLD</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.holdPct %></div></div>',
     ].join('\n'),
-    why: 'cost per booking, hook and hold complete the funnel the card describes',
+    /* Cost per booking used to ride here too. It is off the card and out of the
+       BOFU model both: on a resort's volumes it is a rupee figure over one or
+       two reservations, and ROAS and cost per interested lead say what it was
+       trying to say on denominators that hold. */
+    why: 'hook and hold complete the funnel the card describes',
   },
   {
     screen: 'creatives',
@@ -177,21 +186,16 @@ const LITERAL_BINDINGS = [
       '            <% }); %>',
       '          </div>',
       '          <% } %>',
-      '          <% if ((typeof bestByStage !== "undefined") && bestByStage && bestByStage.length > 1) { %>',
-      '          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">',
-      '            <% bestByStage.forEach(function (b) { %>',
-      '              <div class="hv-3" data-action="<%= b.go %>" style="display:flex; align-items:center; gap:7px; background:var(--color-surface); border:1px solid var(--color-neutral-900); border-radius:9px; padding:6px 11px; cursor:pointer; font-size:11px;">',
-      '                <span><%= b.marker %></span>',
-      '                <span style="color:var(--color-neutral-500);">Best <%= b.label %></span>',
-      '                <span style="color:var(--color-neutral-200); font-weight:500;"><%= b.title %></span>',
-      '                <span style="color:var(--color-accent-300); font-variant-numeric:tabular-nums;"><%= b.score %></span>',
-      '              </div>',
-      '            <% }); %>',
-      '          </div>',
-      '          <% } %>',
       '          <div data-li-slot="grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">',
     ].join('\n'),
-    why: 'the best creative at each funnel stage is a different question from the best overall, and both are asked',
+    /* Three Best TOFU / MOFU / BOFU tiles used to sit here. They are gone: the
+       stage is guessed from ad set targeting and campaign objectives, and on
+       this account that guess does not hold — the funnel test records 28
+       creatives reading BOFU and not one MOFU. Naming a winner per stage is a
+       confident answer to a question the data cannot answer. The stage still
+       chooses which questions a creative is asked; it no longer crowns
+       anybody. */
+    why: 'the census and the notes are what a reader wants before the grid',
   },
   /* The screen carried two scores and defined neither. A number on a badge that
      the reader cannot interpret is worse than no badge: it gets quoted and then

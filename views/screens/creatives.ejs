@@ -34,18 +34,6 @@
             <% }); %>
           </div>
           <% } %>
-          <% if (bestByStage && bestByStage.length > 1) { %>
-          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-            <% bestByStage.forEach(function (b) { %>
-              <div class="hv-3" data-action="<%= b.go %>" style="display:flex; align-items:center; gap:7px; background:var(--color-surface); border:1px solid var(--color-neutral-900); border-radius:9px; padding:6px 11px; cursor:pointer; font-size:11px;">
-                <span><%= b.marker %></span>
-                <span style="color:var(--color-neutral-500);">Best <%= b.label %></span>
-                <span style="color:var(--color-neutral-200); font-weight:500;"><%= b.title %></span>
-                <span style="color:var(--color-accent-300); font-variant-numeric:tabular-nums;"><%= b.score %></span>
-              </div>
-            <% }); %>
-          </div>
-          <% } %>
           <div data-li-slot="grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
             <% (creatives || []).forEach(function (cr) { %>
               <div class="hv-4" data-action="<%= cr.go %>" style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); overflow:hidden; cursor:pointer;">
@@ -65,11 +53,10 @@
                     <div><div style="font-size:9.5px; color:var(--color-neutral-600);">COST / INT. LEAD</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.spend %></div></div>
                     <div><div style="font-size:9.5px; color:var(--color-neutral-600);">CPL</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.cpl %></div></div>
                     <div data-li-slot="ctr"><div style="font-size:9.5px; color:var(--color-neutral-600);">CTR</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.ctr %></div></div>
-                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">COST / BOOKING</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.cpb %></div></div>
                     <div><div style="font-size:9.5px; color:var(--color-neutral-600);">HOOK</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.hookPct %></div></div>
                     <div><div style="font-size:9.5px; color:var(--color-neutral-600);">HOLD</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.holdPct %></div></div>
-                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">INT. LEAD RATE</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.bookings %></div></div>
-                    <div><div style="font-size:9.5px; color:var(--color-neutral-600);">BOOKING RATE</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.rev %></div></div>
+                    <div title="<%= cr.intLeadsWhy %>"><div style="font-size:9.5px; color:var(--color-neutral-600);">INT. LEADS</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.intLeads %></div></div>
+                    <div title="<%= cr.reservationsWhy %>"><div style="font-size:9.5px; color:var(--color-neutral-600);">RESERVATIONS</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.reservations %></div></div>
                     <div title="Reservation value the CRM recorded against leads this creative produced. Deal value entered at conversion, not money collected."><div style="font-size:9.5px; color:var(--color-neutral-600);">RES. VALUE</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums;"><%= cr.resValue %></div></div>
                     <div><div style="font-size:9.5px; color:var(--color-neutral-600);">ROAS</div><div style="font-size:12px; font-weight:500; font-variant-numeric:tabular-nums; color:<%= cr.roasColor %>;"><%= cr.roas %></div></div>
                   </div>
