@@ -77,6 +77,34 @@ test('every query the request edge batches declares its order or is keyed', () =
   assert.equal(PgDocs.manyQuery(['a']).order, undefined);
 });
 
+test('a dropped socket costs one reconnect, not a failed request', async () => {
+  /* The trade the pool now makes: hold the connection between requests rather
+     than drop it after ten idle seconds, and handle the freeze here. */
+  const calls = [];
+  const once = (message) => {
+    let thrown = false;
+    return async (text) => {
+      calls.push(text);
+      if (!thrown) { thrown = true; throw new Error(message); }
+      return [{ ok: true }];
+    };
+  };
+
+  const query = pg.retrying(once('Connection terminated unexpectedly'));
+  assert.deepEqual(await query('SELECT 1'), [{ ok: true }]);
+  assert.equal(calls.length, 2, 'the dropped socket was not retried');
+});
+
+test('a real error is not retried', async () => {
+  /* Retrying a database that is down is how one slow request becomes two, and
+     retrying a syntax error is how it becomes two of those. */
+  let calls = 0;
+  const query = pg.retrying(async () => { calls += 1; throw new Error('syntax error at or near "SELCT"'); });
+
+  await assert.rejects(() => query('SELCT 1'), /syntax error/);
+  assert.equal(calls, 1, 'a query error was retried when it should not have been');
+});
+
 test('a per-source window is partitioned, and still carries each last success', () => {
   /* Why the window changed shape: the chrome on every screen prints one line
      about freshness, and the edge was hydrating the last 500 runs to draw it —
