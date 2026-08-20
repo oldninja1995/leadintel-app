@@ -84,5 +84,8 @@
 
 <script src="<%= asset('actions.js') %>"></script>
 <script src="<%= asset('app-ui.js') %>"></script>
+<%# The phone top bar. Its own file so a throw in it cannot take the palette,
+    the chips and the range menu down with it. %>
+<script src="<%= asset('mobile-topbar.js') %>"></script>
 </body>
 </html>

@@ -157,7 +157,7 @@ main { flex: 1; overflow-y: auto; padding: 18px; }
      already off-canvas, and it sits where a thumb closes the sheet. */
   .app > nav [data-action="toggleSidebar"] { display: none !important; }
 
-  .main-col { width: 100%; }
+  .main-col { width: 100%; position: relative; }
 
   /* The trigger. Injected by app-ui.js, styled here so it matches the controls
      it sits beside rather than carrying a style attribute of its own. */
@@ -221,4 +221,151 @@ main { flex: 1; overflow-y: auto; padding: 18px; }
   /* Fixed at 420px, which is wider than the screen it is centred on. */
   .li-login-card { width: auto !important; max-width: 100% !important; }
   body { overflow-x: hidden; }
+}
+
+/* ── the top bar, on a phone ───────────────────────────────────────────────
+ *
+ * Measured before this existed: the header laid 1,257px of controls into a
+ * 390px viewport and the filter bar another 1,124px, so making them scroll
+ * sideways left eight controls reachable only by dragging a row — including
+ * the range chips, which are the primary control on every screen.
+ *
+ * One row of six things instead:  ☰  PH  [range ▾]  [Filters n]  🔔  AP
+ *
+ * `.li-m-bar` is set by mobile-topbar.js only once it has finished rearranging,
+ * so a page where that failed keeps the plain scrolling bar rather than a
+ * half-applied one. Every rule below is scoped to it for that reason.
+ */
+@media (max-width: 860px) {
+  /* Both rows collapse to their controls; the panels are what open. */
+  .li-m-bar .main-col > header {
+    flex-wrap: nowrap !important;
+    overflow: visible !important;
+    gap: 6px !important;
+    padding: 8px 10px !important;
+  }
+
+  /* The workspace chip keeps its badge and loses its name — "PH" is the part
+     that identifies it, and the words cost a third of the row. */
+  .li-m-bar .main-col > header > [data-action="toggleWs"] > span,
+  .li-m-bar .main-col > header > [data-action="toggleWs"] > i { display: none !important; }
+  .li-m-bar .main-col > header > [data-action="toggleWs"] { padding: 5px !important; }
+
+  /* Pushed off the row: the "vs previous period" caption and the spacer that
+     only existed to push things to a right-hand side this row no longer has. */
+  .li-m-bar [data-li-m="quiet"],
+  .li-m-bar [data-li-m="spacer"] { display: none !important; }
+
+  /* The two panels. Closed by default; opened as a sheet under the bar, which
+     is where a reader looks after tapping a control in it. */
+  .li-m-bar [data-li-m="range"],
+  .li-m-bar [data-li-m="filters"] { display: none !important; }
+
+  .li-m-bar.li-range-open [data-li-m="range"],
+  .li-m-bar.li-filters-open [data-li-m="filters"] {
+    display: flex !important;
+    position: absolute;
+    top: 52px;
+    left: 8px;
+    right: 8px;
+    z-index: 40;
+    flex-wrap: wrap !important;
+    gap: 6px;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 10px !important;
+    border: 1px solid var(--color-neutral-800);
+    border-radius: 12px;
+    background: var(--color-surface);
+    box-shadow: var(--shadow-lg, 0 18px 40px rgba(0, 0, 0, .5));
+  }
+
+  /* The range chips are drawn as one segmented control with a shared border;
+     wrapped into a panel each needs its own edge or they read as one smear. */
+  .li-m-bar.li-range-open [data-li-m="range"] > * {
+    border: 1px solid var(--color-neutral-800);
+    border-radius: 8px;
+  }
+
+  .li-m-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex: none;
+    min-height: 34px;
+    max-width: 44vw;
+    padding: 5px 9px;
+    border: 1px solid var(--color-neutral-800);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--color-neutral-300);
+    font: inherit;
+    font-size: 11.5px;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .li-m-btn > span { overflow: hidden; text-overflow: ellipsis; }
+  .li-m-btn .li-m-caret { font-size: 10px; color: var(--color-neutral-600); }
+  .li-m-count {
+    font-style: normal;
+    font-size: 10px;
+    padding: 1px 5px;
+    border-radius: 99px;
+    background: var(--color-neutral-900);
+    color: var(--color-neutral-400);
+  }
+  .li-nav-open .li-m-btn, .li-range-open .li-m-btn[aria-expanded="true"],
+  .li-filters-open .li-m-btn[aria-expanded="true"] { border-color: var(--color-accent-600); color: var(--color-accent-300); }
+
+  /* What moved into the drawer: search, theme, Ask AI, and the filter bar's
+     own tail — the freshness line and the saved views. */
+  .li-m-shelf {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: auto;
+    padding: 12px 14px;
+    border-top: 1px solid var(--color-neutral-900);
+  }
+  .li-m-shelf > * { flex: none; }
+
+  /* ── phase 2: what a thumb can hit ──────────────────────────────────────
+     43 controls on Connections were under 32px, and the chips, badges and row
+     actions everywhere else were drawn at desktop density. 32px is the
+     practical floor; below it a tap lands on the row behind. */
+  main [data-action], main a[href], main button, main select {
+    min-height: 32px;
+  }
+  main [data-action]:not(tr):not(td), main button, main select {
+    display: inline-flex;
+    align-items: center;
+  }
+  /* Rows and cells are targets too and must not be stretched into buttons. */
+  main tr[data-action] { display: table-row; }
+  main td[data-action] { display: table-cell; }
+
+  /* ── phase 3: the type floor ────────────────────────────────────────────
+     801 nodes on Creative Intelligence were under 10.5px, which is where a
+     phone browser starts offering to zoom — the browser saying the page was
+     not built for it. The design writes its sizes inline, so they are lifted
+     by the value written rather than by class. */
+  main [style*="font-size:9px"] { font-size: 11px !important; }
+  main [style*="font-size:9.5px"] { font-size: 11px !important; }
+  main [style*="font-size:10px"] { font-size: 11.5px !important; }
+  main [style*="font-size:10.5px"] { font-size: 11.5px !important; }
+  main [style*="font-size:8px"] { font-size: 10.5px !important; }
+  main [style*="font-size:8.5px"] { font-size: 10.5px !important; }
+
+  /* The same floor for the sizes written as classes rather than inline — the
+     OTA badges and the numeric table cells in app-ui.css. Listed rather than
+     blanket-set on main, because raising every inherited size would move the
+     headings too. */
+  main .li-num, main .li-ota-table th, main .li-ota-status, main .li-ota-state,
+  main .li-chip, main .li-ota-foot,
+  main .li-conn-set, main em { font-size: 11px !important; }
+
+  /* Deliberately untouched: text inside an <svg>. A sparkline label is drawn
+     in the chart's own coordinate space and scales with it, so lifting it
+     moves the chart rather than the type. */
 }

@@ -291,7 +291,13 @@ const carry = (() => {
   <form method="get" action="/google-ads/keywords" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:12px 0;">
     <% carry.forEach(function (p) { %><input type="hidden" name="<%= p.name %>" value="<%= p.value %>"><% }); %>
     <label for="li-kw-campaign" style="font-size:11.5px; color:var(--color-neutral-500);">Campaign</label>
-    <select id="li-kw-campaign" name="campaign" onchange="this.form.submit()"
+    <%# No inline `onchange`: this app's CSP is `script-src 'self'` with no
+        'unsafe-inline', so a handler written as an attribute is silently never
+        run — the select changed, the form never submitted, and the panel below
+        went on describing the campaign that was already loaded. The submit is
+        wired in app-ui.js instead, and the button beside it is no longer inside
+        <noscript> so the control works even if that never runs. %>
+    <select id="li-kw-campaign" name="campaign" data-li-autosubmit
             style="font: inherit; font-size:12px; padding:6px 10px; border-radius:8px; background:var(--color-surface); color:var(--color-neutral-200); border:1px solid var(--color-neutral-800);">
       <% live.forEach(function (c) { %>
         <option value="<%= c.campaignId %>" <%= sel && String(sel.campaignId) === String(c.campaignId) ? 'selected' : '' %>>
@@ -299,8 +305,7 @@ const carry = (() => {
         </option>
       <% }); %>
     </select>
-    <%# The only control the form needs without JS; harmless with it. %>
-    <noscript><button type="submit" style="font: inherit; font-size:12px; padding:6px 12px; border-radius:8px;">Show</button></noscript>
+    <button type="submit" style="font: inherit; font-size:12px; padding:6px 12px; border-radius:8px; border:1px solid var(--color-neutral-800); background:transparent; color:var(--color-neutral-300); cursor:pointer;">Show</button>
     <span style="font-size:11px; color:var(--color-neutral-600);">
       <%= live.length %> campaign<%= live.length === 1 ? '' : 's' %> with keywords
     </span>

@@ -701,12 +701,29 @@
 
     header.insertBefore(button, header.firstChild);
   }
+
+  /* A select that submits its own form.
+   *
+   * Written as an inline onchange first, which under this app's CSP
+   * (script-src 'self', no unsafe-inline) is silently never run: the select
+   * changed, the form never submitted, and the panel below went on describing
+   * whatever was loaded. Generic rather than named after the one control that
+   * needs it, so the next one does not repeat the mistake. */
+  function enhanceAutoSubmit() {
+    for (const el of document.querySelectorAll('[data-li-autosubmit]')) {
+      el.addEventListener('change', () => {
+        const form = el.closest('form');
+        if (form) form.submit();
+      });
+    }
+  }
   syncBadge();
   enhanceChips();
   enhanceRange();
   enhanceSort('li-sort-data', 'Sort:');
   enhanceSort('li-goal-data', 'Judge by:');
   wirePresentation();
+  enhanceAutoSubmit();
   enhanceMobileNav();
   enhanceKeyboard();
 })();

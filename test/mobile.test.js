@@ -25,16 +25,30 @@ const JS = asset('app-ui.js');
 
 /* Everything inside the phone breakpoint, and everything outside it. */
 const MOBILE = (() => {
-  const at = CSS.indexOf('@media (max-width: 860px)');
-  assert.ok(at > -1, 'the phone breakpoint is gone from app.css');
-  let depth = 0;
-  let i = CSS.indexOf('{', at);
-  const start = i;
-  for (; i < CSS.length; i += 1) {
-    if (CSS[i] === '{') depth += 1;
-    else if (CSS[i] === '}') { depth -= 1; if (!depth) break; }
+  /* Every 860px block, not the first one: the phone rules arrived in three
+     passes — the shell, the top bar, then tap targets and type — and reading
+     only the first made two thirds of them invisible to these tests, which
+     failed in a way that looked like the rules were missing. */
+  const inside = [];
+  const outside = [];
+  let cursor = 0;
+  for (;;) {
+    const at = CSS.indexOf('@media (max-width: 860px)', cursor);
+    if (at === -1) { outside.push(CSS.slice(cursor)); break; }
+    outside.push(CSS.slice(cursor, at));
+
+    let depth = 0;
+    let i = CSS.indexOf('{', at);
+    const start = i;
+    for (; i < CSS.length; i += 1) {
+      if (CSS[i] === '{') depth += 1;
+      else if (CSS[i] === '}') { depth -= 1; if (!depth) break; }
+    }
+    inside.push(CSS.slice(start, i));
+    cursor = i + 1;
   }
-  return { inside: CSS.slice(start, i), outside: CSS.slice(0, at) + CSS.slice(i) };
+  assert.ok(inside.length, 'the phone breakpoint is gone from app.css');
+  return { inside: inside.join('\n'), outside: outside.join('\n'), blocks: inside.length };
 })();
 
 test('the drawer trigger is hidden until the breakpoint asks for it', () => {
@@ -96,4 +110,68 @@ test('closing is possible by every route a phone offers', () => {
   assert.match(JS, /Escape/);
   assert.match(JS, /nav\.contains\(e\.target\)/, 'a tap outside the drawer does not close it');
   assert.match(JS, /nav\.addEventListener\('click'/, 'following a link leaves the drawer open over the new page');
+});
+
+/* ── the top bar ────────────────────────────────────────────────────────── */
+
+const TOPBAR = asset('mobile-topbar.js');
+
+test('the top bar script only runs on a phone, and only once', () => {
+  /* It moves DOM nodes into the drawer. Running at a width where the desktop
+     bar is correct would rearrange a layout that had nothing wrong with it. */
+  assert.match(TOPBAR, /matchMedia\(PHONE\)\.matches/);
+  assert.match(TOPBAR, /if \(done\) return;/);
+});
+
+test('a failure leaves the plain bar rather than half a rearranged one', () => {
+  /* `li-m-bar` gates every rule in the stylesheet and is set last, so a throw
+     partway through leaves the scrolling bar — which works — instead of a bar
+     with its controls hidden and nothing to open them. */
+  assert.match(TOPBAR, /catch \(err\)/);
+  assert.match(TOPBAR, /classList\.remove\('li-m-bar'\)/);
+  const add = TOPBAR.indexOf("classList.add('li-m-bar')");
+  const enhanceEnd = TOPBAR.indexOf('\n  }', TOPBAR.indexOf('function enhance()'));
+  assert.ok(add > -1 && add < enhanceEnd, 'the gate class is not set at the end of enhance()');
+});
+
+test('the gate and the open-state classes land on the same element', () => {
+  /* The stylesheet joins them — `.li-m-bar.li-range-open` — which can only
+     match if one element carries both. Setting the gate on <html> and the
+     state on `.app` made every panel rule dead, and looked like the panel
+     simply never opening. */
+  assert.match(TOPBAR, /app\.classList\.add\('li-m-bar'\)/);
+  assert.match(TOPBAR, /app\.classList\.toggle\(openClass/);
+  assert.match(MOBILE.inside, /\.li-m-bar\.li-range-open/);
+});
+
+test('the bar finds its parts by landmark, not by position', () => {
+  /* The header's child order belongs to the converter. An index would bind the
+     wrong control the first time a control is added — which happened once
+     already, putting Filters ahead of the range. */
+  assert.doesNotMatch(TOPBAR, /header\.children\[\d\]/,
+    'a control is located by index, which the next conversion can move');
+  assert.match(TOPBAR, /ph-funnel-simple/, 'the filter bar is not found by the landmark enhanceChips uses');
+});
+
+/* ── phases 2 and 3 ─────────────────────────────────────────────────────── */
+
+test('every tap target clears 32px', () => {
+  /* 43 controls on Connections alone were under it. Below 32px a tap lands on
+     the row behind. */
+  assert.match(MOBILE.inside, /main \[data-action\][^{]*\{[^}]*min-height:\s*32px/);
+  /* Rows and cells are targets too, and stretching them into flex boxes would
+     take a table apart. */
+  assert.match(MOBILE.inside, /main tr\[data-action\][^}]*table-row/);
+  assert.match(MOBILE.inside, /main td\[data-action\][^}]*table-cell/);
+});
+
+test('no text is left where a phone browser offers to zoom', () => {
+  /* 801 nodes on Creative Intelligence were under 10.5px. The design writes
+     its sizes inline, so they are lifted by the value written. */
+  for (const size of ['8px', '8.5px', '9px', '9.5px', '10px', '10.5px']) {
+    assert.ok(MOBILE.inside.includes(`main [style*="font-size:${size}"]`),
+      `inline ${size} text is not lifted on a phone`);
+  }
+  /* And the sizes written as classes rather than inline. */
+  assert.match(MOBILE.inside, /main \.li-num/);
 });
