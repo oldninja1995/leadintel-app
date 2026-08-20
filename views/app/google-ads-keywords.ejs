@@ -44,6 +44,9 @@ const byCampaign = d.keywordsByCampaign || [];
    see the panel copy and googleAdsPayload for why both exist. */
 const live = d.liveCampaigns || [];
 const sel = d.selectedCampaign || null;
+/* How many campaigns the live-Search filter left out, so the picker can say so
+   rather than quietly showing six of nine. */
+const hidden = d.hiddenCampaigns || 0;
 
 const words = d.words || [];
 const s = d.termSummary || {};
@@ -276,8 +279,10 @@ const carry = (() => {
   <div class="li-ota-panel-head">
     <h2>Keywords in the account</h2>
     <p>
-      What each campaign is bidding on <strong>right now</strong> — the account's own keyword
-      list, enabled and paused alike. This does not narrow with the range above it, and cannot:
+      What each <strong>live Search campaign</strong> is bidding on <strong>right now</strong> — the
+      account's own keyword list, enabled and paused keywords alike, in alphabetical order.
+      Paused campaigns are left out, and so are the types that have no keywords by
+      construction: App, Performance Max, Demand Gen and Shopping. This does not narrow with the range above it, and cannot:
       "what are we bidding on" has no window, and Google does not report what the list looked
       like in a past month. The spend beside each keyword does follow the range, so a keyword
       with a dash did not spend nothing — it had no delivery Google reported in this window.
@@ -307,7 +312,9 @@ const carry = (() => {
     </select>
     <button type="submit" style="font: inherit; font-size:12px; padding:6px 12px; border-radius:8px; border:1px solid var(--color-neutral-800); background:transparent; color:var(--color-neutral-300); cursor:pointer;">Show</button>
     <span style="font-size:11px; color:var(--color-neutral-600);">
-      <%= live.length %> campaign<%= live.length === 1 ? '' : 's' %> with keywords
+      <%= live.length %> live Search campaign<%= live.length === 1 ? '' : 's' %><% if (hidden) { %>
+        · <span title="Paused campaigns, and campaign types that have no keywords by construction — App, Performance Max, Demand Gen and Shopping. Their keywords describe spend nobody is making."><%= hidden %> paused or keyword-less hidden</span>
+      <% } %>
     </span>
   </form>
 
@@ -355,8 +362,8 @@ const carry = (() => {
     </div>
     <% if (!whole('current') && sel.keywords.length > PREVIEW) { %>
       <p class="li-ota-foot">
-        <%= num(sel.keywords.length) %> keywords in this campaign. Showing the <%= PREVIEW %> with
-        the most spend —
+        <%= num(sel.keywords.length) %> keywords in this campaign. Showing the first <%= PREVIEW %>
+        alphabetically —
         <a href="/google-ads/keywords<%= join('table=current&campaign=' + encodeURIComponent(sel.campaignId)) %>">view the whole list</a> &rarr;
       </p>
     <% } %>
@@ -428,7 +435,7 @@ const carry = (() => {
     <% if (!whole('by-campaign') && c.keywords.length > PREVIEW) { %>
       <p class="li-ota-foot">
         <%= num(c.keywords.length) %> keywords in this campaign. Showing the <%= PREVIEW %>
-        highest-spending —
+        first alphabetically —
         <a href="/google-ads/keywords<%= join('table=by-campaign') %>">view every campaign's list in full</a> &rarr;
       </p>
     <% } %>

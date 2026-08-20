@@ -2634,8 +2634,16 @@ async function googleAdsPayload(req) {
           if (String(k.status || '').toUpperCase() === 'PAUSED') paused += 1;
           if (k.measured) { measured += 1; spend += k.spend || 0; }
         }
-        /* Spend first, then the quiet ones — but every one of them is here. */
-        c.keywords.sort((a, b) => (b.spend || 0) - (a.spend || 0) || String(a.keyword).localeCompare(String(b.keyword)));
+        /* Alphabetical, not by spend.
+         *
+         * This is a list of what is in the account, and the question asked of
+         * it is "is X in here, and on what match type" — which is answered by
+         * scanning, and scanning needs an order a reader can predict. Ranking
+         * by spend put the same two funded keywords at the top of every
+         * campaign and scattered the rest, and on a list where most rows have
+         * no spend at all it is barely an order. What each keyword *did* is the
+         * measured table below, which stays ranked by spend. */
+        c.keywords.sort((a, b) => String(a.keyword || '').localeCompare(String(b.keyword || ''), 'en', { numeric: true, sensitivity: 'base' }));
         return {
           ...c,
           count: c.keywords.length,
@@ -2648,15 +2656,48 @@ async function googleAdsPayload(req) {
           matchMix: [...mix.entries()].sort((a, b) => b[1] - a[1]).map(([m, n]) => `${n} ${m}`).join(' · '),
         };
       })
-      .sort((a, b) => b.count - a.count || String(a.campaign).localeCompare(String(b.campaign)));
+      /* Alphabetical here too, so the picker is a list somebody can find a
+         name in rather than a ranking they have to read through. */
+      .sort((a, b) => String(a.campaign || '').localeCompare(String(b.campaign || ''), 'en', { numeric: true, sensitivity: 'base' }));
   })();
 
+  /* **Only campaigns that are live, and only Search.**
+   *
+   * The account's keyword list carries every campaign that has ever had
+   * criteria, so a paused campaign's 309 keywords sat at the top of the picker
+   * describing spend nobody is making. What this screen is opened to answer is
+   * what the account is bidding on *now*.
+   *
+   * Search-only is not a second opinion, it is what the concept means: App,
+   * Performance Max, Demand Gen and Shopping campaigns have no keywords by
+   * construction, so one appearing here would be a classification error rather
+   * than a campaign worth reading.
+   *
+   * Counted rather than silently dropped — a picker that quietly shows six of
+   * nine is a picker somebody will mistrust once they notice, and the line
+   * beneath it says how many are missing and why. */
+  const liveOnly = liveCampaigns.filter((c) => (
+    String(c.status || '').toUpperCase() === 'ENABLED'
+    && String(c.channelType || '').toUpperCase() === 'SEARCH'
+  ));
+  const hiddenCampaigns = liveCampaigns.length - liveOnly.length;
+
+  /* If nothing is enabled, show what there is rather than an empty picker: an
+     account that is entirely paused is a real state, and a blank screen
+     describes it worse than a list marked paused would. */
+  const pickable = liveOnly.length ? liveOnly : liveCampaigns;
+
   /* Which campaign the reader picked. Unknown or absent shows the first, which
-     is the one with the most keywords — a picker that opens on nothing makes
-     the reader choose before it will tell them anything. */
+     is now the alphabetically first live Search campaign — a picker that opens
+     on nothing makes the reader choose before it will tell them anything. */
   const askedCampaign = req.query.campaign === undefined ? null : String(req.query.campaign);
-  const selectedCampaign = liveCampaigns.find((c) => String(c.campaignId) === askedCampaign)
-    || liveCampaigns[0]
+  /* A link to a campaign that has since been paused still resolves — searched
+     across every campaign, not only the pickable ones — because answering a
+     bookmark with somebody else's campaign is worse than showing a paused one
+     that was asked for by name. */
+  const selectedCampaign = pickable.find((c) => String(c.campaignId) === askedCampaign)
+    || liveCampaigns.find((c) => String(c.campaignId) === askedCampaign)
+    || pickable[0]
     || null;
 
   const keywordsByCampaign = (() => {
@@ -2964,7 +3005,7 @@ async function googleAdsPayload(req) {
     table: String(req.query.table || ''),
     connected: live.has('google_ads'),
     campaigns, campaignTotal, adGroups, ads, keywords, keywordsByCampaign, conversions,
-    liveCampaigns, selectedCampaign,
+    liveCampaigns: pickable, hiddenCampaigns, selectedCampaign,
     searchTerms: terms, termSummary, words,
     keywordsNotApplicable, paidSearch,
   };
