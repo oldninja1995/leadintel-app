@@ -674,6 +674,28 @@ const readParams = (query, workspaceId = null) => {
   params.previous = back && coversWindow(workspaceId, back) ? metricValues(workspaceId, null, back).values : null;
   params.registry = metrics.registry;
   params.format = metrics.format;
+
+  /* Who is actually in this workspace, and what is actually scheduled.
+   *
+   * The Reports screen listed five people with access and five running
+   * schedules, all typed into data/reports.js — and the roles were wrong: it had
+   * Reshma Menon as Sales Manager, where the identity table has her as Marketing
+   * Director and Tara George as the Sales Manager. Both facts exist in this
+   * process already; the screen simply had no way to reach them. */
+  params.users = auth.identity.list().filter((u) => u.workspace === workspaceId);
+  params.can = auth.permissions.can;
+  /* `nextRun` measures from the schedule's own last dispatch, and falls back to
+     now when it has never run — which every one of these has not, because there
+     is no transport to dispatch through. Paused schedules answer null and say so
+     on the row rather than being dropped. */
+  {
+    const now = periodNow();
+    const runs = lastRuns();
+    params.schedules = schedules.list().map((sched) => ({
+      ...sched,
+      nextRunAt: schedules.nextRun(sched, { lastRunAt: runs[sched.id] || null, now }),
+    }));
+  }
   return params;
 };
 
