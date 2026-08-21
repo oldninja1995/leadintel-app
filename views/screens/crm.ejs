@@ -76,9 +76,19 @@
             <div style="background:linear-gradient(160deg, var(--color-section) 0%, var(--color-section-deep) 70%); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px;">
               <div style="display:flex; align-items:center; gap:7px; margin-bottom:8px;"><i class="ph-fill ph-sparkle" style="color:var(--color-accent-300); font-size:14px;"></i><div style="font-size:13px; font-weight:500;">AI · today's priorities</div></div>
               <div style="display:flex; flex-direction:column; gap:9px; font-size:11.5px; color:var(--color-accent-100); line-height:1.5;">
-                <div style="display:flex; gap:8px;"><span style="color:var(--color-accent-300);">1</span>Call Priya K first — 84% booking probability, Pool Villa quote expires today (₹58.8K).</div>
-                <div style="display:flex; gap:8px;"><span style="color:var(--color-accent-300);">2</span>12 weekend Kumarakom leads untouched 40h — reassign from Joseph (2.8h avg response).</div>
-                <div style="display:flex; gap:8px;"><span style="color:var(--color-accent-300);">3</span>Cancellation rate up 2pt — 6 of 8 were payment-pending &gt;72h. Tighten the payment window.</div>
+                <%# Three sentences written into this template: "Call Priya K first —
+                    84% booking probability, Pool Villa quote expires today (₹58.8K)",
+                    twelve untouched leads to reassign from a named colleague, and a
+                    cancellation rate up 2pt with "6 of 8 payment-pending". Named
+                    individuals, invented probabilities, invented money, under a
+                    sparkle icon. `crmRecs` is the dashboard's own derivation over the
+                    same rows this screen shows. %>
+                <% if (!(crmRecs || []).length) { %>
+                  <div style="opacity:.75;">Nothing in range rises to a priority.</div>
+                <% } %>
+                <% (crmRecs || []).slice(0, 3).forEach(function (r, i) { %>
+                  <div style="display:flex; gap:8px;"><span style="color:var(--color-accent-300);"><%= i + 1 %></span><span><%= r.text %><% if (r.impact) { %><span style="display:block; font-size:10.5px; opacity:.7;"><%= r.impact %></span><% } %></span></div>
+                <% }); %>
               </div>
             </div>
           </div>

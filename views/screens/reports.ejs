@@ -136,7 +136,14 @@
               <div style="background:var(--color-surface); border-radius:0 0 12px 12px; box-shadow:var(--shadow-sm); padding:20px 22px;">
                 <div style="border:1px solid var(--color-accent-800); background:var(--color-accent-900); border-radius:10px; padding:14px 16px;">
                   <div style="display:flex; align-items:center; gap:7px; font-size:11.5px; font-weight:500; color:var(--color-accent-200);"><i class="ph-fill ph-sparkle" style="font-size:13px;"></i>AI executive summary</div>
-                  <div style="font-size:12.5px; color:var(--color-accent-100); line-height:1.65; margin-top:8px;">July delivered ₹52.3L in CRM-verified revenue on ₹8.4L of media — Net ROAS 4.8x against a 4.0x target, with occupancy at 78% (+5pt YoY) and profit margin holding at 41%. Growth came from one campaign and one behaviour change: the Munnar honeymoon video cut CPL 22%, and the reservations team pulled average response time from 3.1 hours to 44 minutes. Two items need decisions this month — Kumarakom occupancy is 9pt below target, and 60% of media spend now sits behind a single fatiguing creative.</div>
+                  <%# A whole executive summary written into this template: "July
+                      delivered ₹52.3L in CRM-verified revenue on ₹8.4L of media — Net
+                      ROAS 4.8x ... occupancy at 78% ... profit margin holding at 41%",
+                      naming a campaign and a response-time improvement, closing with two
+                      decisions. Every figure invented, and this is the page people
+                      export as a PDF and hand to a board. It is the AI screen's derived
+                      paragraph now — the same one, over the same rows. %>
+                  <div style="font-size:12.5px; color:var(--color-accent-100); line-height:1.65; margin-top:8px;"><%= (selReport && selReport.summary) || '—' %></div>
                 </div>
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:16px;">
                   <div>
@@ -153,7 +160,10 @@
                   </div>
                 </div>
                 <div style="display:flex; gap:20px; margin-top:16px; padding-top:14px; border-top:1px solid var(--color-neutral-900); font-size:11px; color:var(--color-neutral-600);">
-                  <span>Forecast August <b style="color:var(--color-accent-300); font-weight:500;">₹61.0L</b> (87% confidence)</span>
+                  <%# Was "Forecast August ₹61.0L (87% confidence)" — the third place in
+                      the app carrying that same invented projection, and a confidence
+                      figure for a model that does not exist. %>
+                  <span>Forecast <b style="color:var(--color-neutral-500); font-weight:500;">—</b> no forecasting model</span>
                   <span>Business health <b style="color:var(--color-neutral-300); font-weight:500;">84 / 100</b></span>
                   <span>Generated 30 Jul 2026 · data verified against CRM & PMS</span>
                 </div>
