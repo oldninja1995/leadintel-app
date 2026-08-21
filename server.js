@@ -578,6 +578,29 @@ const PERIOD_CHIPS = [
    the highlight have to agree or the screen lies on first load. */
 const DEFAULT_PERIOD = '30d';
 
+/* The instant a relative window is measured back from, floored to a whole
+ * minute.
+ *
+ * Every chip but `last-month` ends at *now*, and `now` used to be read to the
+ * millisecond — so `30d` resolved to a window nobody had ever asked for
+ * before, on every single request. `metricValues` is keyed by a window's
+ * bounds, deliberately (see the note there about "custom" collisions), which
+ * meant the key was unique per request and the cache the comment beside it
+ * describes had a hit rate of zero: all 72 metrics were evaluated twice — the
+ * range and the range before it — over 51,000 leads, for every page view, and
+ * again for every card that names its own period.
+ *
+ * Flooring the reference instant makes the window the same one for a minute at
+ * a time, so the cache holds. It also fixes something quieter: `periodFor` is
+ * called more than once while serving one page, so the KPI cards and the table
+ * beneath them were narrowed to windows a few milliseconds apart. They now
+ * share a window, which is what the screen has always claimed.
+ *
+ * A minute of lag on "up to now" is not a lag a dashboard can express: ad data
+ * arrives daily and the freshness line is stated separately. */
+const PERIOD_TICK_MS = 60_000;
+const periodNow = () => metrics.period.floorTo(new Date().toISOString(), PERIOD_TICK_MS);
+
 /* The clock is read here, at the edge, and nowhere inside the metric layer —
    6.2's reproducibility rests on evaluation being a pure function of what it
    is given. An unknown period falls back rather than throwing: it arrives from
@@ -591,7 +614,7 @@ function periodFor(query) {
   const wanted = String((query || {}).period || DEFAULT_PERIOD);
   const id = PERIOD_CHIPS.some((c) => c.id === wanted) ? wanted : DEFAULT_PERIOD;
   try {
-    return { id, over: metrics.period.fromLabel(id, new Date().toISOString()) };
+    return { id, over: metrics.period.fromLabel(id, periodNow()) };
   } catch (err) {
     return { id: DEFAULT_PERIOD, over: null };
   }
@@ -799,7 +822,7 @@ function metricValues(workspaceId, at = null, over = null) {
    evaluation being a pure function of its inputs. */
 function periodValues(workspaceId, label, at = null) {
   try {
-    const over = metrics.period.fromLabel(label, new Date().toISOString());
+    const over = metrics.period.fromLabel(label, periodNow());
     const back = metrics.period.previous(over);
     return {
       ...metricValues(workspaceId, at, over),
@@ -3017,9 +3040,16 @@ async function googleAdsPayload(req) {
  * only difference is which screen record the layout is handed — so that
  * difference stays one argument rather than a second copy of this block, free
  * to drift the moment one of them gains a filter. */
+/* Marked like the generic screen route, and for the same reason. These two are
+   the heaviest screens in the app — one payload rolls up 17,000 search-term
+   rows — and they were the only ones carrying no `payload` or `render` mark at
+   all, so a header that profiles every other page reported six milliseconds of
+   hydration and said nothing about the other six hundred. */
 async function renderGoogleAds(req, res, slug) {
+  const since = stopwatch();
   const screen = (await repo.screens()).find((s) => s.slug === slug);
   const data = await googleAdsPayload(req);
+  mark(res, 'payload', since());
 
   res.render('layout', {
     screen,
@@ -3033,6 +3063,10 @@ async function renderGoogleAds(req, res, slug) {
     filterData: filterData(null),
     filterNote: null,
     attrPreview: null,
+  }, (err, html) => {
+    if (err) throw err;
+    mark(res, 'render', since(), `${Math.round(html.length / 1024)}KB`);
+    return res.send(html);
   });
 }
 

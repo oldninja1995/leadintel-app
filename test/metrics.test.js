@@ -286,3 +286,34 @@ test('identical is stated, not rendered as a measurement', () => {
   const out = resolveOne({ label: 'Impressions', value: '', metric: 'ads.impressions' }, 100, 100);
   assert.equal(out.delta, 'no change');
 });
+
+/* ── the money formatter, cached ────────────────────────────────────────────
+ *
+ * `rupees` used to call `toLocaleString(locale, options)`, which constructs a
+ * fresh `Intl.NumberFormat` every time — ~75µs against ~2µs to format through
+ * one already built. A table that prices 4,889 search terms across three
+ * columns paid for ten thousand constructions per page view. The formatter is
+ * now built once per decimal setting, which is only safe because the two are
+ * specified to produce the same string; this pins that.
+ */
+test('the cached money formatter matches the expression it replaced', () => {
+  const spend = metrics.registry.get('ads.spend');
+  const rupees = (paise, decimals) => '₹' + (paise / 100).toLocaleString('en-IN', {
+    minimumFractionDigits: decimals, maximumFractionDigits: decimals,
+  });
+
+  const values = [0, 1, 7, 99, 100, 101, 999, 1000, 12345, 99999, 100000, 123456789,
+    -1, -123456789, 0.5, 1.5, 2.5, -2.5, 1e15, 1e21, Number.MAX_SAFE_INTEGER];
+  for (const v of values) {
+    assert.equal(metrics.format(spend, v), rupees(v, spend.format.decimals ?? 0), `₹ at ${v}`);
+  }
+  /* Indian grouping is the whole reason the locale is named — a formatter that
+     quietly fell back to en-US would pass every test above but this one. */
+  assert.equal(metrics.format(spend, 12345678900), '₹12,34,56,789');
+});
+
+test('a repeated format call does not drift from the first', () => {
+  const spend = metrics.registry.get('ads.spend');
+  const first = metrics.format(spend, 987654321);
+  for (let i = 0; i < 1000; i++) assert.equal(metrics.format(spend, 987654321), first);
+});

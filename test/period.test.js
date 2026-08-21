@@ -430,3 +430,51 @@ test('January steps back into December of the year before', () => {
   assert.equal(jan.from, '2025-12-01T00:00:00.000Z');
   assert.equal(period.previous(jan).from, '2025-11-01T00:00:00.000Z');
 });
+
+/* ── the reference instant, floored ─────────────────────────────────────────
+ *
+ * Every label but `last-month` ends at the instant it is handed. The edge used
+ * to hand it `Date.now()` to the millisecond, so `30d` resolved to a window
+ * nobody had ever asked for on every single request — and the evaluation cache,
+ * which is keyed by a window's bounds, could never hit. These pin the fix.
+ */
+
+test('flooring an instant lands it on the boundary below, never above', () => {
+  assert.equal(period.floorTo('2026-08-21T09:54:15.019Z', 60_000), '2026-08-21T09:54:00.000Z');
+  assert.equal(period.floorTo('2026-08-21T09:54:59.999Z', 60_000), '2026-08-21T09:54:00.000Z');
+  assert.equal(period.floorTo('2026-08-21T09:54:00.000Z', 60_000), '2026-08-21T09:54:00.000Z');
+  /* Never forward: a window must not claim data that has not arrived. */
+  assert.ok(Date.parse(period.floorTo(REF, 60_000)) <= Date.parse(REF));
+});
+
+test('a floor of zero or nothing is the instant itself, not a crash', () => {
+  assert.equal(period.floorTo(REF, 0), REF);
+  assert.equal(period.floorTo(REF, null), REF);
+});
+
+test('a window built from a floored instant is stable across the whole tick', () => {
+  const bounds = (instant) => {
+    const over = period.fromLabel('30d', period.floorTo(instant, 60_000));
+    return `${over.from}..${over.to}`;
+  };
+  /* The cache key `metricValues` builds. One minute of requests, one key. */
+  const keys = new Set();
+  for (let ms = 0; ms < 60_000; ms += 137) {
+    keys.add(bounds(new Date(Date.parse('2026-08-21T09:54:00.000Z') + ms).toISOString()));
+  }
+  assert.equal(keys.size, 1);
+  /* And the next minute is a different window, so the figures still move. */
+  assert.notEqual(bounds('2026-08-21T09:55:00.000Z'), bounds('2026-08-21T09:54:30.000Z'));
+});
+
+test('flooring does not disturb a window that never ran up to now', () => {
+  /* `last-month` is closed at both ends, so the reference instant only picks
+     the month — flooring it must leave the window byte-identical. */
+  const raw = period.fromLabel('last-month', '2026-08-21T09:54:15.019Z');
+  const floored = period.fromLabel('last-month', period.floorTo('2026-08-21T09:54:15.019Z', 60_000));
+  assert.deepEqual(floored, raw);
+});
+
+test('an unparseable instant is refused rather than floored to the epoch', () => {
+  assert.throws(() => period.floorTo('not a time', 60_000), /not a time/);
+});
