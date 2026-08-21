@@ -17,10 +17,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sign in — LeadIntel AI</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
-<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<%# Fonts and icons are served from /assets, not from fonts.googleapis.com and
+    unpkg.com. Three render-blocking stylesheets across two extra origins used
+    to sit ahead of the first paint here, each paying its own DNS, TCP and TLS
+    before it started; measured from Kerala they cost ~260ms, ~280ms and ~370ms
+    against a server that answers the page in ~100ms. See the notes at the top
+    of inter.css and phosphor.css. %>
+<%# Declared, so the browser stops probing /favicon.ico — which this app has
+    never had. Every page load spent a request on it and logged a 404 in the
+    console, and the 404 page it reached is the one the note further down
+    explains had to be taught to render without a screen behind it. %>
+<link rel="icon" href="<%= asset('favicon.svg') %>" type="image/svg+xml">
+<%# Preloaded at the literal path inter.css asks for, with no ?v= on it. The
+    fingerprint helper would produce a *different* URL from the one inside the
+    stylesheet, and a browser treats those as two fonts: the preload fetched
+    47KB and then the stylesheet fetched the same 47KB again. Fonts are busted
+    by renaming the file, which is what swapping a typeface means anyway. %>
+<link rel="preload" href="/assets/fonts/Inter-latin.f11d729b.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="<%= asset('inter.css') %>">
+<link rel="stylesheet" href="<%= asset('phosphor.css') %>">
 <%# Fingerprinted like every other reference. Left bare, these three were the
     one door through which a browser could cache an asset under a URL that does
     not change when the file does — which is the whole reason /assets is now

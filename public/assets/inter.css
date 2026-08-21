@@ -1,0 +1,46 @@
+/* Inter, self-hosted, as the one variable face it actually is.
+ *
+ * Two problems lived here, and the second is the interesting one.
+ *
+ * It was fetched twice from fonts.googleapis.com — a `<link>` in the layout
+ * asking for 400/500/600, and an `@import` at the top of nocturne.css asking
+ * for 400/500/600/700. The `@import` was the worse of the two: a browser cannot
+ * discover it until nocturne.css has downloaded and parsed, so it was a
+ * serialised second round trip to a third origin, render-blocking, before a
+ * pixel could be painted.
+ *
+ * And Inter v20 is a **variable** font. Google's `css2` API answers a weight
+ * list with one `@font-face` per weight, each naming a different URL — and
+ * every one of those URLs returns the identical file, byte for byte (verified:
+ * one sha256 across 400, 500, 600 and 700). So the browser downloaded the same
+ * 48KB four times, and the same 85KB Latin Extended four times again, to draw
+ * four weights that were always in the first copy. One face per subset over the
+ * whole 100–900 axis is the same typography in a quarter of the bytes.
+ *
+ * Latin and Latin Extended only, of the seven subsets Google serves. Latin
+ * Extended is not optional here despite the name: U+20B9, the rupee sign, lives
+ * in its range, so it is on every screen in the app.
+ *
+ * Same `font-display: swap` as before, one origin, and the immutable cache
+ * header the rest of /assets already carries.
+ */
+
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(./fonts/Inter-latin.f11d729b.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* latin-ext — carries U+20B9, the rupee sign. */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url(./fonts/Inter-latin-ext.cf3eb50f.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}

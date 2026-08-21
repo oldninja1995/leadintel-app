@@ -17,6 +17,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 
 const VIEWS = path.join(__dirname, '..', 'views');
@@ -30,6 +31,15 @@ function templates(dir) {
   });
 }
 
+/* A hash **in the filename** carries the same guarantee as `?v=` and is the
+   only form available to a font, which is named from inside a stylesheet the
+   helper never runs on. `hashed()` says whether a name carries one; the test
+   below then checks the hash is the file's own, so a made-up eight characters
+   cannot buy an exemption. */
+const HASHED = /\.([0-9a-f]{8})\.[a-z0-9]+$/;
+const contentHash = (file) =>
+  crypto.createHash('sha1').update(fs.readFileSync(file)).digest('hex').slice(0, 8);
+
 test('no template links an asset by a URL that cannot change', () => {
   const offenders = [];
 
@@ -38,11 +48,47 @@ test('no template links an asset by a URL that cannot change', () => {
     /* A bare `/assets/…` in an attribute. The helper's output is built at
        render time from `asset('name')`, so it never appears as a literal. */
     for (const m of body.matchAll(/(?:src|href)\s*=\s*["']\/assets\/([^"']+)["']/g)) {
-      offenders.push(`${path.relative(VIEWS, file)} -> /assets/${m[1]}`);
+      const name = m[1];
+      /* Unless the name is its own fingerprint. The layout preloads a font at
+         the literal path `inter.css` asks for, because the two must be the same
+         URL or the browser fetches the file twice — once for the preload and
+         once for the stylesheet. It measured exactly that, 47KB each way. */
+      const hash = HASHED.exec(name);
+      if (hash && fs.existsSync(path.join(ASSETS, name)) && contentHash(path.join(ASSETS, name)) === hash[1]) continue;
+      offenders.push(`${path.relative(VIEWS, file)} -> /assets/${name}`);
     }
   }
 
   assert.deepEqual(offenders, [], `these are cached for a year under a URL that will not change:\n  ${offenders.join('\n  ')}`);
+});
+
+/* The hole the rule above did not cover, and the reason fonts are named this
+   way at all: a stylesheet names its own files, and `app.locals.asset` never
+   sees them. `/assets/*` is immutable for a year, so a font referenced by a
+   plain name is a font that can never be replaced — the exact failure the
+   fingerprint exists to prevent, one layer further down. */
+test('every font a stylesheet names is fingerprinted by its own contents', () => {
+  const sheets = fs.readdirSync(ASSETS).filter((f) => f.endsWith('.css'));
+  const seen = [];
+
+  for (const sheet of sheets) {
+    const css = fs.readFileSync(path.join(ASSETS, sheet), 'utf8');
+    for (const m of css.matchAll(/url\(["']?\.\/([^"')]+)["']?\)/g)) {
+      const name = m[1];
+      const file = path.join(ASSETS, name);
+      assert.ok(fs.existsSync(file), `${sheet} names ${name}, which is not there`);
+      const hash = HASHED.exec(name);
+      assert.ok(hash, `${sheet} names ${name} with no fingerprint — it can never be replaced`);
+      assert.equal(contentHash(file), hash[1], `${name} carries a hash that is not its own`);
+      seen.push(name);
+    }
+  }
+
+  /* And nothing is left behind: an orphaned 147KB font is a file nobody can
+     tell is dead, because the name gives no clue which stylesheet wanted it. */
+  const onDisk = fs.readdirSync(path.join(ASSETS, 'fonts'));
+  assert.deepEqual(onDisk.filter((f) => !seen.includes(`fonts/${f}`)), [],
+    'these font files are not named by any stylesheet');
 });
 
 test('every asset the templates ask for exists', () => {

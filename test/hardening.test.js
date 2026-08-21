@@ -29,9 +29,38 @@ test('the policy allows inline styles and refuses inline scripts', () => {
   assert.match(csp, /script-src 'self'/);
 });
 
-test('the policy allows the font hosts the design actually uses', () => {
+/* This used to read "the policy allows the font hosts the design actually
+   uses", and listed fonts.googleapis.com, fonts.gstatic.com and unpkg.com. The
+   design uses none of them any more — Inter and Phosphor Icons are files under
+   /assets — so the assertion is now the opposite one, and it is the stronger
+   of the two: the policy names no third party at all. */
+test('the policy names no third-party host for styles or fonts', () => {
   const csp = hardening.contentSecurityPolicy();
-  for (const host of hardening.FONT_HOSTS) assert.ok(csp.includes(host), `${host} would be blocked`);
+  const directive = (name) => (csp.split('; ').find((d) => d.startsWith(`${name} `)) || '');
+  for (const name of ['style-src', 'font-src']) {
+    assert.ok(!directive(name).includes('://'), `${name} still trusts a CDN: ${directive(name)}`);
+  }
+});
+
+/* The guard that would have caught the regression this replaces: a policy can
+   be tightened and a template left pointing at the CDN, and the only symptom is
+   an unstyled screen for whoever loads it next. Both templates are checked,
+   because the sign-in page has its own <head> and drifted from the layout once
+   already. */
+test('no template loads a stylesheet or font from another origin', () => {
+  const path = require('node:path');
+  const fs = require('node:fs');
+  for (const view of ['views/layout.ejs', 'views/app/login.ejs']) {
+    const markup = fs.readFileSync(path.join(__dirname, '..', view), 'utf8');
+    const external = markup.match(/<link[^>]+href="https?:[^"]+"/g) || [];
+    assert.deepEqual(external, [], `${view} loads ${external.join(', ')} from another origin`);
+  }
+  /* And nothing may sneak one back in through an @import, which is worse: the
+     browser cannot discover it until the importing file has parsed. */
+  for (const sheet of ['nocturne.css', 'app.css', 'app-ui.css', 'hover.css', 'inter.css', 'phosphor.css']) {
+    const css = fs.readFileSync(path.join(__dirname, '..', 'public/assets', sheet), 'utf8');
+    assert.doesNotMatch(css, /@import[^;]*https?:/, `${sheet} imports from another origin`);
+  }
 });
 
 test('framing and sniffing are refused outright', () => {
