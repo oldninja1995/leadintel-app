@@ -594,6 +594,12 @@ const PERIOD_CHIPS = [
  * its own section. **The no-argument `localeCompare()` is already fast and does
  * not want this treatment** — it measured quicker than a cached collator. This
  * is only for the calls that pass options. */
+/* The stay dates on the OTA table, built once rather than per row — same trap as
+   BY_NAME below and the money formatter in lib/metrics: `toLocaleDateString` with
+   options constructs an `Intl.DateTimeFormat` every call, ~90µs against ~1.6µs
+   through one already built, and `stay()` built a fresh closure per reservation. */
+const STAY_FORMAT = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+
 const BY_NAME = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 const DEFAULT_PERIOD = '30d';
 
@@ -2399,7 +2405,7 @@ async function renderOta(req, res) {
 
   const stay = (from, to) => {
     if (!from) return null;
-    const day = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+    const day = (iso) => STAY_FORMAT.format(new Date(`${iso}T00:00:00Z`));
     return to ? `${day(from)} – ${day(to)}` : day(from);
   };
 
