@@ -30,6 +30,9 @@ const backfill = require('./lib/ingest/backfill');
    rather than part of any sync. */
 const googleAds = require('./lib/ingest/http/google-ads');
 const filters = require('./lib/filters');
+/* The Google day-grain rollup — its own file because every figure on both
+   Google screens is its output, and it had no test while it was a closure. */
+const googleAdsRollup = require('./lib/google-ads-rollup');
 /* The design's own segmented-control colours, so a chip the server builds is
    drawn exactly like the chips the converter emitted. */
 const tokens = require('./data/_tokens');
@@ -576,6 +579,22 @@ const PERIOD_CHIPS = [
 
 /* Matches the chip the design draws as selected. Stated once: the default and
    the highlight have to agree or the screen lies on first load. */
+/* The alphabetical order the keyword lists and the campaign picker are sorted
+ * in, built once.
+ *
+ * `String.prototype.localeCompare(locale, options)` constructs a fresh
+ * `Intl.Collator` on **every comparison** — the same trap as `toLocaleString`
+ * with options, one directory over in the same standard library. A sort of 662
+ * keywords measured 35.7ms against 1.2ms through a collator already built, and
+ * the account's two live campaigns are sorted separately on every page view of
+ * the keyword screen.
+ *
+ * `numeric` and `sensitivity: 'base'` are carried over unchanged: they are what
+ * put "resort 2" before "resort 10" and what stops a capital letter sorting into
+ * its own section. **The no-argument `localeCompare()` is already fast and does
+ * not want this treatment** — it measured quicker than a cached collator. This
+ * is only for the calls that pass options. */
+const BY_NAME = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 const DEFAULT_PERIOD = '30d';
 
 /* The instant a relative window is measured back from, floored to a whole
@@ -1272,6 +1291,28 @@ if (!AUTH_OFF) {
     next();
   });
 }
+
+/* Everything past the gate is one workspace's own data, and it says so.
+ *
+ * With nothing set, the platform's default went out on every signed-in page:
+ * `public, max-age=0, must-revalidate`. The revalidation half of that is
+ * honest — nothing is reusable without asking — but `public` is a statement
+ * about *who* may hold the response, and it licenses a shared cache to keep a
+ * page of one workspace's leads. Nothing between here and the reader is known
+ * to be private; a corporate proxy is exactly the sort of thing that is not.
+ *
+ * `private` rather than `no-store`, deliberately. `no-store` also throws away
+ * the browser's own back/forward cache, so the Back button would refetch and
+ * re-render every screen — a real cost paid to solve a problem `private`
+ * already solves. `no-cache` keeps the must-revalidate behaviour that is
+ * already in force, so nothing about freshness changes.
+ *
+ * `/assets` is mounted above this line and keeps its year of `immutable`,
+ * which is the point of putting this here rather than in the header block. */
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'private, no-cache');
+  next();
+});
 
 /* Pull this request's state out of Postgres before anything reads it.
  *
@@ -2473,58 +2514,12 @@ async function googleAdsPayload(req) {
 
   /* One row per entity rather than per entity-day: the tables answer "how is
      this keyword doing over the range", and a row per day would be a different
-     screen. Summed here rather than in the entity, because the entity is the
-     day — that is what makes a period narrow it. */
-  /* ── search term detail ───────────────────────────────────────────────────
-   *
-   * The rates are derived here rather than in the view so the two cannot
-   * disagree, and both follow the registry's rule: a ratio with no denominator
-   * is null, not zero. A term with no impressions has no click-through rate —
-   * saying 0% would claim nobody clicked something nobody was shown. */
-  const rate = (num, den) => (den > 0 ? `${((num / den) * 100).toFixed(2)}%` : null);
-
-  const rollUp = (rows, keyOf, shape) => {
-    const by = new Map();
-    for (const r of rows || []) {
-      const key = keyOf(r);
-      if (key === null || key === undefined) continue;
-      const acc = by.get(key) || { ...shape(r), spend: 0, impressions: 0, clicks: 0, conversions: 0, measured: false };
-      /* null is unknown, not zero — a row that reported no figure must not be
-         summed as though it reported none. */
-      if (r.spend !== null) { acc.spend += r.spend; acc.measured = true; }
-      if (r.impressions !== null) acc.impressions += r.impressions;
-      if (r.clicks !== null) acc.clicks += r.clicks;
-      if (r.leads !== null) acc.conversions += r.leads;
-      by.set(key, acc);
-    }
-    return [...by.values()]
-      .map((a) => ({
-        ...a,
-        spendText: a.measured ? asMoney(a.spend) : null,
-        /* Cost per conversion. **Null on zero, never Infinity** — a row that
-           spent money and converted nobody has no cost *per* anything, and the
-           registry's own rule is that a ratio with no denominator is unknown
-           rather than infinitely bad. The wasted-spend flag on the search terms
-           table is what surfaces those rows; a number here would only look like
-           a very large price.
-         *
-         * Named cost-per-conversion rather than cost-per-lead in the column,
-         * because Google's `conversions` counts every action the account
-         * defines — a booking enquiry and a phone click alike. The Conversions
-         * by action table below is where that total is broken apart, and until
-         * a lead action is nominated this figure is not a cost per lead. */
-        cplText: a.conversions > 0 ? asMoney(a.spend / a.conversions) : null,
-        /* Cost per click, same rule: no clicks means no cost *per* click, so it
-           is unknown rather than zero or infinite. */
-        cpcText: a.clicks > 0 ? asMoney(a.spend / a.clicks) : null,
-        /* The same rule once more — a rate with no denominator is unknown, not
-           zero. Carried on every rolled-up row because the keyword screen reads
-           them, and computing it a second time there would be free to disagree. */
-        ctr: rate(a.clicks, a.impressions),
-        convRate: rate(a.conversions, a.clicks),
-      }))
-      .sort((x, y) => y.spend - x.spend);
-  };
+     screen. Summed in lib/google-ads-rollup.js, which is where the rule about
+     measures summing and descriptions coming from the last day is written down
+     and tested. `rate` comes from there too, so a rate on a table and a rate in
+     the summary above it cannot be computed two ways. */
+  const rollUp = (rows, keyOf, shape) => googleAdsRollup.rollUp(rows, keyOf, shape, asMoney);
+  const rate = googleAdsRollup.rate;
 
   const googleDays = (entities.campaignDays || []).filter((c) => c.platform === 'google_ads');
   const campaigns = rollUp(googleDays, (r) => r.campaign, (r) => ({
@@ -2666,7 +2661,7 @@ async function googleAdsPayload(req) {
          * campaign and scattered the rest, and on a list where most rows have
          * no spend at all it is barely an order. What each keyword *did* is the
          * measured table below, which stays ranked by spend. */
-        c.keywords.sort((a, b) => String(a.keyword || '').localeCompare(String(b.keyword || ''), 'en', { numeric: true, sensitivity: 'base' }));
+        c.keywords.sort((a, b) => BY_NAME.compare(String(a.keyword || ''), String(b.keyword || '')));
         return {
           ...c,
           count: c.keywords.length,
@@ -2681,7 +2676,7 @@ async function googleAdsPayload(req) {
       })
       /* Alphabetical here too, so the picker is a list somebody can find a
          name in rather than a ranking they have to read through. */
-      .sort((a, b) => String(a.campaign || '').localeCompare(String(b.campaign || ''), 'en', { numeric: true, sensitivity: 'base' }));
+      .sort((a, b) => BY_NAME.compare(String(a.campaign || ''), String(b.campaign || '')));
   })();
 
   /* **Only campaigns that are live, and only Search.**
