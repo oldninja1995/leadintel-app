@@ -171,3 +171,28 @@ test('the view carries no invented figure of its own', () => {
      coordinates drawing a rising curve and a widening confidence band. */
   assert.ok(!/stroke-dasharray="5 5"/.test(markup), 'the hand-drawn forecast curve is back');
 });
+
+/* The levers used to be described in one place and applied in another.
+   `select()` in data/ai.js defaulted them to "+20%" and "48h + reminder" and
+   wrote that into the heading and the selected chips, while the arithmetic
+   started from unmoved — so the tab opened claiming a scenario the reader had
+   not chosen, above six figures that were the untouched baseline. */
+test('the simulator label, its chips and its arithmetic agree', () => {
+  const out = run();
+  assert.equal(out.simScenario, 'Meta budget Hold · ADR Hold · payment window 72h window');
+
+  const selected = (opts) => opts.find((o) => o.bg && o.bg !== 'transparent') || opts[0];
+  assert.equal(selected(out.simMetaOpts).label, 'Hold', 'the chip shown as selected is the one being calculated with');
+  assert.equal(selected(out.simCancelOpts).label, '72h window');
+
+  /* And a lever the reader does move is honoured. */
+  const moved = run(EMPTY, { simMeta: '+40%', simCancel: '48h + reminder' });
+  assert.match(moved.simScenario, /Meta budget \+40%/);
+  assert.match(moved.simScenario, /payment window 48h \+ reminder/);
+  assert.equal(moved.simMetaOpts.find((o) => o.label === '+40%').bg !== undefined, true);
+});
+
+test('an unknown lever value falls back rather than throwing', () => {
+  const out = run(EMPTY, { simMeta: '../../etc/passwd', simAdr: '999%' });
+  assert.equal(out.simScenario, 'Meta budget Hold · ADR Hold · payment window 72h window');
+});

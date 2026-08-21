@@ -177,11 +177,51 @@ test('one broken definition costs one number, not the dashboard', () => {
   assert.equal(values['cost.per_lead'], null, 'a dependent of a failed metric produced a number anyway');
 });
 
+/* This test's name was the specification and its first assertion was the bug.
+ *
+ * It said "a metric with no bookings is unknown, not zero" and then asserted
+ * that `bookings.confirmed` was 0 — the only line holding the stated rule was
+ * the one about division. On production, where the property management system
+ * has never synced, that zero was not academic: `revenue.net` read **₹0** and
+ * `roas.net` read **0.0x**, which says "you earned nothing" rather than "we
+ * cannot see this", on the same screen as ₹1.25 crore of CRM reservation value.
+ *
+ * The ratios were always safe — occupancy, ADR, RevPAR and cancellation rate
+ * all decline correctly, because dividing by a missing denominator gives null.
+ * It was the figures underneath them that claimed a measurement. */
 test('a metric with no bookings is unknown, not zero', () => {
-  const empty = { ...entities(), bookings: [] };
+  const empty = { ...entities(), bookings: [], inventoryDays: [] };
   const { values } = metrics.evaluate(empty);
-  assert.equal(values['bookings.confirmed'], 0);
+
+  assert.equal(values['bookings.confirmed'], null, 'no PMS is not the same statement as no bookings');
+  assert.equal(values['bookings.all'], null);
+  assert.equal(values['revenue.net'], null, '₹0 of net revenue is a claim about the business, not about the connector');
+  assert.equal(values['roas.net'], null, 'and 0.0x net ROAS reads as a catastrophe rather than a gap');
+  assert.equal(values['inventory.available'], null);
+  assert.equal(values['stay.room_nights'], null);
+
   assert.equal(values['cost.per_booking'], null, 'dividing by no bookings produced a cost');
+});
+
+/* The other half of the rule, and the reason it is `counted` rather than a bare
+   length check: an empty *collection* is unknown, an empty *selection* is a
+   real, hard-won zero. A month with forty bookings and no cancellations has
+   genuinely cancelled nothing, and reporting that as "unknown" would hide a
+   good month exactly as badly as the zero hid a missing connector. */
+test('a collection that is there but selects nothing reports a real zero', () => {
+  const withBookings = {
+    ...entities(),
+    bookings: [
+      { id: 'B-1', revenue: 4280000, nights: 2, bookingStatus: 'Confirmed', checkIn: '2026-08-02' },
+      { id: 'B-2', revenue: 3100000, nights: 1, bookingStatus: 'Confirmed', checkIn: '2026-08-03' },
+    ],
+  };
+  const { values } = metrics.evaluate(withBookings);
+
+  assert.equal(values['bookings.cancelled'], 0, 'nothing cancelled is a measurement, not a gap');
+  assert.equal(values['bookings.all'], 2);
+  assert.equal(values['bookings.confirmed'], 2);
+  assert.equal(values['revenue.net'], 7380000);
 });
 
 /* ── presentation the registry owns ─────────────────────────────────────── */
