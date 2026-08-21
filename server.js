@@ -648,7 +648,34 @@ function periodFor(query) {
 /* `over` travels with the read so the repository narrows the same rows the
    registry does. Named apart from the raw `period` string the URL carries,
    because one is a label and the other is a resolved window. */
-const readParams = (query) => ({ ...(query || {}), model: workspace.model(), over: periodFor(query).over });
+/* The registry's own values travel with it too, when a workspace is named.
+ *
+ * A projection can read rows; it could not read *metrics*, and two things on
+ * the AI screen are questions about metrics rather than about rows — "how does
+ * this period compare with the one before it", and "where does each figure sit
+ * against the target its own definition declares". Both were authored fixtures
+ * because the projection had no way to ask.
+ *
+ * Free, or near enough: `metricValues` is cached per window and the route
+ * evaluates the same two windows a few lines later, so this is a second lookup
+ * of an entry that is already there rather than a second evaluation.
+ *
+ * `previous` is offered only when the store actually spans the earlier window —
+ * the same `coversWindow` guard the KPI deltas use, and for the same reason: a
+ * comparison against a window the backfill has not reached yet measures how far
+ * back the data goes while looking like a business result. */
+const readParams = (query, workspaceId = null) => {
+  const over = periodFor(query).over;
+  const params = { ...(query || {}), model: workspace.model(), over };
+  if (!workspaceId) return params;
+
+  const back = metrics.period.previous(over);
+  params.values = metricValues(workspaceId, null, over).values;
+  params.previous = back && coversWindow(workspaceId, back) ? metricValues(workspaceId, null, back).values : null;
+  params.registry = metrics.registry;
+  params.format = metrics.format;
+  return params;
+};
 
 /* Every KPI card a screen offers, flattened for the edit panel.
  *
@@ -3876,7 +3903,7 @@ function screenRoute(screen) {
 
       /* 6.4 — every KPI card that names a registry metric carries its
          definition from here on, whichever driver supplied the payload. */
-      const params = readParams(req.query);
+      const params = readParams(req.query, req.workspace);
       const payload = (await repo.read(screen.view, params)) || {};
 
       /* Which cards this reader keeps, and whether they are choosing right now.

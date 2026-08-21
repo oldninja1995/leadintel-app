@@ -88,32 +88,30 @@
           <% if (aiChat) { %>
             <div style="display:grid; grid-template-columns:1fr 280px; gap:12px; align-items:start;">
               <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); display:flex; flex-direction:column; min-height:480px;">
-                <div style="flex:1; padding:18px; display:flex; flex-direction:column; gap:14px;">
-                  <div style="align-self:flex-end; max-width:70%; background:var(--color-accent-900); border:1px solid var(--color-accent-800); border-radius:12px 12px 3px 12px; padding:10px 13px; font-size:12.5px;">Which Meta campaign generated the highest profit this month?</div>
-                  <div style="max-width:85%; background:var(--color-raised); border-radius:12px 12px 12px 3px; box-shadow:var(--shadow-sm); padding:12px 14px; font-size:12.5px; line-height:1.6; color:var(--color-neutral-300);">
-                    <b style="color:var(--color-neutral-100); font-weight:500;">Munnar Honeymoon — Video UGC</b> generated the highest profit: <b style="color:var(--color-accent-300); font-weight:500;">₹6.1L profit</b> on ₹2.1L spend (94 confirmed bookings, mostly Deluxe Lake View + Honeymoon Escape).
-                    <div style="display:flex; gap:8px; margin-top:10px;">
-                      <div style="flex:1; border:1px solid var(--color-neutral-800); border-radius:8px; padding:8px 10px;"><div style="font-size:9px; color:var(--color-neutral-600);">PROFIT</div><div style="font-size:13px; font-weight:500;">₹6.1L</div></div>
-                      <div style="flex:1; border:1px solid var(--color-neutral-800); border-radius:8px; padding:8px 10px;"><div style="font-size:9px; color:var(--color-neutral-600);">NET ROAS</div><div style="font-size:13px; font-weight:500;">6.4x</div></div>
-                      <div style="flex:1; border:1px solid var(--color-neutral-800); border-radius:8px; padding:8px 10px;"><div style="font-size:9px; color:var(--color-neutral-600);">MARGIN</div><div style="font-size:13px; font-weight:500;">41%</div></div>
-                    </div>
-                    <div style="margin-top:9px; font-size:11px; color:var(--color-neutral-500);">Runner-up: Brand Search — Kerala (₹4.8L profit, 5.9x). Sources: Meta Ads sync + CRM revenue, verified 4 min ago.</div>
-                    <div style="display:flex; gap:6px; margin-top:9px;">
-                      <span class="hv-9" style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:2px 8px; color:var(--color-neutral-500); cursor:pointer;">Open campaign</span>
-                      <span class="hv-9" style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:2px 8px; color:var(--color-neutral-500); cursor:pointer;">Simulate +20% budget</span>
-                      <span class="hv-9" style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:2px 8px; color:var(--color-neutral-500); cursor:pointer;">Add to weekly report</span>
-                    </div>
-                  </div>
-                  <div style="align-self:flex-end; max-width:70%; background:var(--color-accent-900); border:1px solid var(--color-accent-800); border-radius:12px 12px 3px 12px; padding:10px 13px; font-size:12.5px;">Predict next month's occupancy.</div>
-                  <div style="max-width:85%; background:var(--color-raised); border-radius:12px 12px 12px 3px; box-shadow:var(--shadow-sm); padding:12px 14px; font-size:12.5px; line-height:1.6; color:var(--color-neutral-300);">
-                    August forecast: <b style="color:var(--color-accent-300); font-weight:500;">83% occupancy</b> (range 79–87%, 87% confidence) — +5pt vs July. Drivers: booking pace +18% WoW, monsoon-season search demand +22%, and 42 confirmed bookings already on the August calendar. Standard Rooms lag at 72% — the midweek corporate push targets exactly that gap.
+                <%# This held a transcript: two questions and two answers, written into
+                    the template. One named a campaign, gave it "₹6.1L profit on ₹2.1L
+                    spend (94 confirmed bookings)", and closed with "Sources: Meta Ads
+                    sync + CRM revenue, verified 4 min ago". The other forecast next
+                    month's occupancy at 83%, "87% confidence". Nothing was read, no
+                    assistant was called, and the composer beneath it went nowhere — a
+                    reader had no way to tell any of that.
+
+                    The tab stays rather than being removed, because the question it
+                    poses is a real one and a missing tab reads as a feature nobody got
+                    round to, while an empty one reads as the truth: not connected. %>
+                <div style="flex:1; padding:32px 18px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center;">
+                  <i class="ph ph-plugs" style="font-size:22px; color:var(--color-neutral-600);"></i>
+                  <div style="font-size:13px; color:var(--color-neutral-300); font-weight:500;">No assistant is connected</div>
+                  <div style="font-size:11.5px; color:var(--color-neutral-500); line-height:1.6; max-width:440px;">
+                    Nothing in this product answers a typed question yet. The paragraph on
+                    the Command centre tab is the closest thing to it, and every figure in
+                    it is counted from the same rows the screens behind it show.
                   </div>
                 </div>
                 <div style="flex:none; padding:12px 16px; border-top:1px solid var(--color-neutral-900);">
-                  <div style="display:flex; align-items:center; gap:8px; border:1px solid var(--color-neutral-800); border-radius:9px; padding:9px 12px;">
-                    <input placeholder="Ask anything about your business…" style="flex:1; background:transparent; border:none; outline:none; color:var(--color-text); font-size:12.5px; font-family:var(--font-body);">
-                    <i class="ph ph-paperclip" style="color:var(--color-neutral-600); font-size:14px; cursor:pointer;"></i>
-                    <i class="ph-fill ph-paper-plane-right" style="color:var(--color-accent-400); font-size:15px; cursor:pointer;"></i>
+                  <div style="display:flex; align-items:center; gap:8px; border:1px solid var(--color-neutral-900); border-radius:9px; padding:9px 12px; opacity:.55;">
+                    <input placeholder="Not connected" disabled aria-label="Ask a question — not connected" style="flex:1; background:transparent; border:none; outline:none; color:var(--color-neutral-600); font-size:12.5px; font-family:var(--font-body); cursor:not-allowed;">
+                    <i class="ph-fill ph-paper-plane-right" style="color:var(--color-neutral-700); font-size:15px;"></i>
                   </div>
                 </div>
               </div>
@@ -157,37 +155,39 @@
           <% } %>
 
           <!-- FORECAST -->
+          <%# THE FORECAST TAB.
+
+              This drew a projection: four KPI cards (₹61.0L revenue, 468 bookings,
+              83% occupancy, a ₹9.6L recommended budget, each with a range), a
+              horizon control offering August / Q3 / Rest of year, "confidence 89%
+              · model retrained nightly on CRM + PMS actuals", and an SVG whose
+              path coordinates were typed by hand — a rising actual line, a dashed
+              forecast continuing it, and a widening confidence band, all fixed
+              geometry that never moved whatever the data said.
+
+              There is no forecasting model in this product. Not a weak one, none.
+              A chart is the most persuasive thing on a page and this one was
+              drawing a shape nothing had computed, next to a confidence figure for
+              it. The horizon control is gone too: offering a choice between three
+              horizons implies three answers exist.
+
+              The tab stays, because the question is a real one and a reader should
+              see it is unanswered rather than find the tab quietly missing. %>
           <% if (aiForecast) { %>
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
-              <span style="font-size:12px; color:var(--color-neutral-500);">Horizon</span>
-              <div style="display:flex; border:1px solid var(--color-neutral-800); border-radius:8px; overflow:hidden;">
-                <% (fcRanges || []).forEach(function (r) { %>
-                  <div class="hv-5" data-action="<%= r.go %>" style="padding:6px 14px; font-size:11.5px; cursor:pointer; color:<%= r.color %>; background:<%= r.bg %>; border-right:1px solid var(--color-neutral-900);"><%= r.label %></div>
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:26px 22px;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+                <i class="ph ph-chart-line-up" style="color:var(--color-neutral-600); font-size:15px;"></i>
+                <div style="font-size:13px; font-weight:500;"><%= fcLabel %></div>
+              </div>
+              <div style="font-size:11.5px; color:var(--color-neutral-500); line-height:1.65; max-width:620px;"><%= fcNote %></div>
+              <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:16px;">
+                <% (fcKpis || []).forEach(function (k) { %>
+                  <div style="border:1px solid var(--color-neutral-900); border-radius:10px; padding:10px 13px;">
+                    <div style="font-size:9.5px; letter-spacing:.06em; color:var(--color-neutral-600); text-transform:uppercase;"><%= k.label %></div>
+                    <div style="font-size:17px; font-weight:500; color:var(--color-neutral-600); margin-top:4px;"><%= k.value %></div>
+                  </div>
                 <% }); %>
               </div>
-              <span style="font-size:11px; color:var(--color-neutral-600);">confidence <%= fcConf %> · model retrained nightly on CRM + PMS actuals</span>
-            </div>
-            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:12px;">
-              <% (fcKpis || []).forEach(function (k) { %>
-                <div style="background:var(--color-surface); border-radius:10px; box-shadow:var(--shadow-sm); padding:10px 13px;">
-                  <div style="display:flex; align-items:center; gap:5px;"><span style="font-size:9.5px; letter-spacing:.06em; color:var(--color-neutral-500); text-transform:uppercase;"><%= k.label %></span><span style="flex:1;"></span><span style="font-size:8px; border:1px solid var(--color-accent-2-800); border-radius:4px; padding:0.5px 4px; color:var(--color-accent-2-300);">AI</span></div>
-                  <div style="display:flex; align-items:baseline; gap:7px; margin-top:4px;"><span style="font-size:17px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:10px; color:<%= k.deltaColor %>;"><%= k.delta %></span></div>
-                  <div style="font-size:9.5px; color:var(--color-neutral-600); margin-top:2px;">range <%= k.range %></div>
-                </div>
-              <% }); %>
-            </div>
-            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
-              <div style="display:flex; align-items:center; margin-bottom:6px;"><div style="font-size:13px; font-weight:500;">Revenue forecast — <%= fcLabel %></div><div style="flex:1;"></div><span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);"><span style="width:12px; height:2px; background:var(--color-accent-300);"></span>Actual</span><span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400); margin-left:10px;"><span style="width:12px; height:2px; background:var(--color-accent-300); opacity:.4;"></span>Forecast + band</span></div>
-              <svg viewBox="0 0 640 190" style="width:100%; height:190px;" preserveAspectRatio="none">
-                <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="47" x2="640" y2="47"></line><line x1="0" y1="94" x2="640" y2="94"></line><line x1="0" y1="141" x2="640" y2="141"></line></g>
-                <path d="M320,86 L400,68 L480,58 L560,44 L640,30 L640,74 L560,84 L480,92 L400,98 L320,96 Z" fill="var(--color-accent-500)" opacity="0.14"></path>
-                <path d="M0,150 L60,138 L120,142 L180,120 L240,108 L320,86" fill="none" stroke="var(--color-accent-300)" stroke-width="2" stroke-linejoin="round"></path>
-                <path d="M320,86 L400,80 L480,72 L560,62 L640,50" fill="none" stroke="var(--color-accent-300)" stroke-width="2" stroke-dasharray="5 5"></path>
-                <circle cx="320" cy="86" r="3.5" fill="var(--color-accent-200)"></circle>
-                <line x1="320" y1="12" x2="320" y2="178" stroke="var(--color-neutral-800)" stroke-dasharray="3 4"></line>
-                <text x="326" y="20" fill="var(--color-neutral-600)" font-size="9" font-family="Inter">today</text>
-              </svg>
-              <div style="font-size:11px; color:var(--color-neutral-500); margin-top:8px; line-height:1.5;"><i class="ph-fill ph-sparkle" style="color:var(--color-accent-400); font-size:11px;"></i> <%= fcNote %></div>
             </div>
           <% } %>
 
@@ -209,9 +209,23 @@
                   </tbody>
                 </table>
               </div>
+              <%# This panel drew a five-step causal chain for a cancellation spike:
+                  a PMS folio status at the moment of cancellation, a missing CRM
+                  reminder task, an audit-log entry naming an admin and a date. None
+                  of it was read from anything, and the Command centre paragraph on
+                  this same screen ends "Nothing on this page infers a cause".
+
+                  So the chain is gone and the panel says what the table beside it is
+                  and is not. Detection and explanation are different products; this
+                  one detects. %>
               <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
-                <div style="display:flex; align-items:center; gap:7px; margin-bottom:4px;"><i class="ph ph-tree-structure" style="color:var(--color-accent-400); font-size:14px;"></i><div style="font-size:13px; font-weight:500;">Root cause — cancellation spike</div></div>
-                <div style="font-size:10.5px; color:var(--color-neutral-600); margin-bottom:12px;">Cancellations +2pt this month · AI traced the causal chain</div>
+                <div style="display:flex; align-items:center; gap:7px; margin-bottom:4px;"><i class="ph ph-tree-structure" style="color:var(--color-neutral-500); font-size:14px;"></i><div style="font-size:13px; font-weight:500;">No root cause</div></div>
+                <div style="font-size:11.5px; color:var(--color-neutral-500); line-height:1.6;">
+                  The table beside this one reports how far a day sat from its own
+                  average, and over how many days that average was taken. It does not
+                  say why, and nothing in this product does — the paragraph on the
+                  Command centre tab ends on the same sentence.
+                </div>
                 <% (rootChain || []).forEach(function (rc) { %>
                   <div style="display:flex; gap:11px; align-items:flex-start;">
                     <div style="display:flex; flex-direction:column; align-items:center; align-self:stretch;">
@@ -224,7 +238,10 @@
                     </div>
                   </div>
                 <% }); %>
-                <div style="margin-top:4px; padding:10px 12px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); border-radius:9px; font-size:11.5px; color:var(--color-accent-100); line-height:1.5;"><b style="font-weight:500;">Fix:</b> shorten the payment window to 48h with an auto-reminder at 24h — recovers an estimated 5 of 8 monthly cancellations (₹1.1L).</div>
+                <%# A "Fix:" box recommending a 48-hour payment window, "recovers an
+                    estimated 5 of 8 monthly cancellations (₹1.1L)". Both the diagnosis
+                    and the recovery estimate were written by hand — the second is a
+                    forecast, and there is no model here for one. %>
               </div>
             </div>
           <% } %>
@@ -234,7 +251,9 @@
             <div style="display:grid; grid-template-columns:340px 1fr; gap:12px; align-items:start;">
               <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
                 <div style="font-size:13px; font-weight:500; margin-bottom:2px;">Scenario levers</div>
-                <div style="font-size:10.5px; color:var(--color-neutral-600); margin-bottom:14px;">model fitted on 12 months of CRM + ads history</div>
+                <%# Was "model fitted on 12 months of CRM + ads history". Nothing was
+                    fitted on anything; the levers are arithmetic over a baseline. %>
+                <div style="font-size:10.5px; color:var(--color-neutral-600); margin-bottom:14px;">arithmetic over this range, not a fitted model</div>
                 <div style="margin-bottom:14px;">
                   <div style="font-size:11px; color:var(--color-neutral-400); margin-bottom:6px;">Meta Ads budget</div>
                   <div style="display:flex; border:1px solid var(--color-neutral-800); border-radius:7px; overflow:hidden;">
@@ -259,10 +278,17 @@
                     <% }); %>
                   </div>
                 </div>
-                <div style="font-size:10.5px; color:var(--color-neutral-600); line-height:1.5; border-top:1px solid var(--color-neutral-900); padding-top:10px;">Assumes marginal Meta ROAS 5.1x with saturation decay, −0.25pt occupancy per +1% ADR, and 82% recovery on avoided cancellations.</div>
+                <%# Held a second, different set of invented coefficients — "5.1x with
+                    saturation decay, −0.25pt occupancy per +1% ADR, 82% recovery" — which
+                    disagreed with the ones the data file was actually calculating with.
+                    The assumptions are stated once now, by the projection that applies
+                    them, in `simNote` below. %>
               </div>
               <div style="background:linear-gradient(160deg, var(--color-section) 0%, var(--color-section-deep) 75%); border-radius:12px; box-shadow:var(--shadow-sm); padding:18px;">
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;"><i class="ph-fill ph-flask" style="color:var(--color-accent-300); font-size:15px;"></i><div style="font-size:13px; font-weight:500;">Predicted next 30 days — <%= simScenario %></div></div>
+                <%# Was "Predicted next 30 days". It is not a prediction and it is not
+                    about the next 30 days: it is this range's own measured figures with
+                    the levers applied. %>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:14px;"><i class="ph-fill ph-flask" style="color:var(--color-accent-300); font-size:15px;"></i><div style="font-size:13px; font-weight:500;">This range with the levers applied — <%= simScenario %></div></div>
                 <div style="display:grid; grid-template-columns:repeat(5,1fr); gap:10px;">
                   <% (simOut || []).forEach(function (o) { %>
                     <div style="border:1px solid var(--color-section-ghost); border-radius:10px; padding:11px 13px;">
@@ -285,7 +311,14 @@
           <% if (aiGoals) { %>
             <div style="display:grid; grid-template-columns:1fr 1.2fr; gap:12px; align-items:start;">
               <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
-                <div style="display:flex; align-items:center; margin-bottom:12px;"><div style="font-size:13px; font-weight:500;">July goals</div><div style="flex:1;"></div><span style="font-size:11px; color:var(--color-neutral-500);">2 days left</span></div>
+                <%# Was "July goals" and "2 days left", both fixed strings on a screen
+                    whose range control moves. The heading now names what the rows
+                    actually are: each metric against the target its own definition
+                    in the registry declares, over the selected range. %>
+                <div style="display:flex; align-items:center; margin-bottom:12px;"><div style="font-size:13px; font-weight:500;">Against target</div><div style="flex:1;"></div><span style="font-size:11px; color:var(--color-neutral-500);"><%= (goals || []).length %> metric<%= (goals || []).length === 1 ? '' : 's' %> declare one</span></div>
+                <% if (!(goals || []).length) { %>
+                  <div style="font-size:11.5px; color:var(--color-neutral-500); line-height:1.6; padding:6px 0 10px;">No metric in range carries both a measured value and a target. Targets live beside the definitions, in the metric registry.</div>
+                <% } %>
                 <% (goals || []).forEach(function (g) { %>
                   <div style="margin-bottom:13px;">
                     <div style="display:flex; align-items:baseline; gap:8px; font-size:11.5px; margin-bottom:4px;">
@@ -359,13 +392,25 @@
             <% }); %>
           </div>
           <div style="margin-top:12px; background:linear-gradient(160deg, var(--color-section) 0%, var(--color-section-deep) 70%); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
-            <div style="display:flex; align-items:center; gap:7px; margin-bottom:10px;"><i class="ph-fill ph-list-checks" style="color:var(--color-accent-300); font-size:15px;"></i><div style="font-size:13px; font-weight:500;">This week's action plan</div></div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; color:var(--color-accent-100); line-height:1.5;">
-              <div style="display:flex; gap:8px;"><i class="ph ph-square" style="margin-top:2px; color:var(--color-accent-300);"></i>Shift ₹40K/week to Munnar Honeymoon campaign</div>
-              <div style="display:flex; gap:8px;"><i class="ph ph-square" style="margin-top:2px; color:var(--color-accent-300);"></i>Rotate 2 backup hooks on fatigued waterfall video</div>
-              <div style="display:flex; gap:8px;"><i class="ph ph-square" style="margin-top:2px; color:var(--color-accent-300);"></i>Broaden honeymoon lookalike from 2% → 4%</div>
-              <div style="display:flex; gap:8px;"><i class="ph ph-square" style="margin-top:2px; color:var(--color-accent-300);"></i>Fix Kumarakom LP form (58% mobile drop-off)</div>
-            </div>
+            <%# Four checkboxes written into the template: shift ₹40K/week to a named
+                campaign, rotate two hooks on a "fatigued waterfall video", broaden a
+                lookalike 2% → 4%, fix a landing page form with "58% mobile drop-off".
+                None of those campaigns, videos, audiences or figures came from
+                anywhere, and the list never changed whatever the account did.
+
+                The actions the Command centre tab derives are the actions. They are
+                the same list, from rows, and there are as many of them as the rows
+                support — which is sometimes none, and none is a real answer. %>
+            <div style="display:flex; align-items:center; gap:7px; margin-bottom:10px;"><i class="ph-fill ph-list-checks" style="color:var(--color-accent-300); font-size:15px;"></i><div style="font-size:13px; font-weight:500;">What the rows support</div></div>
+            <% if (!(aiActions || []).length) { %>
+              <div style="font-size:12px; color:var(--color-accent-100); opacity:.75; line-height:1.55;">Nothing in range rises to an action. That is an answer, not an empty state.</div>
+            <% } else { %>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px; color:var(--color-accent-100); line-height:1.5;">
+                <% (aiActions || []).forEach(function (a) { %>
+                  <div style="display:flex; gap:8px;"><i class="ph ph-square" style="margin-top:2px; color:var(--color-accent-300);"></i><span><%= a.text %><span style="display:block; font-size:10.5px; opacity:.7;"><%= a.meta %></span></span></div>
+                <% }); %>
+              </div>
+            <% } %>
           </div>
           <% } %>
         </div>
