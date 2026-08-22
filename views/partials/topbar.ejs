@@ -20,7 +20,19 @@
         <div style="display:flex; align-items:center; gap:6px; padding:6px 11px; font-size:11.5px; color:var(--color-neutral-500);" title="The window the numbers on this screen are computed over"><i class="ph ph-calendar-blank" style="font-size:13px;"></i><%= typeof rangeLabel === 'string' ? rangeLabel : 'All time' %></div>
       </div>
       <div style="font-size:11px; flex:none; white-space:nowrap; color:var(--color-neutral-600); display:flex; align-items:center; gap:5px;"><i class="ph ph-arrows-left-right" style="font-size:12px;"></i>vs previous period</div>
-      <div style="flex:1;"></div>
+      <%# **The right-hand controls are one flex item, not five.**
+
+           The header wraps, and a wrapping flex line is filled at each item's
+           *base* size — shrinking only happens afterwards, within a line. So the
+           avatar, being last, dropped to a second row while the search box beside
+           it still sat at its full 220px, perfectly able to give up the 40 pixels
+           that would have kept the row whole. The user profile "went down".
+
+           Grouped, the cluster is a single item that shrinks internally: the
+           search box narrows to its 110px floor before anything can leave the
+           row, and the profile cannot be orphaned from the button beside it.
+           `min-width:0` is what lets that shrink actually happen. %>
+      <div style="flex:1 1 auto; min-width:0; display:flex; flex-wrap:nowrap; justify-content:flex-end; align-items:center; gap:10px;">
       <div class="hv-6" data-action="openPalette" style="display:flex; align-items:center; gap:8px; border:1px solid var(--color-neutral-800); border-radius:8px; padding:6px 12px; flex:0 1 220px; min-width:110px; overflow:hidden; color:var(--color-neutral-600); cursor:pointer;">
         <i class="ph ph-magnifying-glass" style="font-size:13px;"></i><span style="flex:1; font-size:12px;">Search anything…</span><span style="font-size:10px; border:1px solid var(--color-neutral-800); border-radius:4px; padding:1px 5px; font-family:ui-monospace,monospace;">⌘K</span>
       </div>
@@ -35,4 +47,5 @@
         <i class="ph-fill ph-sparkle" style="font-size:14px;"></i><span style="font-size:12px; font-weight:500;">Ask AI</span>
       </div>
       <div style="width:32px; height:32px; border-radius:99px; background:linear-gradient(135deg, var(--color-neutral-800), var(--color-neutral-700)); display:grid; place-items:center; font-size:11.5px; font-weight:600; color:var(--color-neutral-200); cursor:pointer; border:1px solid var(--color-neutral-700);" data-action="toggleProfile" title="<%= me ? me.name + ' — ' + me.roleName : 'Signed in' %>"><%= me ? me.initials : '?' %></div>
+      </div>
     </header>
