@@ -183,13 +183,29 @@ const th = (key, label) => headRow('sort', 'keyword', [[key, label]], { campaign
 /* That table's own order, for the two sentences on the panel that name it. */
 const listSort = sorts.sort || { key: 'keyword', reversed: false };
 const COLUMN = {
-  keyword: 'keyword', match: 'match type', status: 'status', adgroup: 'ad group',
-  spend: 'spend', impressions: 'impressions', clicks: 'clicks', ctr: 'CTR', cpc: 'CPC',
-  conversions: 'conversions', quality: 'quality score',
+  keyword: 'keyword', term: 'search term', word: 'word', match: 'match type',
+  status: 'status', adgroup: 'ad group', spend: 'spend', impressions: 'impressions',
+  clicks: 'clicks', conversions: 'conversions', quality: 'quality score',
+  terms: 'term count', ctr: 'CTR', cpc: 'CPC', cpl: 'cost per conversion',
+  convrate: 'conversion rate',
 };
 const listOrder = listSort.key === 'keyword' && !listSort.reversed
   ? 'alphabetical order'
   : `${listSort.reversed ? 'reverse ' : ''}${COLUMN[listSort.key] || listSort.key} order`;
+
+/* **A preview says which ten rows these are, and it has to keep saying it.**
+ *
+ * Every one of these captions was written when its table had one order —
+ * "the 10 highest-spending", "the 10 most expensive" — and a sortable table
+ * turns each of them into a caption that contradicts the rows underneath it.
+ * A preview of ten out of five thousand is only honest while it names the
+ * order that chose the ten. */
+const previewNote = (param, fallback) => {
+  const now = sorts[param] || { key: fallback, reversed: false };
+  const name = COLUMN[now.key] || now.key;
+  if (TEXT_SORTS.has(now.key)) return `by ${name}, ${now.reversed ? 'Z–A' : 'A–Z'}`;
+  return `by ${now.reversed ? 'lowest' : 'highest'} ${name}`;
+};
 
 %>
 
@@ -256,7 +272,8 @@ const listOrder = listSort.key === 'keyword' && !listSort.reversed
   <div class="li-ota-panel-head">
     <h2>Spend with nothing to show for it</h2>
     <p>
-      Search terms that cost money and converted nobody, most expensive first. Every row is a
+      Search terms that cost money and converted nobody, dearest first until you sort them
+      otherwise. Every row is a
       candidate for a negative keyword — this is the one table on the screen that is a list of
       decisions rather than a record.
     </p>
@@ -275,7 +292,7 @@ const listOrder = listSort.key === 'keyword' && !listSort.reversed
     <strong><%= num(wasted.length) %></strong> terms<% if (s.wastedSpendText) { %>,
     costing <strong><%= s.wastedSpendText %></strong><% } %>.
     <% if (!whole('wasted') && wasted.length > PREVIEW) { %>
-      Showing the <%= PREVIEW %> most expensive.
+      Showing the first <%= PREVIEW %> <%= previewNote('sortWasted', 'spend') %>.
     <% } %>
   </p>
   <div class="li-ota-scroll">
@@ -335,7 +352,7 @@ const listOrder = listSort.key === 'keyword' && !listSort.reversed
   <p class="li-ota-foot">
     <%= num(words.length) %> words, each appearing in two or more terms.
     <strong><%= num(wastedWords.length) %></strong> of them have converted nobody.
-    <% if (!whole('words') && words.length > PREVIEW) { %>Showing the top <%= PREVIEW %> by spend.<% } %>
+    <% if (!whole('words') && words.length > PREVIEW) { %>Showing the first <%= PREVIEW %> <%= previewNote('sortWords', 'spend') %>.<% } %>
     Not stemmed and not stopword-filtered beyond the shortest tokens: this is the account's own
     vocabulary, and guessing which words are meaningful is how a tool starts hiding the answer.
   </p>
@@ -549,8 +566,8 @@ const listOrder = listSort.key === 'keyword' && !listSort.reversed
     </div>
     <% if (!whole('by-campaign') && c.keywords.length > PREVIEW) { %>
       <p class="li-ota-foot">
-        <%= num(c.keywords.length) %> keywords in this campaign. Showing the <%= PREVIEW %>
-        first alphabetically —
+        <%= num(c.keywords.length) %> keywords in this campaign. Showing the first <%= PREVIEW %>
+        <%= previewNote('sortCampaigns', 'spend') %> —
         <a href="<%= link({ table: 'by-campaign' }) %>">view every campaign's list in full</a> &rarr;
       </p>
     <% } %>
@@ -586,7 +603,7 @@ const listOrder = listSort.key === 'keyword' && !listSort.reversed
   <% } else { %>
   <% if (!whole('keywords') && keywords.length > PREVIEW) { %>
     <p class="li-ota-foot">
-      <%= num(keywords.length) %> keywords. Showing the <%= PREVIEW %> highest-spending.
+      <%= num(keywords.length) %> keywords. Showing the first <%= PREVIEW %> <%= previewNote('sortKeywords', 'spend') %>.
     </p>
   <% } %>
   <div class="li-ota-scroll">
@@ -642,9 +659,11 @@ const listOrder = listSort.key === 'keyword' && !listSort.reversed
   <div class="li-ota-panel-head">
     <h2>Search terms</h2>
     <p>
-      What people actually typed, as opposed to what was bid on. Sorted by spend — the long
-      tail is where the word rollup above gets its evidence, which is why the whole report is
-      reachable rather than capped.
+      What people actually typed, as opposed to what was bid on. Every column sorts; spend is
+      the order it opens in — the long tail is where the word rollup above gets its evidence,
+      which is why the whole report is reachable rather than capped. Sorting by a rate on a
+      report this long puts the one-impression rows on top: they are real, and they are not
+      evidence of anything.
     </p>
   </div>
 
@@ -653,7 +672,7 @@ const listOrder = listSort.key === 'keyword' && !listSort.reversed
   <% } else { %>
   <p class="li-ota-foot">
     <strong><%= num(terms.length) %></strong> terms.
-    <% if (!whole('terms') && terms.length > PREVIEW) { %>Showing the <%= PREVIEW %> highest-spending.<% } %>
+    <% if (!whole('terms') && terms.length > PREVIEW) { %>Showing the first <%= PREVIEW %> <%= previewNote('sortTerms', 'spend') %>.<% } %>
   </p>
   <div class="li-ota-scroll">
     <table class="li-ota-table">
