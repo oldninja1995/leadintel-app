@@ -73,6 +73,38 @@
                   <div style="height:9px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= s.w %>; border-radius:99px; background:linear-gradient(90deg, var(--color-accent-700), var(--color-accent-400));"></div></div>
                 </div>
               <% }); %>
+              <%# What the property reports that no step claimed.
+
+                   A dashed step says nothing about why it is dashed, and the
+                   reason is always the same one: the booking engine names its
+                   events something this funnel does not know. Listing them is
+                   what turns "the funnel is broken" into "the step is called
+                   availability_search here" — a naming question a reader can
+                   answer in one line. %>
+              <% if ((typeof missingSteps !== 'undefined') && missingSteps && missingSteps.length) { %>
+                <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--color-neutral-900);">
+                  <div style="font-size:11px; color:var(--color-neutral-400); margin-bottom:6px;">
+                    <%= missingSteps.length %> step<%= missingSteps.length === 1 ? '' : 's' %> unmeasured:
+                    <%= missingSteps.join(', ') %>
+                  </div>
+                  <% if ((typeof unclaimedEvents !== 'undefined') && unclaimedEvents && unclaimedEvents.length) { %>
+                    <div style="font-size:10.5px; color:var(--color-neutral-600); line-height:1.55;">
+                      Google Analytics reports these events on this property, and none of them is a
+                      name a step above knows. Tell us which is which and the step fills:
+                    </div>
+                    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:7px;">
+                      <% unclaimedEvents.forEach(function (e) { %>
+                        <span style="font-size:10.5px; border:1px solid var(--color-neutral-800); border-radius:6px; padding:2px 8px; color:var(--color-neutral-400); font-variant-numeric:tabular-nums;"><%= e.event %> · <%= e.count %></span>
+                      <% }); %>
+                    </div>
+                  <% } else { %>
+                    <div style="font-size:10.5px; color:var(--color-neutral-600); line-height:1.55;">
+                      No events have been pulled from Google Analytics for this range yet — the funnel's
+                      middle steps are counted from them, and its ends are not.
+                    </div>
+                  <% } %>
+                </div>
+              <% } %>
             </div>
           <% } %>
         </div>
