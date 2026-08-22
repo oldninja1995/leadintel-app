@@ -46,12 +46,22 @@ module.exports = {
     { lp: '/offers/monsoon', sessions: '11,940', bounce: '68.1%', bounceColor: DOWN, scroll: '34%', formStart: '480', formDone: '164', conv: '1.4%', clicks: '1,020', rev: '₹0.8L', audit: 'Needs work', auditColor: DOWN, auditBorder: 'var(--color-neutral-800)' },
   ],
 
+  /* **The journey this property's booking engine actually reports.**
+   *
+   * It was six authored steps — landing, availability, booking started, guest
+   * details, payment page, confirmed — and two of them describe a checkout this
+   * engine does not tag: there is no guest-details event and no payment event in
+   * GA4, so those rows could only ever be dashes. The engine's own sequence is
+   * check availability, view the rooms, and book; the labels say that.
+   *
+   * The figures are counted in lib/repository/projections.js from GA4's event
+   * report, and every one of these is dropped from the screen if its event is
+   * absent — so this list is a shape, never a claim.
+   */
   webFunnel: [
-    { label: 'Landing page view', n: '1.84L', pct: '100%', w: '100%', drop: '—' },
-    { label: 'Availability checked', n: '38,400', pct: '20.9%', w: '52%', drop: '−79.1%' },
-    { label: 'Booking started', n: '14,208', pct: '7.7%', w: '34%', drop: '−63.0%' },
-    { label: 'Guest details entered', n: '8,140', pct: '4.4%', w: '22%', drop: '−42.7%' },
-    { label: 'Payment page', n: '5,210', pct: '2.8%', w: '14%', drop: '−36.0%' },
-    { label: 'Booking confirmed', n: '4,218', pct: '2.3%', w: '11%', drop: '−19.0%' },
+    { label: 'Landing page view', n: '—', pct: '—', w: '0%', drop: '—' },
+    { label: 'Availability checked', n: '—', pct: '—', w: '0%', drop: '—' },
+    { label: 'Room selection viewed', n: '—', pct: '—', w: '0%', drop: '—' },
+    { label: 'Booking confirmed', n: '—', pct: '—', w: '0%', drop: '—' },
   ],
 };
