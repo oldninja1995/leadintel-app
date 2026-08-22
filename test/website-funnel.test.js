@@ -32,6 +32,13 @@ const funnelOf = (events, sessions) => {
   return { steps: Object.fromEntries(out.webFunnel.map((s) => [s.label, s])), out };
 };
 
+/* A step with no figure is off the funnel and named beneath it, rather than
+   drawn as a row whose only content is its own absence. */
+const absent = (out, label) => {
+  const drawn = out.webFunnel.some((s) => s.label === label);
+  return !drawn && out.missingSteps.includes(label);
+};
+
 test('the middle of the funnel is counted from the events GA4 reports', () => {
   const { steps } = funnelOf([
     ev('view_item', 24000), ev('begin_checkout', 9000),
@@ -57,18 +64,20 @@ test('a step falls from the last measured step, not from the row above it', () =
   const { steps } = funnelOf([ev('view_item', 25000), ev('add_payment_info', 5000)], 100000);
 
   assert.equal(steps['Availability checked'].drop, '−75.0%');
-  assert.equal(steps['Guest details entered'].n, '—');
+  assert.ok(absent(funnelOf([ev('view_item', 25000), ev('add_payment_info', 5000)], 100000).out, 'Guest details entered'));
   /* 5,000 of the 25,000 that checked availability, not of the 100,000 that
      landed and not of a step that reported nothing. */
   assert.equal(steps['Payment page'].drop, '−80.0%');
 });
 
-test('an event the property does not send leaves its step dashed', () => {
-  const { steps } = funnelOf([ev('view_item', 24000)]);
+test('an event the property does not send takes its step off the funnel', () => {
+  /* Dashed, the row cost a reader a look and gave them nothing: an empty bar,
+     an unknowable fall, and no content but its own absence. Dropped, the funnel
+     is short and the line beneath it says why. */
+  const { out } = funnelOf([ev('view_item', 24000)]);
 
   for (const label of ['Booking started', 'Guest details entered', 'Payment page']) {
-    assert.equal(steps[label].n, '—', `${label} was filled from an event that does not exist`);
-    assert.equal(steps[label].w, '0%');
+    assert.ok(absent(out, label), `${label} is still drawn, or is not accounted for beneath`);
   }
 });
 
@@ -97,12 +106,12 @@ test('events nobody claimed are listed, biggest first', () => {
   assert.ok(out.missingSteps.includes('Booking started'));
 });
 
-test('a property with no events at all still reports its first and last step', () => {
-  /* The behaviour this replaced must survive the replacement: sessions and
-     purchases come from their own reports and do not need events. */
-  const { steps } = funnelOf([]);
+test('a property with no events at all still reports the step sessions can answer', () => {
+  /* The behaviour this replaced must survive the replacement: the first step
+     comes from the session report and needs no events at all. */
+  const { steps, out } = funnelOf([]);
   assert.equal(steps['Landing page view'].n, '1.0L');
-  assert.equal(steps['Availability checked'].n, '—');
+  assert.ok(absent(out, 'Availability checked'));
 });
 
 test('the event days are narrowed by the range control', () => {
@@ -161,8 +170,8 @@ test('an enquiry form is not a step inside a booking', () => {
      and every one is the enquiry form — a lead, not guest details entered
      inside a booking. Counting one as the other would put a number in the
      funnel that describes a different journey. */
-  const { steps, out } = funnelOf([ev('form_start', 1784), ev('form_submit', 4001)], 21195);
+  const { out } = funnelOf([ev('form_start', 1784), ev('form_submit', 4001)], 21195);
 
-  assert.equal(steps['Guest details entered'].n, '—');
+  assert.ok(absent(out, 'Guest details entered'));
   assert.deepEqual(out.unclaimedEvents.map((e) => e.event).sort(), ['form_start', 'form_submit']);
 });
