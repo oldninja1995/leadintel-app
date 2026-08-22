@@ -2770,7 +2770,9 @@ async function googleAdsPayload(req) {
      same objects, and a campaign nobody selected has no reason to be re-sorted.
      A copy, for the same reason: mutating the row the picker holds would order
      every campaign by whatever the reader asked of one. */
-  const keywordSort = String(req.query.sort || '') === 'spend' ? 'spend' : 'name';
+  const keywordSort = googleAdsRollup.KEYWORD_SORTS.includes(String(req.query.sort || ''))
+    ? String(req.query.sort)
+    : 'keyword';
   const selectedOrdered = selectedCampaign
     ? { ...selectedCampaign, keywords: googleAdsRollup.orderAccountKeywords(selectedCampaign.keywords, keywordSort) }
     : null;

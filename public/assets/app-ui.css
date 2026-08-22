@@ -664,6 +664,29 @@ body.li-tv main { padding: 0 !important; }
 .li-ota-foot i { font-size: 13px; flex: none; margin-top: 1px; }
 .li-ota-foot--warn { color: var(--c-warn); }
 
+/* Sortable column headers.
+ *
+ * The first attempt put the order control in the panel's footnote style — 11px,
+ * neutral-600, between two paragraphs — and the reader could not find it. A
+ * control has to look like one where the reader is already looking, which for a
+ * table is its header row: hence the caret on every sortable column, drawn faint
+ * until it is the one in use.
+ *
+ * Inherits the header's own colour and size, so a sorted table still reads as a
+ * table rather than as a row of links. */
+.li-ota-table th .li-sort {
+  display: inline-flex; align-items: baseline; gap: 5px;
+  color: inherit; text-decoration: none; cursor: pointer;
+  border-bottom: 1px dotted var(--color-neutral-700);
+}
+.li-ota-table th .li-sort:hover,
+.li-ota-table th .li-sort:focus-visible { color: var(--color-neutral-200); border-bottom-color: var(--color-neutral-500); }
+.li-ota-table th .li-sort--on { color: var(--color-neutral-200); border-bottom-color: transparent; }
+
+.li-sort-caret { font-size: 10px; line-height: 1; opacity: .4; }
+.li-ota-table th .li-sort:hover .li-sort-caret { opacity: .8; }
+.li-sort--on .li-sort-caret { opacity: 1; }
+
 .li-ota-empty { text-align: center; padding: 56px 20px; border: 1px solid var(--color-neutral-800); border-radius: 10px; }
 .li-ota-empty i { font-size: 28px; color: var(--color-neutral-700); }
 .li-ota-empty h2 { margin: 12px 0 6px; font-size: 15px; font-weight: 500; color: var(--color-neutral-300); }

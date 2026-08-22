@@ -12,7 +12,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { rollUp, rate, orderAccountKeywords, keywordMetricsIndex } = require('../lib/google-ads-rollup');
+const { rollUp, rate, orderAccountKeywords, keywordMetricsIndex, KEYWORD_SORTS } = require('../lib/google-ads-rollup');
 
 /* Paise in, the app's own format out — enough to tell null from formatted. */
 const money = (paise) => `₹${Math.round(paise / 100)}`;
@@ -185,7 +185,7 @@ test('ordering returns a new array — the picker holds the same rows', () => {
 });
 
 test('an unknown order is the default one, not an error', () => {
-  const out = orderAccountKeywords([kw('b', 900), kw('a', 100)], 'clicks');
+  const out = orderAccountKeywords([kw('b', 900), kw('a', 100)], 'whatever the URL said');
   assert.deepEqual(out.map((k) => k.keyword), ['a', 'b']);
   assert.deepEqual(orderAccountKeywords(null, 'spend'), []);
 });
@@ -253,4 +253,60 @@ test('a reported row with no spend is measured, and reads zero rather than a das
   const found = index.find(criterion());
   assert.equal(found.measured, true);
   assert.equal(found.spend, 0);
+});
+
+/* ── the columns that are ratios ──────────────────────────────────────────
+ *
+ * CTR and CPC arrive on the row already formatted — '2.50%' and '₹12' — and as
+ * text ₹9 outranks ₹814. They are computed from the counts for the sort.
+ */
+
+const row = (keyword, over) => ({ keyword, measured: true, spend: 0, impressions: 0, clicks: 0, ...over });
+
+test('CTR sorts on the ratio, not on the formatted string', () => {
+  const out = orderAccountKeywords([
+    row('lots of clicks', { impressions: 100, clicks: 50, spend: 500 }),
+    row('barely any', { impressions: 1000, clicks: 5, spend: 500 }),
+    row('never shown', { impressions: 0, clicks: 0, spend: 500 }),
+  ], 'ctr');
+
+  assert.deepEqual(out.map((k) => k.keyword), ['lots of clicks', 'barely any', 'never shown']);
+});
+
+test('CPC sorts on the ratio, and ₹814 does not lose to ₹9', () => {
+  const out = orderAccountKeywords([
+    row('cheap clicks', { spend: 81400, clicks: 100 }),
+    row('dear clicks', { spend: 900, clicks: 1 }),
+  ], 'cpc');
+
+  assert.deepEqual(out.map((k) => k.keyword), ['dear clicks', 'cheap clicks']);
+});
+
+test('a rate with no denominator ranks with the unmeasured, not as a zero', () => {
+  /* One impression and no clicks is a real 0% CTR and ranks last among the
+     measured; no impressions at all is not a rate, and goes below even that. */
+  const out = orderAccountKeywords([
+    row('no impressions', { impressions: 0, clicks: 0 }),
+    row('shown, not clicked', { impressions: 40, clicks: 0 }),
+    row('clicked', { impressions: 40, clicks: 4 }),
+  ], 'ctr');
+
+  assert.deepEqual(out.map((k) => k.keyword), ['clicked', 'shown, not clicked', 'no impressions']);
+});
+
+test('the text columns sort A–Z and keep the keyword order inside a group', () => {
+  const out = orderAccountKeywords([
+    row('zulu', { matchType: 'EXACT' }),
+    row('alpha', { matchType: 'BROAD' }),
+    row('mike', { matchType: 'EXACT' }),
+  ], 'match');
+
+  assert.deepEqual(out.map((k) => k.keyword), ['alpha', 'mike', 'zulu']);
+});
+
+test('every column the screen offers is a column the sort knows', () => {
+  /* The screen draws a header per key in this list; a key the sort does not
+     know would draw a control that silently does nothing. */
+  assert.deepEqual(KEYWORD_SORTS,
+    ['keyword', 'match', 'status', 'adgroup', 'spend', 'impressions', 'clicks', 'ctr', 'cpc']);
 });

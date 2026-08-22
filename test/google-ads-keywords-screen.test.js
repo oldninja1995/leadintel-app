@@ -64,6 +64,13 @@ const render = ({ qs = '', table = '', campaign = '111', keywordSort = 'name' } 
 
 /* Hrefs come out of the render HTML-escaped — &amp; between parameters — and a
    test that forgets that reads every link as one parameter. */
+/* The header row of the account's keyword list — not the first <thead> on the
+   page, which belongs to the summary table above the panel. */
+const headerOf = (html) => html
+  .split('Keywords in the account')[1]
+  .split('<thead>')[1]
+  .split('</thead>')[0];
+
 const hrefs = (html) => [...html.matchAll(/href="([^"]*)"/g)].map((m) => m[1].split('&amp;').join('&'));
 const count = (href, name) => (href.split('?')[1] || '').split('&').filter((p) => p.split('=')[0] === name).length;
 
@@ -97,19 +104,42 @@ test('back from a single table does not link to that table', () => {
 
 /* ── the order control ──────────────────────────────────────────────────── */
 
-test('the account list can be ranked by spend and put back', () => {
-  const alpha = render({ qs: '?campaign=111' });
-  const toSpend = hrefs(alpha).find((h) => h.includes('sort=spend'));
-  assert.ok(toSpend, 'there is no way to rank the list by spend');
-  assert.match(toSpend, /campaign=111/, 'ranking by spend would move the reader to another campaign');
+test('every column of the account list is a sort control', () => {
+  /* The first version of this put the order in a line of prose above the table,
+     in the panel's footnote style, and the reader could not find it. Somebody
+     sorting a table looks at its headers. */
+  const html = render({ qs: '?campaign=111' });
+  const head = headerOf(html);
 
-  const ranked = render({ qs: '?campaign=111&sort=spend', keywordSort: 'spend' });
-  const back = hrefs(ranked).filter((h) => h.includes('campaign=111') && !h.includes('sort='));
-  assert.ok(back.length, 'there is no way back to the alphabetical order');
-  /* And the page says which order it is in, because a table of 220 rows that
-     silently changed order is worse than one that never moved. */
-  assert.match(ranked, /Showing the first 10\s+by spend/);
-  assert.match(alpha, /Showing the first 10\s+alphabetically/);
+  for (const column of ['Spend', 'CTR', 'CPC', 'Impressions', 'Clicks', 'Keyword', 'Match']) {
+    const cell = head.split('<th').find((c) => c.includes('>' + column));
+    assert.ok(cell, `there is no ${column} header`);
+    assert.match(cell, /class="li-sort/, `${column} is not a control`);
+  }
+
+  const sorts = [...head.matchAll(/href="([^"]*sort=([a-z]+)[^"]*)"/g)].map((m) => m[2]);
+  assert.deepEqual(sorts.sort(), ['adgroup', 'clicks', 'cpc', 'ctr', 'impressions', 'match', 'spend', 'status']);
+  /* Keyword is the default and so is the absence of the parameter, not a value
+     of it — the URL people land on stays the tidy one. */
+  const keyword = head.split('<th').find((c) => c.includes('>Keyword'));
+  assert.doesNotMatch(keyword, /sort=/);
+});
+
+test('the sorted column says so, and the others still offer', () => {
+  const html = render({ qs: '?campaign=111&sort=cpc', keywordSort: 'cpc' });
+  const head = headerOf(html);
+
+  const cpc = head.split('<th').find((c) => c.includes('>CPC'));
+  assert.match(cpc, /aria-sort="descending"/);
+  assert.match(cpc, /li-sort--on/);
+
+  const ctr = head.split('<th').find((c) => c.includes('>CTR'));
+  assert.doesNotMatch(ctr, /li-sort--on/, 'two columns claim to be the sorted one');
+  assert.match(ctr, /sort=ctr/, 'the other columns stopped offering');
+
+  /* And sorting must not move the reader to another campaign. */
+  assert.match(ctr, /campaign=111/);
+  assert.match(html, /Showing the first 10\s+by CPC/);
 });
 
 test('the picker keeps the order and the range when the campaign changes', () => {

@@ -113,9 +113,33 @@ const link = (over = {}) => {
    and the order the reader is already looking at. */
 const carry = params.filter((k) => k.name !== 'campaign');
 
-/* Which order the account's keyword list is in. The server decides and the rule
-   is written in lib/google-ads-rollup.js. */
-const sort = d.keywordSort === 'spend' ? 'spend' : 'name';
+/* Which order the account's keyword list is in. The server decides, and which
+   columns may be asked for is lib/google-ads-rollup.js's list, not this file's. */
+const sort = d.keywordSort || 'keyword';
+const TEXT_SORTS = new Set(['keyword', 'match', 'status', 'adgroup']);
+
+/* A column header that sorts the table under it.
+ *
+ * It began as a line of prose above the table offering two orders, which is
+ * where the reader did not find it: the panel's footnote style is 11px grey
+ * between two paragraphs, and somebody looking to sort a table looks at its
+ * headers. So the header is the control.
+ *
+ * A link, not a button, and no JavaScript in it: the order is a URL, which is
+ * why it survives a reload, can be sent to somebody, and works under a CSP with
+ * no inline script. The caret is drawn on every sortable column rather than
+ * only the active one — a control nobody can see is the bug being fixed. */
+const th = (key, label) => {
+  const on = sort === key;
+  const num = !TEXT_SORTS.has(key);
+  /* Keyword is the default, so it is the absence of the parameter rather than a
+     value of it — the tidy URL is the one people land on. */
+  const href = link({ sort: key === 'keyword' ? null : key, campaign: sel && sel.campaignId });
+  const caret = on ? (num ? '&darr;' : '&uarr;') : '&#8597;';
+  return `<th${num ? ' class="li-num"' : ''}${on ? ` aria-sort="${num ? 'descending' : 'ascending'}"` : ''}>`
+    + `<a class="li-sort${on ? ' li-sort--on' : ''}" href="${href}">${label}`
+    + `<span class="li-sort-caret" aria-hidden="true">${caret}</span></a></th>`;
+};
 
 %>
 
@@ -308,7 +332,10 @@ const sort = d.keywordSort === 'spend' ? 'spend' : 'name';
     <p>
       What each <strong>live Search campaign</strong> is bidding on <strong>right now</strong> — the
       account's own keyword list, enabled and paused keywords alike, in
-      <%= sort === 'spend' ? 'order of what it spent in the range' : 'alphabetical order' %>.
+      <%= sort === 'keyword' ? 'alphabetical order' : 'the order you sorted the table into' %>.
+      Every column below sorts — the numeric ones highest first, and the keywords
+      Google reported nothing for stay beneath the ones that ran rather than
+      ranking as zeroes.
       Paused campaigns are left out, and so are the types that have no keywords by
       construction: App, Performance Max, Demand Gen and Shopping. This does not narrow with the range above it, and cannot:
       "what are we bidding on" has no window, and Google does not report what the list looked
@@ -363,35 +390,17 @@ const sort = d.keywordSort === 'spend' ? 'spend' : 'name';
       </p>
     </div>
 
-    <%# Sorting a list of 220 keywords of which six have figures. The default
-        order is alphabetical and the argument for that is in the panel copy
-        above; this is the same list asked the other question — what is this
-        campaign actually paying for — which no amount of scrolling answers.
-        Links rather than a clickable table header: the order lives in the URL,
-        so it survives a reload and can be sent to somebody, and it works with
-        JavaScript switched off, like the picker beside it. %>
-    <p class="li-ota-foot" style="margin:8px 0 0;">
-      Order:
-      <% if (sort === 'spend') { %>
-        <a href="<%= link({ sort: null, campaign: sel.campaignId }) %>">A&ndash;Z</a> ·
-        <strong>spend</strong> — highest first. The keywords Google reported no
-        delivery for keep their alphabetical order beneath the ones that ran: a dash
-        is not a zero, so it does not rank as one.
-      <% } else { %>
-        <strong>A&ndash;Z</strong> ·
-        <a href="<%= link({ sort: 'spend', campaign: sel.campaignId }) %>">spend</a> —
-        alphabetical is the order for finding a keyword; rank by spend to see what
-        this campaign is paying for.
-      <% } %>
-    </p>
-
     <div class="li-ota-scroll">
       <table class="li-ota-table">
         <thead>
+          <%# Every column sorts. Spend, CTR and CPC are the ones this table is
+              read for; the rest are here because a header row where four cells
+              are controls and five are not reads as broken rather than as a
+              choice. %>
           <tr>
-            <th>Keyword</th><th>Match</th><th>Status</th><th>Ad group</th>
-            <th class="li-num">Spend</th><th class="li-num">Impressions</th>
-            <th class="li-num">Clicks</th><th class="li-num">CTR</th><th class="li-num">CPC</th>
+            <%- th('keyword', 'Keyword') %><%- th('match', 'Match') %><%- th('status', 'Status') %><%- th('adgroup', 'Ad group') %>
+            <%- th('spend', 'Spend') %><%- th('impressions', 'Impressions') %>
+            <%- th('clicks', 'Clicks') %><%- th('ctr', 'CTR') %><%- th('cpc', 'CPC') %>
           </tr>
         </thead>
         <tbody>
@@ -414,7 +423,7 @@ const sort = d.keywordSort === 'spend' ? 'spend' : 'name';
     <% if (!whole('current') && sel.keywords.length > PREVIEW) { %>
       <p class="li-ota-foot">
         <%= num(sel.keywords.length) %> keywords in this campaign. Showing the first <%= PREVIEW %>
-        <%= sort === 'spend' ? 'by spend' : 'alphabetically' %> —
+        <%= sort === 'keyword' ? 'alphabetically' : `by ${{ match: 'match type', adgroup: 'ad group', ctr: 'CTR', cpc: 'CPC' }[sort] || sort}` %> —
         <a href="<%= link({ table: 'current', campaign: sel.campaignId }) %>">view the whole list</a> &rarr;
       </p>
     <% } %>
