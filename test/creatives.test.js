@@ -386,16 +386,11 @@ test('the sort control and the view tabs each hold the other', () => {
   const out = project(RANKABLE, { view: 'leaderboard', sort: 'cpm' });
 
   assert.match(out.sortNext, /view=leaderboard/, 'the next sort stays in the view');
-  /* The three views of Meta's creative. The fourth tab is the Google channel,
-     which ranks on Google's own measures — carrying `sort=cpm` across would be
-     a parameter that names nothing on the other side. */
-  const views = out.viewTabs.filter((t) => !/channel=google/.test(t.go));
-  assert.deepEqual(views.map((t) => t.label), ['Gallery', 'Leaderboard', 'Timeline']);
-  for (const tab of views) assert.match(tab.go, /sort=cpm/, `${tab.label} dropped the ranking`);
-
-  const google = out.viewTabs.find((t) => /channel=google/.test(t.go));
-  assert.ok(google, 'there is no way across to Google creative');
-  assert.doesNotMatch(google.go, /sort=cpm/, 'the channel switch carried a ranking that does not exist on it');
+  /* The three views of Meta's creative, and only those: the channel is chosen
+     by the Channel chip in the filter bar, not by a second control here. */
+  assert.deepEqual(out.viewTabs.map((t) => t.label), ['Gallery', 'Leaderboard', 'Timeline']);
+  for (const tab of out.viewTabs) assert.match(tab.go, /sort=cpm/, `${tab.label} dropped the ranking`);
+  assert.ok(!out.viewTabs.some((t) => /f_channel/.test(t.go)), 'a view tab offers to change channel');
 });
 
 /* ── the three views ────────────────────────────────────────────────────── */

@@ -175,18 +175,15 @@ test('the surface is on the card, and a video creative stays where Google put it
   assert.equal(row.lifecycle, 'demand gen campaign');
 });
 
-test('the two channels are a switch, and each names the other through the chip', () => {
-  const google = project(ENTITIES);
-  assert.deepEqual(google.viewTabs.map((t) => t.label), ['Meta ads', 'Google Ads']);
-  assert.match(google.viewTabs[1].go, /f_channel=google/);
-  /* Back to Meta by clearing the chip: the Meta cards carry the label 'Meta'
-     where the chip's token is lowercase, so f_channel=meta would filter away the
-     screen it just asked for. */
-  assert.doesNotMatch(google.viewTabs[0].go, /f_channel/);
+test('the channel is chosen by the chip, and nothing else offers to choose it', () => {
+  /* There were two switches for one selection — the Channel chip in the filter
+     bar and a Meta ads · Google Ads strip on the screen — which is how a reader
+     ends up wondering which of them is authoritative. */
+  assert.deepEqual(project(ENTITIES).viewTabs, []);
 
   const meta = PROJECTIONS.creatives({ creatives: [] }, {});
-  assert.deepEqual(meta.viewTabs.map((t) => t.label), ['Gallery', 'Leaderboard', 'Timeline', 'Google Ads']);
-  assert.match(meta.viewTabs[3].go, /f_channel=google/);
+  assert.deepEqual(meta.viewTabs.map((t) => t.label), ['Gallery', 'Leaderboard', 'Timeline']);
+  assert.ok(!meta.viewTabs.some((t) => /f_channel/.test(t.go)), 'the Meta strip still offers to change channel');
 });
 
 test('ranking can be changed, and every order is one Google reports', () => {
@@ -222,7 +219,7 @@ test('Meta rows in the shared collections do not become Google creatives', () =>
 
 test('the range travels with every link out of the channel', () => {
   const out = project(ENTITIES, { period: '90d' });
-  for (const href of [out.sortNext, out.goalNext, ...out.viewTabs.map((t) => t.go), out.creatives[0].go]) {
+  for (const href of [out.sortNext, out.goalNext, out.creatives[0].go]) {
     assert.match(href, /period=90d/, `a link dropped the range: ${href}`);
   }
 });
