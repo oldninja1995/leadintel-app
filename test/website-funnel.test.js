@@ -178,24 +178,16 @@ test('the steps are the journey this engine reports, not a checkout it does not'
   ]);
 });
 
-test('the last step counts online bookings, and says what it leaves out', () => {
-  /* "Booking confirmed" was answering a question nobody asked it: whether it
-     was ALL bookings. It is not, and the gap is most of them — a guest who rang
-     reservations never becomes a session, one who booked through an OTA reaches
-     neither book, and a walk-in reaches neither until a PMS holds it. */
-  const entities = entitiesWith([ev('checkavailabilityclicked', 2635)], 21195, 8);
-  entities.deals = [
-    { entity: 'deal', channel: 'google', revenue: 100000, outcome: 'won', bookingStatus: 'confirmed' },
-    { entity: 'deal', channel: 'meta', revenue: 200000, outcome: 'won', bookingStatus: 'confirmed' },
-    { entity: 'deal', channel: 'meta', revenue: 50000, outcome: 'won', bookingStatus: 'cancelled' },
-    { entity: 'deal', channel: 'meta', revenue: 50000, outcome: 'open', bookingStatus: '' },
-  ];
-  const out = PROJECTIONS.website(entities, {}, authored);
+test('the last step is named for the bookings it counts', () => {
+  /* It was "Booking confirmed", which reads as every booking, and it is GA4's
+     purchase count on this property — 8 in a window where the CRM held 29 won
+     deals. The name carries that now.
 
-  assert.match(out.bookedNote.text, /CRM recorded 2 won bookings/);
-  assert.match(out.bookedNote.text, /OTA/);
-  /* Not added together: a guest who booked online and was then entered into the
-     CRM is in both books, and nothing can tell those apart. */
-  assert.match(out.bookedNote.text, /not added/);
-  assert.equal(out.bookedNote.crm, 2, 'a cancelled or open deal was counted as a booking');
+     The CRM's own figure is deliberately not stated beside it: this screen is
+     Website Analytics, and what a salesperson closed on the phone is not a fact
+     about the website. */
+  const { steps } = funnelOf([ev('checkavailabilityclicked', 2635)], 21195, 8);
+
+  assert.equal(steps['Booked online'].n, '8');
+  assert.ok(!('Booking confirmed' in steps), 'the old name is still on the funnel');
 });
