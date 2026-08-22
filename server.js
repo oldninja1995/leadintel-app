@@ -2770,11 +2770,32 @@ async function googleAdsPayload(req) {
      same objects, and a campaign nobody selected has no reason to be re-sorted.
      A copy, for the same reason: mutating the row the picker holds would order
      every campaign by whatever the reader asked of one. */
-  const keywordSort = googleAdsRollup.KEYWORD_SORTS.includes(String(req.query.sort || ''))
-    ? String(req.query.sort)
-    : 'keyword';
+  /* **Every table on this screen sorts, and each one has its own parameter.**
+     One shared `sort` would mean ordering the search terms by CTR silently
+     reordered the keyword list too — and half the columns do not exist on the
+     other tables anyway.
+
+     The defaults are the orders these tables already had: spend, highest first,
+     because that is what a report of what happened is read for. The account's
+     criterion list is the exception and stays alphabetical — it is a list of
+     what exists, and the question asked of it is whether a keyword is in there.
+
+     Parsed rather than validated: an unknown column is the table's own default,
+     so a mistyped query string is a table in the usual order. */
+  /* Keyed by the parameter name itself, because that is what the screen draws a
+     header for: one name for the column in use and for the link that changes it
+     means a table cannot show one order and link to another. */
+  const sorts = {
+    sort: googleAdsRollup.parseSort(req.query.sort, 'keyword'),
+    sortWasted: googleAdsRollup.parseSort(req.query.sortWasted, 'spend'),
+    sortWords: googleAdsRollup.parseSort(req.query.sortWords, 'spend'),
+    sortKeywords: googleAdsRollup.parseSort(req.query.sortKeywords, 'spend'),
+    sortCampaigns: googleAdsRollup.parseSort(req.query.sortCampaigns, 'spend'),
+    sortTerms: googleAdsRollup.parseSort(req.query.sortTerms, 'spend'),
+  };
+
   const selectedOrdered = selectedCampaign
-    ? { ...selectedCampaign, keywords: googleAdsRollup.orderAccountKeywords(selectedCampaign.keywords, keywordSort) }
+    ? { ...selectedCampaign, keywords: googleAdsRollup.orderAccountKeywords(selectedCampaign.keywords, sorts.sort) }
     : null;
 
   const keywordsByCampaign = (() => {
@@ -3081,9 +3102,21 @@ async function googleAdsPayload(req) {
        its own, asked for rather than delivered by default. */
     table: String(req.query.table || ''),
     connected: live.has('google_ads'),
-    campaigns, campaignTotal, adGroups, ads, keywords, keywordsByCampaign, conversions,
-    liveCampaigns: pickable, hiddenCampaigns, selectedCampaign: selectedOrdered, keywordSort,
-    searchTerms: terms, termSummary, words,
+    campaigns, campaignTotal, adGroups, ads, conversions,
+    /* Ordered here rather than in the view: which rows a ten-row preview shows
+       depends on the order, so a table sorted in the template would preview one
+       set of rows and describe another. */
+    keywords: googleAdsRollup.orderRows(keywords, sorts.sortKeywords, 'spend'),
+    keywordsByCampaign: keywordsByCampaign.map((c) => ({
+      ...c, keywords: googleAdsRollup.orderRows(c.keywords, sorts.sortCampaigns, 'spend'),
+    })),
+    liveCampaigns: pickable, hiddenCampaigns, selectedCampaign: selectedOrdered, sorts,
+    searchTerms: googleAdsRollup.orderRows(terms, sorts.sortTerms, 'spend'),
+    /* The worklist is its own table with its own column in use, so it is filtered
+       and ordered here rather than sliced out of the sorted report in the view. */
+    wastedTerms: googleAdsRollup.orderRows(wastedTerms, sorts.sortWasted, 'spend'),
+    termSummary,
+    words: googleAdsRollup.orderRows(words, sorts.sortWords, 'spend'),
     keywordsNotApplicable, paidSearch,
   };
 }

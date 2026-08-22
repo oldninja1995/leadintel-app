@@ -12,7 +12,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { rollUp, rate, orderAccountKeywords, keywordMetricsIndex, KEYWORD_SORTS } = require('../lib/google-ads-rollup');
+const { rollUp, rate, orderRows, orderAccountKeywords, parseSort, keywordMetricsIndex, SORT_KEYS } = require('../lib/google-ads-rollup');
 
 /* Paise in, the app's own format out — enough to tell null from formatted. */
 const money = (paise) => `₹${Math.round(paise / 100)}`;
@@ -305,8 +305,54 @@ test('the text columns sort A–Z and keep the keyword order inside a group', ()
 });
 
 test('every column the screen offers is a column the sort knows', () => {
-  /* The screen draws a header per key in this list; a key the sort does not
-     know would draw a control that silently does nothing. */
-  assert.deepEqual(KEYWORD_SORTS,
-    ['keyword', 'match', 'status', 'adgroup', 'spend', 'impressions', 'clicks', 'ctr', 'cpc']);
+  /* The six tables on the keyword screen draw a header per key they use; a key
+     the sort does not know would draw a control that silently does nothing. */
+  assert.deepEqual(SORT_KEYS, [
+    'keyword', 'term', 'word', 'match', 'status', 'adgroup',
+    'spend', 'impressions', 'clicks', 'conversions', 'quality', 'terms',
+    'ctr', 'cpc', 'cpl', 'convrate',
+  ]);
+});
+
+/* ── one order per table, and a direction ─────────────────────────────────
+ *
+ * Five more tables than the sort started with, each with its own parameter: an
+ * order shared between them would mean sorting the search terms by CTR silently
+ * reordered the keyword list under it.
+ */
+
+test('a leading minus turns a column round', () => {
+  const rows = [row('a', { spend: 100 }), row('b', { spend: 900 })];
+
+  assert.deepEqual(orderRows(rows, 'spend', 'spend').map((r) => r.keyword), ['b', 'a']);
+  assert.deepEqual(orderRows(rows, '-spend', 'spend').map((r) => r.keyword), ['a', 'b']);
+});
+
+test('reversing does not lift the unmeasured rows to the top', () => {
+  /* Ascending by spend asks for the cheapest keyword that ran, not for a screen
+     of dashes: a row with no figure is unknown in either direction. */
+  const out = orderRows([
+    { keyword: 'quiet', measured: false },
+    row('cheap', { spend: 100 }),
+    row('dear', { spend: 900 }),
+  ], '-spend', 'spend');
+
+  assert.deepEqual(out.map((k) => k.keyword), ['cheap', 'dear', 'quiet']);
+});
+
+test('a search term and a word sort on their own label', () => {
+  const terms = [{ term: 'zulu', measured: true, spend: 1 }, { term: 'alpha', measured: true, spend: 1 }];
+  assert.deepEqual(orderRows(terms, 'term', 'spend').map((t) => t.term), ['alpha', 'zulu']);
+
+  const words = [{ word: 'resort', terms: 2, spend: 1 }, { word: 'munnar', terms: 9, spend: 1 }];
+  assert.deepEqual(orderRows(words, 'terms', 'spend').map((w) => w.word), ['munnar', 'resort']);
+});
+
+test('an unparseable sort is the table default, and each table has its own', () => {
+  assert.deepEqual(parseSort('', 'spend'), { key: 'spend', reversed: false });
+  assert.deepEqual(parseSort('-ctr', 'spend'), { key: 'ctr', reversed: true });
+  assert.deepEqual(parseSort('nonsense', 'spend'), { key: 'spend', reversed: false });
+  assert.deepEqual(parseSort(undefined, 'keyword'), { key: 'keyword', reversed: false });
+  /* A minus on its own names no column and must not read as one. */
+  assert.deepEqual(parseSort('-', 'spend'), { key: 'spend', reversed: false });
 });

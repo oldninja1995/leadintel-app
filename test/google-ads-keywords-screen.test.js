@@ -48,13 +48,15 @@ const CAMPAIGNS = [
 
 /* One render, one payload — `sel` is the campaign the reader is looking at and
    `qs` is the query string they arrived with, which is the whole point. */
-const render = ({ qs = '', table = '', campaign = '111', keywordSort = 'name' } = {}) => ejs.render(TEMPLATE, {
+const render = ({ qs = '', table = '', campaign = '111', sort = 'keyword', reversed = false } = {}) => ejs.render(TEMPLATE, {
   data: {
     connected: true,
     rangeLabel: 'this month',
     qs,
     table,
-    keywordSort,
+    /* One sort state per table, keyed by the table's own query parameter — the
+       screen draws a header for each and they must not share an order. */
+    sorts: { sort: { key: sort, reversed } },
     liveCampaigns: CAMPAIGNS,
     selectedCampaign: CAMPAIGNS.find((c) => c.campaignId === campaign) || null,
     hiddenCampaigns: 7,
@@ -108,7 +110,7 @@ test('every column of the account list is a sort control', () => {
   /* The first version of this put the order in a line of prose above the table,
      in the panel's footnote style, and the reader could not find it. Somebody
      sorting a table looks at its headers. */
-  const html = render({ qs: '?campaign=111' });
+  const html = render({ qs: '?campaign=111&sort=spend', sort: 'spend' });
   const head = headerOf(html);
 
   for (const column of ['Spend', 'CTR', 'CPC', 'Impressions', 'Clicks', 'Keyword', 'Match']) {
@@ -117,16 +119,24 @@ test('every column of the account list is a sort control', () => {
     assert.match(cell, /class="li-sort/, `${column} is not a control`);
   }
 
-  const sorts = [...head.matchAll(/href="([^"]*sort=([a-z]+)[^"]*)"/g)].map((m) => m[2]);
-  assert.deepEqual(sorts.sort(), ['adgroup', 'clicks', 'cpc', 'ctr', 'impressions', 'match', 'spend', 'status']);
-  /* Keyword is the default and so is the absence of the parameter, not a value
-     of it — the URL people land on stays the tidy one. */
+  const offered = [...head.matchAll(/href="[^"]*[?&]sort=(-?[a-z]+)/g)].map((m) => m[1]);
+  assert.deepEqual(offered.sort(),
+    ['-spend', 'adgroup', 'clicks', 'cpc', 'ctr', 'impressions', 'match', 'status'],
+    'the columns on offer are not the columns of this table');
+
+  /* Alphabetical is this table's default, and the default is the absence of the
+     parameter rather than a value of it — the URL people land on stays tidy. */
   const keyword = head.split('<th').find((c) => c.includes('>Keyword'));
   assert.doesNotMatch(keyword, /sort=/);
+
+  /* And the column already in use offers the other direction, so a second click
+     on it turns the table round rather than doing nothing. */
+  const spend = head.split('<th').find((c) => c.includes('>Spend'));
+  assert.match(spend, /sort=-spend/);
 });
 
 test('the sorted column says so, and the others still offer', () => {
-  const html = render({ qs: '?campaign=111&sort=cpc', keywordSort: 'cpc' });
+  const html = render({ qs: '?campaign=111&sort=cpc', sort: 'cpc' });
   const head = headerOf(html);
 
   const cpc = head.split('<th').find((c) => c.includes('>CPC'));
@@ -145,10 +155,22 @@ test('the sorted column says so, and the others still offer', () => {
 test('the picker keeps the order and the range when the campaign changes', () => {
   /* A GET form replaces the whole query string; the hidden fields are what stop
      that from resetting everything else the reader has chosen. */
-  const html = render({ qs: '?range=this-month&sort=spend&campaign=111', keywordSort: 'spend' });
+  const html = render({ qs: '?range=this-month&sort=spend&campaign=111', sort: 'spend' });
   const hidden = [...html.matchAll(/<input type="hidden" name="([^"]*)" value="([^"]*)">/g)].map((m) => [m[1], m[2]]);
 
   assert.deepEqual(hidden.find(([n]) => n === 'sort'), ['sort', 'spend']);
   assert.deepEqual(hidden.find(([n]) => n === 'range'), ['range', 'this-month']);
   assert.equal(hidden.filter(([n]) => n === 'campaign').length, 0, 'the picker fights its own select');
+});
+
+test('a sort link lands on the table it sorts, not at the top of the page', () => {
+  /* Sorting is a page load — that is what makes the order a URL — and a page
+     load starts at the top, which on this screen is thousands of pixels above
+     the table. The anchor is the browser doing that scrolling, with no script. */
+  const html = render({ qs: '?campaign=111' });
+  const head = headerOf(html);
+  const spend = head.split('<th').find((c) => c.includes('>Spend'));
+
+  assert.match(spend, /href="[^"]*#account-keywords"/);
+  assert.match(html, /<section class="li-ota-panel" id="account-keywords">/);
 });

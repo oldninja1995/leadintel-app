@@ -54,7 +54,7 @@ const s = d.termSummary || {};
 /* The worklist: spend, no conversion. Already flagged per row by the server;
    pulled to the top here because it is the only table on this screen that is
    a list of decisions rather than a record of what happened. */
-const wasted = terms.filter((t) => t.wasted);
+const wasted = d.wastedTerms || terms.filter((t) => t.wasted);
 const wastedWords = words.filter((w) => w.wasted);
 
 const PREVIEW = 10;
@@ -113,33 +113,83 @@ const link = (over = {}) => {
    and the order the reader is already looking at. */
 const carry = params.filter((k) => k.name !== 'campaign');
 
-/* Which order the account's keyword list is in. The server decides, and which
-   columns may be asked for is lib/google-ads-rollup.js's list, not this file's. */
-const sort = d.keywordSort || 'keyword';
-const TEXT_SORTS = new Set(['keyword', 'match', 'status', 'adgroup']);
+/* Which order each table is in. The server decides — see `sorts` in
+   googleAdsPayload — and this file only draws it. */
+const sorts = d.sorts || {};
+const TEXT_SORTS = new Set(['keyword', 'term', 'word', 'match', 'status', 'adgroup']);
 
-/* A column header that sorts the table under it.
+/* A header row whose cells sort the table beneath them.
  *
- * It began as a line of prose above the table offering two orders, which is
- * where the reader did not find it: the panel's footnote style is 11px grey
- * between two paragraphs, and somebody looking to sort a table looks at its
- * headers. So the header is the control.
+ * The control began as a line of prose above one table, which is where the
+ * reader did not find it: the panel's footnote style is 11px grey between two
+ * paragraphs, and somebody looking to sort a table looks at its headers. So the
+ * header is the control, on every table on this screen.
  *
- * A link, not a button, and no JavaScript in it: the order is a URL, which is
+ * Links, not buttons, and no JavaScript in them: the order is a URL, which is
  * why it survives a reload, can be sent to somebody, and works under a CSP with
- * no inline script. The caret is drawn on every sortable column rather than
- * only the active one — a control nobody can see is the bug being fixed. */
-const th = (key, label) => {
-  const on = sort === key;
-  const num = !TEXT_SORTS.has(key);
-  /* Keyword is the default, so it is the absence of the parameter rather than a
-     value of it — the tidy URL is the one people land on. */
-  const href = link({ sort: key === 'keyword' ? null : key, campaign: sel && sel.campaignId });
-  const caret = on ? (num ? '&darr;' : '&uarr;') : '&#8597;';
-  return `<th${num ? ' class="li-num"' : ''}${on ? ` aria-sort="${num ? 'descending' : 'ascending'}"` : ''}>`
-    + `<a class="li-sort${on ? ' li-sort--on' : ''}" href="${href}">${label}`
-    + `<span class="li-sort-caret" aria-hidden="true">${caret}</span></a></th>`;
+ * no inline script. Every sortable column carries a caret rather than only the
+ * active one — a control nobody can see is the bug this is fixing.
+ *
+ * `param` is the table's own query parameter, so ordering the search terms does
+ * not reorder the keyword list. `fallback` is the order that table has when
+ * nobody has asked, and asking for it again is the absence of the parameter
+ * rather than a value of it — the URL people land on stays the tidy one.
+ *
+ * Clicking the column already in use turns it round: a leading '-' is the
+ * reverse of a column's natural direction, which is A–Z for text and highest
+ * first for a number. */
+/* Where a sort link lands.
+ *
+ * Sorting is a page load — that is what makes the order a URL — and a page load
+ * starts at the top, which on a screen this long means the table you just sorted
+ * is several thousand pixels below the answer you were reading. Every sort link
+ * ends at its own panel, so the browser puts it back under your eyes. No script
+ * involved: an anchor is the browser doing the scrolling. */
+const ANCHOR = {
+  sort: 'account-keywords',
+  sortWasted: 'wasted-terms',
+  sortWords: 'by-word',
+  sortKeywords: 'measured-keywords',
+  sortCampaigns: 'by-campaign',
+  sortTerms: 'search-terms',
 };
+
+const headRow = (param, fallback, cols, extra = {}) => {
+  const now = sorts[param] || { key: fallback, reversed: false };
+  const anchor = ANCHOR[param] ? `#${ANCHOR[param]}` : '';
+  return cols.map(([key, label]) => {
+    const on = now.key === key;
+    const num = !TEXT_SORTS.has(key);
+    /* Two different directions, and conflating them drew a table sorted one way
+       with an arrow pointing the other: `next` is what clicking this header
+       would do, `descending` is how the table is sorted right now. */
+    const next = on ? !now.reversed : false;
+    const asked = next ? `-${key}` : key;
+    const href = link({ [param]: (key === fallback && !next) ? null : asked, ...extra }) + anchor;
+    /* Down for descending, up for ascending, whichever way round the column's
+       natural direction is; a faint two-way arrow on the columns not in use. */
+    const descending = num ? !now.reversed : now.reversed;
+    const caret = on ? (descending ? '&darr;' : '&uarr;') : '&#8597;';
+    return `<th${num ? ' class="li-num"' : ''}${on ? ` aria-sort="${descending ? 'descending' : 'ascending'}"` : ''}>`
+      + `<a class="li-sort${on ? ' li-sort--on' : ''}" href="${href}">${label}`
+      + `<span class="li-sort-caret" aria-hidden="true">${caret}</span></a></th>`;
+  }).join('');
+};
+
+/* The account's criterion list carries the campaign on every sort link, so
+   ordering it cannot move the reader to a different campaign. */
+const th = (key, label) => headRow('sort', 'keyword', [[key, label]], { campaign: sel && sel.campaignId });
+
+/* That table's own order, for the two sentences on the panel that name it. */
+const listSort = sorts.sort || { key: 'keyword', reversed: false };
+const COLUMN = {
+  keyword: 'keyword', match: 'match type', status: 'status', adgroup: 'ad group',
+  spend: 'spend', impressions: 'impressions', clicks: 'clicks', ctr: 'CTR', cpc: 'CPC',
+  conversions: 'conversions', quality: 'quality score',
+};
+const listOrder = listSort.key === 'keyword' && !listSort.reversed
+  ? 'alphabetical order'
+  : `${listSort.reversed ? 'reverse ' : ''}${COLUMN[listSort.key] || listSort.key} order`;
 
 %>
 
@@ -202,7 +252,7 @@ const th = (key, label) => {
 
 <!-- Wasted spend, as a worklist ---------------------------------------------->
 <% if (shows('wasted')) { %>
-<section class="li-ota-panel">
+<section class="li-ota-panel" id="wasted-terms">
   <div class="li-ota-panel-head">
     <h2>Spend with nothing to show for it</h2>
     <p>
@@ -232,9 +282,11 @@ const th = (key, label) => {
     <table class="li-ota-table">
       <thead>
         <tr>
-          <th>Search term</th><th>Ad group</th><th>Status</th>
-          <th class="li-num">Spend</th><th class="li-num">Impr.</th>
-          <th class="li-num">Clicks</th><th class="li-num">CTR</th><th class="li-num">CPC</th>
+          <%- headRow('sortWasted', 'spend', [
+            ['term', 'Search term'], ['adgroup', 'Ad group'], ['status', 'Status'],
+            ['spend', 'Spend'], ['impressions', 'Impr.'], ['clicks', 'Clicks'],
+            ['ctr', 'CTR'], ['cpc', 'CPC'],
+          ]) %>
         </tr>
       </thead>
       <tbody>
@@ -266,7 +318,7 @@ const th = (key, label) => {
 
 <!-- Words, not phrases ------------------------------------------------------->
 <% if (shows('words')) { %>
-<section class="li-ota-panel">
+<section class="li-ota-panel" id="by-word">
   <div class="li-ota-panel-head">
     <h2>Where the money goes, by word</h2>
     <p>
@@ -291,8 +343,10 @@ const th = (key, label) => {
     <table class="li-ota-table">
       <thead>
         <tr>
-          <th>Word</th><th class="li-num">Terms</th>
-          <th class="li-num">Spend</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th>
+          <%- headRow('sortWords', 'spend', [
+            ['word', 'Word'], ['terms', 'Terms'], ['spend', 'Spend'],
+            ['clicks', 'Clicks'], ['conversions', 'Conv.'],
+          ]) %>
         </tr>
       </thead>
       <tbody>
@@ -326,13 +380,13 @@ const th = (key, label) => {
 
 <!-- Current keywords, by campaign ---------------------------------------------->
 <% if (shows('current') && live.length) { %>
-<section class="li-ota-panel">
+<section class="li-ota-panel" id="account-keywords">
   <div class="li-ota-panel-head">
     <h2>Keywords in the account</h2>
     <p>
       What each <strong>live Search campaign</strong> is bidding on <strong>right now</strong> — the
       account's own keyword list, enabled and paused keywords alike, in
-      <%= sort === 'keyword' ? 'alphabetical order' : 'the order you sorted the table into' %>.
+      <%= listOrder %>.
       Every column below sorts — the numeric ones highest first, and the keywords
       Google reported nothing for stay beneath the ones that ran rather than
       ranking as zeroes.
@@ -348,7 +402,7 @@ const th = (key, label) => {
 
   <%# A GET form, so the picker works with JavaScript switched off and the chosen
       campaign lives in the URL — which makes it linkable and survives a reload. %>
-  <form method="get" action="/google-ads/keywords" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:12px 0;">
+  <form method="get" action="/google-ads/keywords#account-keywords" style="display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:12px 0;">
     <% carry.forEach(function (p) { %><input type="hidden" name="<%= p.name %>" value="<%= p.value %>"><% }); %>
     <label for="li-kw-campaign" style="font-size:11.5px; color:var(--color-neutral-500);">Campaign</label>
     <%# No inline `onchange`: this app's CSP is `script-src 'self'` with no
@@ -423,7 +477,7 @@ const th = (key, label) => {
     <% if (!whole('current') && sel.keywords.length > PREVIEW) { %>
       <p class="li-ota-foot">
         <%= num(sel.keywords.length) %> keywords in this campaign. Showing the first <%= PREVIEW %>
-        <%= sort === 'keyword' ? 'alphabetically' : `by ${{ match: 'match type', adgroup: 'ad group', ctr: 'CTR', cpc: 'CPC' }[sort] || sort}` %> —
+        <%= listSort.key === 'keyword' && !listSort.reversed ? 'alphabetically' : `by ${listOrder.replace(/ order$/, '')}` %> —
         <a href="<%= link({ table: 'current', campaign: sel.campaignId }) %>">view the whole list</a> &rarr;
       </p>
     <% } %>
@@ -433,7 +487,7 @@ const th = (key, label) => {
 
 <!-- Keywords by campaign, as measured ------------------------------------------>
 <% if (shows('by-campaign') && byCampaign.length) { %>
-<section class="li-ota-panel">
+<section class="li-ota-panel" id="by-campaign">
   <div class="li-ota-panel-head">
     <h2>Keywords by campaign</h2>
     <p>
@@ -468,10 +522,11 @@ const th = (key, label) => {
       <table class="li-ota-table">
         <thead>
           <tr>
-            <th>Keyword</th><th>Match</th><th class="li-num">Quality</th>
-            <th class="li-num">Spend</th><th class="li-num">Impressions</th>
-            <th class="li-num">Clicks</th><th class="li-num">CTR</th><th class="li-num">CPC</th>
-            <th class="li-num">Conv.</th><th class="li-num">Cost/conv.</th>
+            <%- headRow('sortCampaigns', 'spend', [
+              ['keyword', 'Keyword'], ['match', 'Match'], ['quality', 'Quality'],
+              ['spend', 'Spend'], ['impressions', 'Impressions'], ['clicks', 'Clicks'],
+              ['ctr', 'CTR'], ['cpc', 'CPC'], ['conversions', 'Conv.'], ['cpl', 'Cost/conv.'],
+            ]) %>
           </tr>
         </thead>
         <tbody>
@@ -511,7 +566,7 @@ const th = (key, label) => {
 
 <!-- Keywords ----------------------------------------------------------------->
 <% if (shows('keywords')) { %>
-<section class="li-ota-panel">
+<section class="li-ota-panel" id="measured-keywords">
   <div class="li-ota-panel-head">
     <h2>Keywords</h2>
     <p>
@@ -538,10 +593,12 @@ const th = (key, label) => {
     <table class="li-ota-table">
       <thead>
         <tr>
-          <th>Keyword</th><th>Match</th><th class="li-num">Quality</th>
-          <th class="li-num">Spend</th><th class="li-num">Impressions</th>
-          <th class="li-num">Clicks</th><th class="li-num">CTR</th><th class="li-num">CPC</th>
-          <th class="li-num">Conv.</th><th class="li-num">Conv. rate</th><th class="li-num">Cost/conv.</th>
+          <%- headRow('sortKeywords', 'spend', [
+            ['keyword', 'Keyword'], ['match', 'Match'], ['quality', 'Quality'],
+            ['spend', 'Spend'], ['impressions', 'Impressions'], ['clicks', 'Clicks'],
+            ['ctr', 'CTR'], ['cpc', 'CPC'], ['conversions', 'Conv.'],
+            ['convrate', 'Conv. rate'], ['cpl', 'Cost/conv.'],
+          ]) %>
         </tr>
       </thead>
       <tbody>
@@ -581,7 +638,7 @@ const th = (key, label) => {
 
 <!-- Every search term -------------------------------------------------------->
 <% if (shows('terms')) { %>
-<section class="li-ota-panel">
+<section class="li-ota-panel" id="search-terms">
   <div class="li-ota-panel-head">
     <h2>Search terms</h2>
     <p>
@@ -602,10 +659,12 @@ const th = (key, label) => {
     <table class="li-ota-table">
       <thead>
         <tr>
-          <th>Search term</th><th>Ad group</th><th>Status</th>
-          <th class="li-num">Spend</th><th class="li-num">Impr.</th>
-          <th class="li-num">Clicks</th><th class="li-num">CPC</th><th class="li-num">CTR</th>
-          <th class="li-num">Conv.</th><th class="li-num">Conv. rate</th><th class="li-num">Cost/conv.</th>
+          <%- headRow('sortTerms', 'spend', [
+            ['term', 'Search term'], ['adgroup', 'Ad group'], ['status', 'Status'],
+            ['spend', 'Spend'], ['impressions', 'Impr.'], ['clicks', 'Clicks'],
+            ['cpc', 'CPC'], ['ctr', 'CTR'], ['conversions', 'Conv.'],
+            ['convrate', 'Conv. rate'], ['cpl', 'Cost/conv.'],
+          ]) %>
         </tr>
       </thead>
       <tbody>
