@@ -81,37 +81,6 @@
                    what turns "the funnel is broken" into "the step is called
                    availability_search here" — a naming question a reader can
                    answer in one line. %>
-              <%# **The funnel the property actually reports.**
-
-                   The one above is a journey — six steps somebody decided a
-                   booking passes through. This one asks what the site measures
-                   and how it narrows, from nothing but GA4's own event report,
-                   ordered by volume. No claim is made that one event causes the
-                   next; what is true is that each is reached by fewer people
-                   than the one above it. %>
-              <% if ((typeof eventFunnel !== 'undefined') && eventFunnel && eventFunnel.length) { %>
-                <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--color-neutral-900);">
-                  <div style="font-size:12.5px; font-weight:500; margin-bottom:3px;">As Google Analytics reports it</div>
-                  <div style="font-size:10.5px; color:var(--color-neutral-600); line-height:1.5; margin-bottom:10px;">
-                    Every event this property sends, largest first, with its share of the
-                    <%= (webFunnel && webFunnel[0] ? webFunnel[0].n : '—') %> sessions above and the fall from
-                    the row before it. A step the booking funnel is already counting is marked.
-                  </div>
-                  <% eventFunnel.forEach(function (e) { %>
-                    <div style="margin-bottom:9px;">
-                      <div style="display:flex; justify-content:space-between; gap:10px; font-size:11px; margin-bottom:3px;">
-                        <span style="color:var(--color-neutral-400); min-width:0;">
-                          <%= e.label %>
-                          <span style="color:var(--color-neutral-700);">· <%= e.event %></span>
-                          <% if (e.used) { %><span style="color:var(--color-accent-400);">· counted above</span><% } %>
-                        </span>
-                        <span style="flex:none; font-variant-numeric:tabular-nums;"><span style="color:var(--color-neutral-200); font-weight:500;"><%= e.n %></span> <span style="color:var(--color-neutral-600);">· <%= e.pct %> of sessions · drop <%= e.drop %></span></span>
-                      </div>
-                      <div style="height:7px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= e.w %>; border-radius:99px; background:linear-gradient(90deg, <%= e.used ? 'var(--color-accent-700), var(--color-accent-400)' : 'var(--color-neutral-800), var(--color-neutral-700)' %>);"></div></div>
-                    </div>
-                  <% }); %>
-                </div>
-              <% } %>
               <% if ((typeof missingSteps !== 'undefined') && missingSteps && missingSteps.length) { %>
                 <div style="margin-top:14px; padding-top:12px; border-top:1px solid var(--color-neutral-900);">
                   <div style="font-size:11px; color:var(--color-neutral-400); margin-bottom:6px;">
