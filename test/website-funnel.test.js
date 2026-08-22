@@ -72,7 +72,7 @@ test('a step falls from the last measured step, not from the row above it', () =
   assert.equal(steps['Availability checked'].drop, '−75.0%');
   /* 5,000 of the 25,000 that checked availability, not of the 100,000 that
      landed and not of a step that reported nothing. */
-  assert.equal(steps['Booking confirmed'].drop, '−80.0%');
+  assert.equal(steps['Booked online'].drop, '−80.0%');
 });
 
 test('a step larger than the one above it reads as a rise, not as a double minus', () => {
@@ -91,7 +91,7 @@ test('an event the property does not send takes its step off the funnel', () => 
      unknowable fall, and no content but its own absence. */
   const { out } = funnelOf([ev('checkavailabilityclicked', 24000)]);
 
-  for (const label of ['Room selection viewed', 'Booking confirmed']) {
+  for (const label of ['Room selection viewed', 'Booked online']) {
     assert.ok(absent(out, label), `${label} is still drawn, or is not accounted for beneath`);
   }
 });
@@ -174,6 +174,28 @@ test('the steps are the journey this engine reports, not a checkout it does not'
      property never tags. They are gone from the shape rather than dropped from
      the render on every request. */
   assert.deepEqual(authored.webFunnel.map((s) => s.label), [
-    'Landing page view', 'Availability checked', 'Room selection viewed', 'Booking confirmed',
+    'Landing page view', 'Availability checked', 'Room selection viewed', 'Booked online',
   ]);
+});
+
+test('the last step counts online bookings, and says what it leaves out', () => {
+  /* "Booking confirmed" was answering a question nobody asked it: whether it
+     was ALL bookings. It is not, and the gap is most of them — a guest who rang
+     reservations never becomes a session, one who booked through an OTA reaches
+     neither book, and a walk-in reaches neither until a PMS holds it. */
+  const entities = entitiesWith([ev('checkavailabilityclicked', 2635)], 21195, 8);
+  entities.deals = [
+    { entity: 'deal', channel: 'google', revenue: 100000, outcome: 'won', bookingStatus: 'confirmed' },
+    { entity: 'deal', channel: 'meta', revenue: 200000, outcome: 'won', bookingStatus: 'confirmed' },
+    { entity: 'deal', channel: 'meta', revenue: 50000, outcome: 'won', bookingStatus: 'cancelled' },
+    { entity: 'deal', channel: 'meta', revenue: 50000, outcome: 'open', bookingStatus: '' },
+  ];
+  const out = PROJECTIONS.website(entities, {}, authored);
+
+  assert.match(out.bookedNote.text, /CRM recorded 2 won bookings/);
+  assert.match(out.bookedNote.text, /OTA/);
+  /* Not added together: a guest who booked online and was then entered into the
+     CRM is in both books, and nothing can tell those apart. */
+  assert.match(out.bookedNote.text, /not added/);
+  assert.equal(out.bookedNote.crm, 2, 'a cancelled or open deal was counted as a booking');
 });

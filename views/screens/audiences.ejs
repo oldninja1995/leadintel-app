@@ -3,45 +3,6 @@
             <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:19px;">Audience Analytics</h1>
             <span style="font-size:11.5px; color:var(--color-neutral-600);">demographics, segments & saturation · CRM-verified</span>
           </div>
-          <%# **Revenue by channel, from every system connected.**
-
-               The projection has computed this for as long as the screen has
-               existed and nothing rendered it — the design has no panel for it,
-               so the figure that answers "where does the money come from" was
-               being calculated and thrown away. It goes first: it is the
-               question, and the demographics beneath it are the detail.
-
-               Four books meet in each row — ad spend from the platforms, leads
-               and won deals from the CRM, the booking engine's revenue from
-               GA4, and the channels the CRM knows that no ad platform does. The
-               line under each name says which of them contributed, so nobody
-               has to guess where a figure came from. %>
-          <% if ((typeof audRevenue !== 'undefined') && audRevenue && audRevenue.length) { %>
-            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px; margin-bottom:12px;">
-              <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:10px;">
-                <div style="font-size:13px; font-weight:500;">Revenue by channel</div>
-                <span style="font-size:10.5px; color:var(--color-neutral-600);">CRM deals, the booking engine's revenue where GA4 prices it, against what each channel cost</span>
-              </div>
-              <% audRevenue.forEach(function (c) { %>
-                <div style="padding:7px 0; border-bottom:1px solid var(--color-neutral-900);">
-                  <div style="display:flex; align-items:baseline; gap:10px; font-size:11.5px;">
-                    <span style="width:110px; flex:none; color:var(--color-neutral-200); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= c.type %></span>
-                    <div style="flex:1; height:7px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= c.w %>; border-radius:99px; background:linear-gradient(90deg, var(--color-accent-700), var(--color-accent-400));"></div></div>
-                    <span style="width:72px; flex:none; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-100); font-weight:500;"><%= c.rev %></span>
-                    <span style="width:38px; flex:none; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-600);"><%= c.share %></span>
-                    <span style="width:46px; flex:none; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);" title="Revenue over what this channel cost. A channel with no ad spend has no return on advertising to state."><%= c.roas %></span>
-                    <span style="width:52px; flex:none; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-500);" title="Won, uncancelled bookings the CRM recorded against this channel."><%= c.bookings %></span>
-                  </div>
-                  <div style="font-size:10px; color:var(--color-neutral-600); margin-top:3px; padding-left:120px;"><%= c.meta %></div>
-                </div>
-              <% }); %>
-              <div style="font-size:10px; color:var(--color-neutral-600); padding-top:9px; line-height:1.5;">
-                Revenue is the CRM's, plus what the booking engine took from paid-search sessions on Google's
-                row — two books, and a booking in both is counted twice. Nothing can reconcile them until a PMS
-                gives both one folio, so the overlap is named rather than netted away.
-              </div>
-            </div>
-          <% } %>
           <div style="display:grid; grid-template-columns:1.6fr 1fr; gap:12px; margin-bottom:12px;">
             <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
               <div style="display:flex; align-items:center; margin-bottom:10px;"><div style="font-size:13px; font-weight:500;"><%= (typeof audAgeMeasure !== 'undefined' && audAgeMeasure) ? audAgeMeasure : 'Leads' %> by age &amp; gender</div><div style="flex:1;"></div><span style="display:flex; gap:10px; font-size:11px; color:var(--color-neutral-400);"><span style="display:flex; align-items:center; gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-500);"></span>Female</span><span style="display:flex; align-items:center; gap:5px;"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-neutral-600);"></span>Male</span></span></div>

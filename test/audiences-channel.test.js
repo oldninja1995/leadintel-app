@@ -14,9 +14,26 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { PROJECTIONS } = require('../lib/repository/projections');
+const { PROJECTIONS, channelTotals, money } = require('../lib/repository/projections');
+const filters = require('../lib/filters');
 
-const project = (entities, params = {}) => PROJECTIONS.audiences(entities, params);
+/* The panel that rendered this is off the screen; the roll-up behind it is what
+   these tests are about, and it is still what any screen asking "revenue by
+   channel" should read rather than writing a second one. Shaped here the way the
+   panel shaped it, so the assertions go on describing what a reader would see. */
+const project = (entities) => ({
+  audRevenue: channelTotals(entities).map((c) => ({
+    type: filters.LABELS.channel[c.channel] || c.channel,
+    rev: c.revenue ? money(c.revenue) : (c.hasSpend ? money(0) : '—'),
+    roas: c.hasSpend && c.spend > 0 ? `${(c.revenue / c.spend).toFixed(1)}x` : '—',
+    meta: [
+      c.hasSpend ? `${money(c.spend)} spent` : 'no ad spend — CRM channel',
+      c.leads ? `${c.leads} lead${c.leads === 1 ? '' : 's'}` : null,
+      c.online ? `${money(c.online)} of it GA4's, from the booking engine` : null,
+    ].filter(Boolean).join(' · '),
+  })),
+  audSegs: PROJECTIONS.audiences(entities, {}).audSegs,
+});
 
 const campaignDay = (platform, over = {}) => ({
   entity: 'campaignDay', platform, campaign: 'a campaign',

@@ -62,6 +62,11 @@ module.exports = {
     { label: 'Landing page view', n: '—', pct: '—', w: '0%', drop: '—' },
     { label: 'Availability checked', n: '—', pct: '—', w: '0%', drop: '—' },
     { label: 'Room selection viewed', n: '—', pct: '—', w: '0%', drop: '—' },
-    { label: 'Booking confirmed', n: '—', pct: '—', w: '0%', drop: '—' },
+    /* **Booked online**, not booked. This is the website's funnel and the row
+       is GA4's purchase count on this property — the bookings the engine
+       reported here. The CRM's own count, for the same window and every
+       channel, is stated beneath the funnel so the two cannot be mistaken for
+       each other. */
+    { label: 'Booked online', n: '—', pct: '—', w: '0%', drop: '—' },
   ],
 };
