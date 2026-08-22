@@ -12,7 +12,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { rollUp, rate } = require('../lib/google-ads-rollup');
+const { rollUp, rate, orderAccountKeywords } = require('../lib/google-ads-rollup');
 
 /* Paise in, the app's own format out — enough to tell null from formatted. */
 const money = (paise) => `₹${Math.round(paise / 100)}`;
@@ -131,4 +131,61 @@ test('a rate with no denominator is null, and one with a zero numerator is not',
   assert.equal(rate(21, 84), '25.00%');
   assert.equal(rate(5, 0), null);
   assert.equal(rate(0, 0), null);
+});
+
+/* ── ordering the account's keyword list ──────────────────────────────────
+ *
+ * The list the picker on the keyword screen renders is not a rollUp: it is the
+ * account's criterion list, mostly rows with no figures at all. 220 keywords of
+ * which six had delivery is the case these are written against, and the trap is
+ * that the other 214 are unknown rather than zero.
+ */
+
+const kw = (keyword, spend) => (spend === null
+  ? { keyword, measured: false, spend: null }
+  : { keyword, measured: true, spend });
+
+test('by default the list is alphabetical, which is the order it is scanned in', () => {
+  const out = orderAccountKeywords([kw('zephyr resort', 900), kw('alleppey stay', null), kw('munnar resort', 100)]);
+  assert.deepEqual(out.map((k) => k.keyword), ['alleppey stay', 'munnar resort', 'zephyr resort']);
+});
+
+test('ranked by spend, the highest spender leads', () => {
+  const out = orderAccountKeywords([kw('b', 100), kw('a', 900), kw('c', 500)], 'spend');
+  assert.deepEqual(out.map((k) => k.keyword), ['a', 'c', 'b']);
+});
+
+test('a keyword with no reported delivery ranks below every keyword that spent', () => {
+  /* The bug this is written against would be sorting a dash as a zero: a
+     keyword Google did not report did not spend nothing, and putting it level
+     with a keyword that genuinely spent nothing states something the data does
+     not say. Below the ranking, in its own order, is the only honest place. */
+  const out = orderAccountKeywords([kw('quiet a', null), kw('spent 1', 1), kw('quiet b', null), kw('spent 900', 900)], 'spend');
+  assert.deepEqual(out.map((k) => k.keyword), ['spent 900', 'spent 1', 'quiet a', 'quiet b']);
+});
+
+test('the unmeasured tail keeps the alphabetical order it is scanned in', () => {
+  const out = orderAccountKeywords([kw('zeta', null), kw('alpha', null), kw('mid', null)], 'spend');
+  assert.deepEqual(out.map((k) => k.keyword), ['alpha', 'mid', 'zeta']);
+});
+
+test('an equal spend breaks the tie by name rather than by input order', () => {
+  const out = orderAccountKeywords([kw('beta', 500), kw('alpha', 500)], 'spend');
+  assert.deepEqual(out.map((k) => k.keyword), ['alpha', 'beta']);
+});
+
+test('ordering returns a new array — the picker holds the same rows', () => {
+  /* The selected campaign is rendered from a copy for exactly this reason: one
+     reader asking for spend must not reorder the object every other campaign's
+     counts are read from. */
+  const list = [kw('b', 100), kw('a', 900)];
+  const out = orderAccountKeywords(list, 'spend');
+  assert.notEqual(out, list);
+  assert.deepEqual(list.map((k) => k.keyword), ['b', 'a']);
+});
+
+test('an unknown order is the default one, not an error', () => {
+  const out = orderAccountKeywords([kw('b', 900), kw('a', 100)], 'clicks');
+  assert.deepEqual(out.map((k) => k.keyword), ['a', 'b']);
+  assert.deepEqual(orderAccountKeywords(null, 'spend'), []);
 });

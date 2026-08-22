@@ -2773,6 +2773,19 @@ async function googleAdsPayload(req) {
     || pickable[0]
     || null;
 
+  /* Which order that campaign's keyword list is in. Alphabetical unless asked
+     otherwise — the argument for that default is beside the sort in
+     lib/google-ads-rollup.js, and so is the rule that keeps the unmeasured rows
+     out of the ranking rather than at the bottom of it. Ordered here rather than
+     where the list is built because the picker and the counts beside it read the
+     same objects, and a campaign nobody selected has no reason to be re-sorted.
+     A copy, for the same reason: mutating the row the picker holds would order
+     every campaign by whatever the reader asked of one. */
+  const keywordSort = String(req.query.sort || '') === 'spend' ? 'spend' : 'name';
+  const selectedOrdered = selectedCampaign
+    ? { ...selectedCampaign, keywords: googleAdsRollup.orderAccountKeywords(selectedCampaign.keywords, keywordSort) }
+    : null;
+
   const keywordsByCampaign = (() => {
     const rows = rollUp(entities.googleKeywords, (r) => `${r.campaignId} ${r.keyword}`, (r) => ({
       keyword: r.keyword, matchType: r.matchType, qualityScore: r.qualityScore, campaignId: r.campaignId,
@@ -3078,7 +3091,7 @@ async function googleAdsPayload(req) {
     table: String(req.query.table || ''),
     connected: live.has('google_ads'),
     campaigns, campaignTotal, adGroups, ads, keywords, keywordsByCampaign, conversions,
-    liveCampaigns: pickable, hiddenCampaigns, selectedCampaign,
+    liveCampaigns: pickable, hiddenCampaigns, selectedCampaign: selectedOrdered, keywordSort,
     searchTerms: terms, termSummary, words,
     keywordsNotApplicable, paidSearch,
   };

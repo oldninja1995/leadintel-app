@@ -70,15 +70,15 @@ const whole = (name) => only === name;
 /* The range and any filter, carried on every link out of here so following one
    does not reset the window the reader chose. */
 const qs = d.qs || '';
-const join = (extra) => (qs ? `${qs}&${extra}` : `?${extra}`);
 const rows = (list, name) => (whole(name) ? list : list.slice(0, PREVIEW));
 
-/* Everything already in the query string except the campaign, so the picker's
-   form does not drop the range or the open-table state when it submits. A GET
-   form replaces the whole query string, which is the trap here. */
-const carry = (() => {
+/* The query string this screen was reached with, parsed once. Every link below
+   is built from it rather than appended to it, and so are the picker's hidden
+   fields — a GET form replaces the whole query string, which is the trap that
+   made those necessary. */
+const params = (() => {
   const out = [];
-  const seen = new Set(['campaign']);
+  const seen = new Set();
   for (const pair of String(qs).replace(/^\?/, '').split('&')) {
     if (!pair) continue;
     const [rawName, rawValue = ''] = pair.split('=');
@@ -89,6 +89,33 @@ const carry = (() => {
   }
   return out;
 })();
+
+/* This screen with some parameters replaced; null drops one.
+ *
+ * Appending was the bug, in two halves. A query string already carrying
+ * campaign=X, plus a link appending campaign=X, is the same name twice; Express
+ * reads a repeated name as an array and String() of one is "X,X", which matches
+ * no campaign — so "view the whole list" on any campaign but the first quietly
+ * showed the first campaign's keywords. And "Back to Keyword Analytics", built
+ * from the whole query string with the open table still in it, linked to the
+ * page it was already on. */
+const link = (over = {}) => {
+  const pairs = params.filter((k) => !Object.prototype.hasOwnProperty.call(over, k.name));
+  for (const [name, value] of Object.entries(over)) {
+    if (value === null || value === undefined || value === '') continue;
+    pairs.push({ name, value: String(value) });
+  }
+  const q = pairs.map((k) => encodeURIComponent(k.name) + '=' + encodeURIComponent(k.value)).join('&');
+  return q ? '/google-ads/keywords?' + q : '/google-ads/keywords';
+};
+
+/* Carried on the picker so choosing a campaign keeps the range, the open table
+   and the order the reader is already looking at. */
+const carry = params.filter((k) => k.name !== 'campaign');
+
+/* Which order the account's keyword list is in. The server decides and the rule
+   is written in lib/google-ads-rollup.js. */
+const sort = d.keywordSort === 'spend' ? 'spend' : 'name';
 
 %>
 
@@ -102,7 +129,7 @@ const carry = (() => {
 
 <p class="li-ota-foot">
   <% if (only) { %>
-    <a href="/google-ads/keywords<%= qs %>">Back to Keyword Analytics</a> —
+    <a href="<%= link({ table: null }) %>">Back to Keyword Analytics</a> —
     one table, in full, over <%= txt(d.rangeLabel) %>.
   <% } else { %>
     <a href="/google-ads<%= qs %>">Back to Google Ads Analytics</a> — campaigns, ad groups, ads
@@ -204,7 +231,7 @@ const carry = (() => {
   </div>
   <% if (!whole('wasted') && wasted.length > PREVIEW) { %>
     <p class="li-ota-foot">
-      <a href="/google-ads/keywords<%= join('table=wasted') %>">
+      <a href="<%= link({ table: 'wasted' }) %>">
         View all <%= num(wasted.length) %> wasted terms
       </a> &rarr;
     </p>
@@ -259,7 +286,7 @@ const carry = (() => {
   </div>
   <% if (!whole('words') && words.length > PREVIEW) { %>
     <p class="li-ota-foot">
-      <a href="/google-ads/keywords<%= join('table=words') %>">
+      <a href="<%= link({ table: 'words' }) %>">
         View all <%= num(words.length) %> words
       </a> &rarr;
     </p>
@@ -280,7 +307,8 @@ const carry = (() => {
     <h2>Keywords in the account</h2>
     <p>
       What each <strong>live Search campaign</strong> is bidding on <strong>right now</strong> — the
-      account's own keyword list, enabled and paused keywords alike, in alphabetical order.
+      account's own keyword list, enabled and paused keywords alike, in
+      <%= sort === 'spend' ? 'order of what it spent in the range' : 'alphabetical order' %>.
       Paused campaigns are left out, and so are the types that have no keywords by
       construction: App, Performance Max, Demand Gen and Shopping. This does not narrow with the range above it, and cannot:
       "what are we bidding on" has no window, and Google does not report what the list looked
@@ -334,6 +362,29 @@ const carry = (() => {
         column tells apart.
       </p>
     </div>
+
+    <%# Sorting a list of 220 keywords of which six have figures. The default
+        order is alphabetical and the argument for that is in the panel copy
+        above; this is the same list asked the other question — what is this
+        campaign actually paying for — which no amount of scrolling answers.
+        Links rather than a clickable table header: the order lives in the URL,
+        so it survives a reload and can be sent to somebody, and it works with
+        JavaScript switched off, like the picker beside it. %>
+    <p class="li-ota-foot" style="margin:8px 0 0;">
+      Order:
+      <% if (sort === 'spend') { %>
+        <a href="<%= link({ sort: null, campaign: sel.campaignId }) %>">A&ndash;Z</a> ·
+        <strong>spend</strong> — highest first. The keywords Google reported no
+        delivery for keep their alphabetical order beneath the ones that ran: a dash
+        is not a zero, so it does not rank as one.
+      <% } else { %>
+        <strong>A&ndash;Z</strong> ·
+        <a href="<%= link({ sort: 'spend', campaign: sel.campaignId }) %>">spend</a> —
+        alphabetical is the order for finding a keyword; rank by spend to see what
+        this campaign is paying for.
+      <% } %>
+    </p>
+
     <div class="li-ota-scroll">
       <table class="li-ota-table">
         <thead>
@@ -363,8 +414,8 @@ const carry = (() => {
     <% if (!whole('current') && sel.keywords.length > PREVIEW) { %>
       <p class="li-ota-foot">
         <%= num(sel.keywords.length) %> keywords in this campaign. Showing the first <%= PREVIEW %>
-        alphabetically —
-        <a href="/google-ads/keywords<%= join('table=current&campaign=' + encodeURIComponent(sel.campaignId)) %>">view the whole list</a> &rarr;
+        <%= sort === 'spend' ? 'by spend' : 'alphabetically' %> —
+        <a href="<%= link({ table: 'current', campaign: sel.campaignId }) %>">view the whole list</a> &rarr;
       </p>
     <% } %>
   <% } %>
@@ -436,7 +487,7 @@ const carry = (() => {
       <p class="li-ota-foot">
         <%= num(c.keywords.length) %> keywords in this campaign. Showing the <%= PREVIEW %>
         first alphabetically —
-        <a href="/google-ads/keywords<%= join('table=by-campaign') %>">view every campaign's list in full</a> &rarr;
+        <a href="<%= link({ table: 'by-campaign' }) %>">view every campaign's list in full</a> &rarr;
       </p>
     <% } %>
   <% }); %>
@@ -505,7 +556,7 @@ const carry = (() => {
   </div>
   <% if (!whole('keywords') && keywords.length > PREVIEW) { %>
     <p class="li-ota-foot">
-      <a href="/google-ads/keywords<%= join('table=keywords') %>">
+      <a href="<%= link({ table: 'keywords' }) %>">
         View all <%= num(keywords.length) %> keywords
       </a> &rarr;
     </p>
@@ -569,7 +620,7 @@ const carry = (() => {
   </div>
   <% if (!whole('terms') && terms.length > PREVIEW) { %>
     <p class="li-ota-foot">
-      <a href="/google-ads/keywords<%= join('table=terms') %>">
+      <a href="<%= link({ table: 'terms' }) %>">
         View all <%= num(terms.length) %> search terms
       </a> &rarr;
     </p>
