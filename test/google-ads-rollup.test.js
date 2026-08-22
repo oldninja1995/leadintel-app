@@ -12,7 +12,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { rollUp, rate, orderAccountKeywords } = require('../lib/google-ads-rollup');
+const { rollUp, rate, orderAccountKeywords, keywordMetricsIndex } = require('../lib/google-ads-rollup');
 
 /* Paise in, the app's own format out — enough to tell null from formatted. */
 const money = (paise) => `₹${Math.round(paise / 100)}`;
@@ -188,4 +188,69 @@ test('an unknown order is the default one, not an error', () => {
   const out = orderAccountKeywords([kw('b', 900), kw('a', 100)], 'clicks');
   assert.deepEqual(out.map((k) => k.keyword), ['a', 'b']);
   assert.deepEqual(orderAccountKeywords(null, 'spend'), []);
+});
+
+/* ── the criterion list joined to what was measured ───────────────────────
+ *
+ * The account this was found on bids 167 exact keywords and 53 broad ones, and
+ * 53 of the broad ones are spelled exactly like an exact one. Keyed on the
+ * words, every one of those pairs shared a figure.
+ */
+
+const measured = (over) => ({
+  campaignId: '111', adgroupId: '9', keyword: 'blanket riverside resort', matchType: 'EXACT',
+  spend: 81400, impressions: 328, clicks: 19, leads: 0, ...over,
+});
+const criterion = (over) => ({
+  campaignId: '111', adgroupId: '9', keyword: 'blanket riverside resort', matchType: 'EXACT', ...over,
+});
+
+test('the exact keyword takes the spend and the broad one spelled the same does not', () => {
+  const index = keywordMetricsIndex([measured()]);
+
+  assert.equal(index.find(criterion()).spend, 81400);
+  assert.equal(index.find(criterion({ matchType: 'BROAD' })), null,
+    "the broad criterion is reading the exact keyword's spend");
+});
+
+test('the same phrase in another ad group does not inherit the figures', () => {
+  const index = keywordMetricsIndex([measured()]);
+  assert.equal(index.find(criterion({ adgroupId: '10' })), null);
+});
+
+test('days sum, and only the days of that criterion', () => {
+  const index = keywordMetricsIndex([
+    measured({ spend: 40000, clicks: 9 }),
+    measured({ spend: 41400, clicks: 10 }),
+    measured({ matchType: 'BROAD', spend: 7100, clicks: 2 }),
+  ]);
+
+  const exact = index.find(criterion());
+  assert.equal(exact.spend, 81400);
+  assert.equal(exact.clicks, 19);
+  assert.equal(index.find(criterion({ matchType: 'BROAD' })).spend, 7100);
+});
+
+test('a measured row with no match type still answers, rather than reading as a dash', () => {
+  /* The fix must not cost a keyword its figures. A row Google returned without
+     a match type joins on campaign, ad group and text — reporting a dash for a
+     keyword that did deliver is the worse half of the bug being fixed. */
+  const index = keywordMetricsIndex([measured({ matchType: null })]);
+  assert.equal(index.find(criterion()).spend, 81400);
+  assert.equal(index.find(criterion({ matchType: 'BROAD' })).spend, 81400);
+});
+
+test('a criterion Google did not report finds nothing, which is not a zero', () => {
+  const index = keywordMetricsIndex([measured()]);
+  assert.equal(index.find(criterion({ keyword: 'never ran' })), null);
+  assert.equal(keywordMetricsIndex([]).find(criterion()), null);
+});
+
+test('a reported row with no spend is measured, and reads zero rather than a dash', () => {
+  /* One of the three keywords on that campaign spent nothing and was still in
+     the report: it was shown, and shown nothing. That is a real zero. */
+  const index = keywordMetricsIndex([measured({ spend: 0, impressions: 1, clicks: 0 })]);
+  const found = index.find(criterion());
+  assert.equal(found.measured, true);
+  assert.equal(found.spend, 0);
 });

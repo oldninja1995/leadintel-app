@@ -2645,21 +2645,10 @@ async function googleAdsPayload(req) {
    * whose keywords were all quiet this month is still in the dropdown. */
   const listing = entities.googleKeywordList || [];
 
-  const spendByKeyword = new Map();
-  for (const row of listing) {
-    /* Keyed on the campaign and the text, matching how `keywords` is rolled up
-       one level above — a keyword bid in two campaigns is two lines of spend. */
-    spendByKeyword.set(`${row.campaignId} ${row.keyword}`, null);
-  }
-  for (const row of entities.googleKeywords || []) {
-    const key = `${row.campaignId} ${row.keyword}`;
-    const acc = spendByKeyword.get(key) || { spend: 0, impressions: 0, clicks: 0, conversions: 0, measured: false };
-    if (row.spend !== null) { acc.spend += row.spend; acc.measured = true; }
-    if (row.impressions !== null) acc.impressions += row.impressions;
-    if (row.clicks !== null) acc.clicks += row.clicks;
-    if (row.leads !== null) acc.conversions += row.leads;
-    spendByKeyword.set(key, acc);
-  }
+  /* What Google measured, indexed so a criterion in the list can find its own
+     figures and only its own. The keying rule, and the bug that wrote it, are
+     in lib/google-ads-rollup.js beside the rest of the Google arithmetic. */
+  const measuredKeywords = googleAdsRollup.keywordMetricsIndex(entities.googleKeywords);
 
   const liveCampaigns = (() => {
     const by = new Map();
@@ -2675,7 +2664,7 @@ async function googleAdsPayload(req) {
         });
       }
       const c = by.get(id);
-      const metrics = spendByKeyword.get(`${row.campaignId} ${row.keyword}`) || null;
+      const metrics = measuredKeywords.find(row);
       c.keywords.push({
         keyword: row.keyword,
         matchType: row.matchType,
