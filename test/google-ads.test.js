@@ -540,3 +540,78 @@ test('a row ingested before those fields existed reports unknown, not zero', () 
   assert.equal(googleConversions[0].allConversions, null, 'an unfetched figure must not read as zero');
   assert.equal(googleConversions[0].allConversionValue, null);
 });
+
+/* ── identity, in the spelling Google actually uses ────────────────────────
+ *
+ * The bug this is written against cost two kinds almost every row they ever
+ * pulled, and nothing reported it. Google's REST reporting nests in
+ * lowerCamelCase — `adGroupCriterion.criterionId` — and EXTERNAL_ID.keyword_day
+ * read only the fixture's flat `keyword_id` and a snake-case path nothing
+ * sends. `first` returned undefined, so every keyword row of a day was named
+ * `undefined:2026-08-21` and the store upserted them onto each other: an
+ * account with 220 keywords and ₹98,000 of search spend held four keyword rows
+ * for the year. ad_day had the same hole, reading `ad.id` where Google sends
+ * `adGroupAd.ad.id`.
+ *
+ * So this does not test one id. It builds a record shaped the way the REST API
+ * answers each kind's own GAQL and asserts the id can be read from it — the
+ * generalisation of the bug, rather than the instance.
+ */
+
+/* The camelCase body Google returns for a given SELECT list: 'ad_group.id'
+   comes back as `adGroup.id`, and a leaf gets a value of its own name. */
+function restBody(query) {
+  const fields = query
+    .replace(/[\s\S]*SELECT/, '')
+    .replace(/FROM[\s\S]*/, '')
+    .split(',')
+    .map((f) => f.trim())
+    .filter(Boolean);
+
+  const body = {};
+  for (const field of fields) {
+    const parts = field.split('.').map((p) => p.replace(/_([a-z])/g, (m, c) => c.toUpperCase()));
+    let node = body;
+    while (parts.length > 1) {
+      const key = parts.shift();
+      node[key] = node[key] || {};
+      node = node[key];
+    }
+    node[parts[0]] = field === 'segments.date' ? '2026-08-21' : `${field}-value`;
+  }
+  return body;
+}
+
+test('every Google kind can name a record Google actually sent', () => {
+  for (const kind of GOOGLE.kinds) {
+    const query = QUERIES[kind];
+    if (!query) continue;
+
+    const id = EXTERNAL_ID[kind](restBody(query));
+
+    assert.doesNotMatch(String(id), /undefined/,
+      `${kind} cannot read its own identifier out of Google's camelCase — every row of a day `
+      + 'will be stored under the same key and overwrite the one before it');
+    /* And a dated kind must carry the date, or a re-pull of an overlapping
+       window would overwrite yesterday with today rather than keeping both. */
+    if (kind.endsWith('_day')) assert.match(String(id), /2026-08-21$/, `${kind} is not keyed by its day`);
+  }
+});
+
+test('a keyword-day is identified by its criterion, not by its campaign', () => {
+  /* Two keywords in one campaign on one day must be two records. Keyed on
+     anything coarser — or on nothing, which is what undefined meant — the
+     second silently replaces the first. */
+  const day = { campaign: { id: '23971559182' }, adGroup: { id: '77' }, segments: { date: '2026-08-21' } };
+  const a = EXTERNAL_ID.keyword_day({ ...day, adGroupCriterion: { criterionId: '111' } });
+  const b = EXTERNAL_ID.keyword_day({ ...day, adGroupCriterion: { criterionId: '222' } });
+
+  assert.notEqual(a, b);
+  assert.equal(a, '111:2026-08-21');
+});
+
+test('Meta still names its own ads, which share the ad_day kind', () => {
+  /* ad_day is not Google's alone: the fix added paths, and adding them ahead of
+     Meta's flat `ad_id` would have broken the connector that was working. */
+  assert.equal(EXTERNAL_ID.ad_day({ ad_id: '120210', date_start: '2026-08-21' }), '120210:2026-08-21');
+});

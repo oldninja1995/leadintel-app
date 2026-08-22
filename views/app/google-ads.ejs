@@ -184,31 +184,6 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
   <% } %>
 </section>
 
-<!-- Keywords and search terms, elsewhere ---------------------------------->
-<section class="li-ota-panel">
-  <div class="li-ota-panel-head">
-    <h2>Keywords &amp; search terms</h2>
-    <p>
-      On their own screen. This range holds
-      <strong><%= num((d.searchTerms || []).length) %></strong> search terms and
-      <strong><%= num((d.keywords || []).length) %></strong> keywords &mdash; a table that long
-      does not belong beneath the campaigns somebody opens this screen to read, and capping it
-      would hide the long tail that makes a negative keyword obvious.
-    </p>
-  </div>
-
-  <% const ts = d.termSummary || {}; %>
-  <p class="li-ota-foot">
-    <% if (ts.wasted) { %>
-      <strong><%= num(ts.wasted) %></strong> terms spent and converted nobody<%
-        if (ts.wastedSpendText) { %>, costing <strong><%= ts.wastedSpendText %></strong><% } %>.
-    <% } %>
-    <a href="/google-ads/keywords<%= d.qs || '' %>">
-      Open Keyword Analytics
-    </a> &mdash; wasted spend, the word-level rollup, keywords and every search term, uncapped.
-  </p>
-</section>
-
 <!-- Ad groups --------------------------------------------------------------->
 <section class="li-ota-panel">
   <div class="li-ota-panel-head">
