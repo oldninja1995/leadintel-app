@@ -125,3 +125,44 @@ test('the connector asks for events by name, and the store can tell two apart', 
   assert.notEqual(a, b, 'two events on one day would overwrite each other');
   assert.match(a, /2026-08-21$/, 'the day is not in the key, so a re-pull would lose history');
 });
+
+/* ── this property's own names ─────────────────────────────────────────────
+ *
+ * Read off its event report rather than guessed. No recommended-name list
+ * would ever have matched `checkavailabilityclicked` — unprefixed, unseparated
+ * — and a funnel that only understands Google's suggested names is a funnel
+ * that stays empty on every site that did its own tagging.
+ */
+
+test('the property\'s own event names fill the two steps it names', () => {
+  const { steps } = funnelOf([
+    ev('checkavailabilityclicked', 2635), ev('roomselectionviewed', 3068),
+  ], 21195);
+
+  assert.equal(steps['Availability checked'].n, '2,635');
+  assert.equal(steps['Availability checked'].event, 'checkavailabilityclicked');
+  assert.equal(steps['Booking started'].n, '3,068');
+  assert.equal(steps['Booking started'].event, 'roomselectionviewed');
+});
+
+test('a step larger than the one above it reads as a rise, not as a double minus', () => {
+  /* Room-selection views outnumber availability clicks on this property: a deep
+     link, a returning visitor and a second search all reach room selection
+     without the click that precedes it on paper. "−−16.4%" would be a
+     formatting bug wearing the clothes of a measurement. */
+  const { steps } = funnelOf([ev('checkavailabilityclicked', 2635), ev('roomselectionviewed', 3068)], 21195);
+
+  assert.equal(steps['Booking started'].drop, '+16.4%');
+  assert.doesNotMatch(steps['Booking started'].drop, /−−|--/);
+});
+
+test('an enquiry form is not a step inside a booking', () => {
+  /* The property sends form_start, form_submit, formsubmit and formsubmitclick,
+     and every one is the enquiry form — a lead, not guest details entered
+     inside a booking. Counting one as the other would put a number in the
+     funnel that describes a different journey. */
+  const { steps, out } = funnelOf([ev('form_start', 1784), ev('form_submit', 4001)], 21195);
+
+  assert.equal(steps['Guest details entered'].n, '—');
+  assert.deepEqual(out.unclaimedEvents.map((e) => e.event).sort(), ['form_start', 'form_submit']);
+});
