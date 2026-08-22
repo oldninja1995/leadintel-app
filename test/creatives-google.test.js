@@ -110,8 +110,11 @@ test('everything Google does not report about a creative is dashed, not filled',
 });
 
 test('Google conversions are named as Google conversions, never as leads', () => {
+  /* The score took the headline once the quartile rates arrived; the conversion
+     count moved to the line beneath it, where it still has to be named for what
+     it is — every action the account defines, not leads. */
   const quiet = project(ENTITIES).creatives[0];
-  assert.equal(quiet.verdictInstruction, 'No Google conversions in this range');
+  assert.match(quiet.verdictBecause, /No Google conversions in this range/);
   assert.equal(quiet.cpl, '—');
 
   const converting = project({
@@ -119,7 +122,7 @@ test('Google conversions are named as Google conversions, never as leads', () =>
     campaignDays: CAMPAIGNS,
   }).creatives[0];
 
-  assert.match(converting.verdictInstruction, /4 Google conversions at ₹500/);
+  assert.match(converting.verdictBecause, /4 Google conversions at ₹500/);
   assert.match(converting.verdictBecause, /not a lead count/);
   assert.doesNotMatch(converting.verdictInstruction, /lead/i);
 });
@@ -135,11 +138,19 @@ test('the card carries no image, and does not pretend to', () => {
   assert.equal(row.poster, '');
 });
 
-test('nothing on this channel is scored, and the bar says nothing rather than something', () => {
-  const [row] = project(ENTITIES).creatives;
+test('a creative Google measured nothing about keeps an empty bar', () => {
+  /* The score exists only where a measure does. An ad with no impressions, no
+     clicks and no conversions has nothing to be placed against the median on,
+     and drawing a bar for it would be a width with no measurement behind it. */
+  const entities = {
+    googleAds: [video({ spend: 0, impressions: 0, clicks: 0, leads: 0, p25: null, p100: null })],
+    campaignDays: CAMPAIGNS,
+  };
+  const [row] = project(entities).creatives;
+
   assert.equal(row.bestScore, '—');
   assert.equal(row.winning, '0%');
-  assert.match(project(ENTITIES).verdictLegend, /not a recommendation/);
+  assert.equal(row.confidence, '');
 });
 
 /* ── the channel is the Channel chip ─────────────────────────────────────── */
@@ -214,4 +225,87 @@ test('the range travels with every link out of the channel', () => {
   for (const href of [out.sortNext, out.goalNext, ...out.viewTabs.map((t) => t.go), out.creatives[0].go]) {
     assert.match(href, /period=90d/, `a link dropped the range: ${href}`);
   }
+});
+
+/* ── judged on Google's own measures ──────────────────────────────────────
+ *
+ * The cards were unscored and said so, which was right while the only measures
+ * pulled were spend and clicks. The ads report carries the video quartile rates
+ * once it is asked for them, and a quarter watched is a hook rate on Google's
+ * own definition rather than by analogy with Meta's.
+ */
+
+const withVideo = (over = {}) => video({ p25: 0.4, p100: 0.1, videoViewRate: 0.3, ...over });
+
+test('hook and hold are Google\'s quartile rates, not an analogy', () => {
+  const [row] = project({ googleAds: [withVideo()], campaignDays: CAMPAIGNS }).creatives;
+  assert.equal(row.hookPct, '40.0%');
+  assert.equal(row.holdPct, '10.0%');
+});
+
+test('a creative that is not a video has no hook and no hold, and reads a dash', () => {
+  /* Nobody failed to watch a search ad. A zero would say they did. */
+  const entities = {
+    googleAds: [video({ adType: 'DEMAND_GEN_IMAGE_AD', p25: null, p100: null })],
+    campaignDays: CAMPAIGNS,
+  };
+  const [row] = project(entities).creatives;
+  assert.equal(row.hookPct, '—');
+  assert.equal(row.holdPct, '—');
+});
+
+test('100 is the channel median, and a creative is placed against it', () => {
+  const entities = {
+    googleAds: [
+      withVideo({ adId: '1', ad: 'A', p100: 0.20, impressions: 10000, clicks: 100, spend: 100000, leads: 2 }),
+      withVideo({ adId: '2', ad: 'B', p100: 0.10, impressions: 10000, clicks: 100, spend: 100000, leads: 2 }),
+      withVideo({ adId: '3', ad: 'C', p100: 0.05, impressions: 10000, clicks: 100, spend: 100000, leads: 2 }),
+    ],
+    campaignDays: CAMPAIGNS,
+  };
+  const scored = Object.fromEntries(project(entities).creatives.map((c) => [c.title, Number(c.bestScore)]));
+
+  assert.equal(scored.B, 100, 'the median creative is not the median score');
+  assert.ok(scored.A > scored.B, 'holding twice as long scored no better');
+  assert.ok(scored.C < scored.B);
+});
+
+test('a thin sample is marked rather than trusted', () => {
+  /* Under a thousand impressions the measure is real and the sample is not,
+     and saying which is which is the difference between a score and a claim. */
+  const entities = {
+    googleAds: [withVideo({ impressions: 400 }), withVideo({ adId: '9', ad: 'Other', impressions: 40000 })],
+    campaignDays: CAMPAIGNS,
+  };
+  const thin = project(entities).creatives.find((c) => c.title === 'WalkAround #4');
+  assert.equal(thin.confidence, 'thin');
+});
+
+test('a missing measure costs nothing rather than counting as zero', () => {
+  /* One creative with no conversions and one with them must not make the first
+     look worthless: it is scored on the three measures it has. */
+  const entities = {
+    googleAds: [
+      withVideo({ adId: '1', ad: 'A', leads: 0, impressions: 10000, clicks: 100 }),
+      withVideo({ adId: '2', ad: 'B', leads: 4, impressions: 10000, clicks: 100 }),
+    ],
+    campaignDays: CAMPAIGNS,
+  };
+  const a = project(entities).creatives.find((c) => c.title === 'A');
+  assert.ok(Number(a.bestScore) >= 90, `a creative with no conversions scored ${a.bestScore}`);
+  assert.match(a.confidence, /3 measures/);
+});
+
+test('the score says what carried it and what dragged it', () => {
+  const entities = {
+    googleAds: [
+      withVideo({ adId: '1', ad: 'A', p100: 0.3, clicks: 10, impressions: 10000 }),
+      withVideo({ adId: '2', ad: 'B', p100: 0.05, clicks: 900, impressions: 10000 }),
+    ],
+    campaignDays: CAMPAIGNS,
+  };
+  const a = project(entities).creatives.find((c) => c.title === 'A');
+  assert.match(a.verdictInstruction, /best on hold/);
+  assert.match(a.verdictInstruction, /worst on click-through/);
+  assert.match(a.verdictWhy, /100 is this channel's median/);
 });

@@ -2797,7 +2797,14 @@ async function googleAdsPayload(req) {
     const held = campaignById.get(id);
     /* Descriptions from the last dated row, the same rule the rollup uses. */
     if (!held || (day.date && (!held.date || day.date > held.date))) {
-      campaignById.set(id, { campaign: day.campaign, channelType: day.channelType, date: day.date });
+      campaignById.set(id, {
+        campaign: day.campaign,
+        channelType: day.channelType,
+        /* From the last dated row: Google reports a campaign's *current* state
+           on every day it returns, so the newest row is the true one. */
+        status: day.campaignStatus || null,
+        date: day.date,
+      });
     }
   }
 
@@ -2809,11 +2816,33 @@ async function googleAdsPayload(req) {
       /* Null, not "Other": an ad whose campaign is not in this range is a row
          whose surface is unknown, and the screen says unknown. */
       channel: of_ && of_.channelType ? String(of_.channelType).toUpperCase() : null,
+      campaignStatus: of_ && of_.status ? String(of_.status).toUpperCase() : null,
       adgroup: (entities.googleAdGroups || []).length
         ? (adGroups.find((g) => String(g.adgroupId) === String(a.adgroupId)) || {}).adgroup || null
         : null,
     };
   });
+
+  /* **Only what is live, unless asked otherwise.**
+   *
+   * A paused campaign's ads describe spend nobody is making. They still spent it
+   * inside the range, so they are not wrong — they are answering a question
+   * nobody asked of this screen, which is "what is running".
+   *
+   * Live means the ad is enabled *and* its campaign is: an enabled ad in a
+   * paused campaign serves nothing. **Unknown is kept, never hidden** — a
+   * campaign that reported no spend in the range has no status here, and
+   * treating silence as paused would drop rows for a reason the data does not
+   * support. `?show=all` puts everything back, and the count of what is hidden
+   * is on the screen either way: a table that quietly drops rows is a table
+   * somebody stops trusting the moment they notice. */
+  const showAll = String(req.query.show || '') === 'all';
+  const isLive = (a) => (
+    String(a.status || 'ENABLED').toUpperCase() === 'ENABLED'
+    && String(a.campaignStatus || 'ENABLED').toUpperCase() === 'ENABLED'
+  );
+  const pausedAds = adRows.filter((a) => !isLive(a));
+  const shownRows = showAll ? adRows : adRows.filter(isLive);
 
   /* The three surfaces asked for by name, then anything else the account
      actually runs. A segment with no ads is still drawn — "no Video campaigns
@@ -2824,13 +2853,13 @@ async function googleAdsPayload(req) {
     { key: 'VIDEO', label: 'Video' },
     { key: 'DISPLAY', label: 'Display' },
   ];
-  const extraChannels = [...new Set(adRows.map((a) => a.channel).filter(Boolean))]
+  const extraChannels = [...new Set(shownRows.map((a) => a.channel).filter(Boolean))]
     .filter((c) => !NAMED_CHANNELS.some((n) => n.key === c))
     .sort()
     .map((key) => ({ key, label: key.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (m) => m.toUpperCase()) }));
 
   const segments = [...NAMED_CHANNELS, ...extraChannels].map((c) => {
-    const rows = adRows.filter((a) => a.channel === c.key);
+    const rows = shownRows.filter((a) => a.channel === c.key);
     return {
       ...c,
       count: rows.length,
@@ -2842,7 +2871,7 @@ async function googleAdsPayload(req) {
     };
   });
 
-  const unplaced = adRows.filter((a) => !a.channel).length;
+  const unplaced = shownRows.filter((a) => !a.channel).length;
   const askedSegment = String(req.query.segment || '').toUpperCase();
   const segment = segments.some((c) => c.key === askedSegment) ? askedSegment : null;
 
@@ -3182,9 +3211,15 @@ async function googleAdsPayload(req) {
     campaigns, campaignTotal, adGroups, ads, conversions,
     /* Ad Analytics reads these three; the Google Ads screen ignores them, which
        is cheaper than a second payload that could disagree with this one. */
-    adRows: googleAdsRollup.orderRows(segment ? adRows.filter((a) => a.channel === segment) : adRows, sorts.sortAds, 'spend'),
-    adTotal: adRows.length,
+    adRows: googleAdsRollup.orderRows(segment ? shownRows.filter((a) => a.channel === segment) : shownRows, sorts.sortAds, 'spend'),
+    adTotal: shownRows.length,
     segments, segment, unplaced,
+    /* What "live" left out, and the way to see it. */
+    pausedAds: pausedAds.length,
+    pausedSpendText: pausedAds.some((a) => a.measured)
+      ? asMoney(pausedAds.reduce((t, a) => t + (a.measured ? a.spend : 0), 0))
+      : null,
+    showingAll: showAll,
     /* Ordered here rather than in the view: which rows a ten-row preview shows
        depends on the order, so a table sorted in the template would preview one
        set of rows and describe another. */

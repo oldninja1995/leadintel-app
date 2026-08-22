@@ -85,6 +85,12 @@ const headRow = (cols) => {
 
 const chosen = segments.find((c) => c.key === segment) || null;
 const running = segments.filter((c) => c.count > 0);
+
+/* What "live" left out. A table that quietly drops rows is one somebody stops
+   trusting the moment they notice, so the count and the way back are on the
+   screen rather than in the query string only. */
+const paused = d.pausedAds || 0;
+const showingAll = Boolean(d.showingAll);
 %>
 
 <% if (!d.connected) { %>
@@ -105,6 +111,18 @@ const running = segments.filter((c) => c.count > 0);
 <section class="li-ota-panel">
   <div class="li-ota-panel-head">
     <h2>Where the ads ran</h2>
+    <p>
+      <strong><%= showingAll ? 'Every ad that ran in this range' : 'Only what is live' %></strong> —
+      <%= showingAll ? 'paused campaigns included.' : 'an ad is here when it is enabled and its campaign is, because an enabled ad in a paused campaign serves nothing.' %>
+      <% if (paused) { %>
+        <%= num(paused) %> ad<%= paused === 1 ? '' : 's' %><% if (d.pausedSpendText) { %>, which spent <%= d.pausedSpendText %> before stopping,<% } %>
+        <%= showingAll ? 'are shown below and marked by their status' : 'are not shown' %> —
+        <a href="<%= link({ show: showingAll ? null : 'all' }) %>#ads"><%= showingAll ? 'show only what is live' : 'show them anyway' %></a>.
+      <% } else if (!showingAll) { %>
+        Nothing in this range is paused, so this is every ad either way.
+      <% } %>
+      A campaign that reported no spend in the range has no status to read, and is kept rather than assumed paused.
+    </p>
     <p>
       Google reports an advertising channel on the <strong>campaign</strong>, not on the ad, so
       that is what these segments are — its own classification, the one its interface uses. The
