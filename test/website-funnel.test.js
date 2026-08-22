@@ -96,12 +96,22 @@ test('an event the property does not send takes its step off the funnel', () => 
   }
 });
 
-test('two overlapping aliases count once, not twice', () => {
-  /* view_item and view_item_list on one property measure overlapping things.
-     Summing them would count a visit twice; the first alias in the list — the
-     recommended name — wins. */
+test('two overlapping aliases count once, and the busy one wins', () => {
+  /* Summing them would count a visit twice. Which one to keep is decided by
+     volume, not by list order: the event a step is really tagged with is the one
+     that fires on the journey. */
   const { steps } = funnelOf([ev('view_item', 24000), ev('view_item_list', 31000)]);
-  assert.equal(steps['Availability checked'].n, '24,000');
+  assert.equal(steps['Availability checked'].n, '31,000');
+});
+
+test("a stray recommended name does not outrank the engine own event", () => {
+  /* Ninety days of this property held three view_item events beside 2,635
+     checkavailabilityclicked. Taking the first alias made the step read 3, a
+     fall of 100%, and a funnel below it that rose by a million per cent. */
+  const { steps } = funnelOf([ev('view_item', 3), ev('checkavailabilityclicked', 2635)], 63764);
+
+  assert.equal(steps['Availability checked'].n, '2,635');
+  assert.equal(steps['Availability checked'].event, 'checkavailabilityclicked');
 });
 
 test('an engine that names its own events is still matched', () => {
