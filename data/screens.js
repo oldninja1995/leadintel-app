@@ -29,6 +29,10 @@ const SCREENS = [
      they were loading beneath the six campaigns somebody opens that screen to
      read. Both render from one payload — see googleAdsPayload in server.js. */
   { slug: 'google-ads/keywords', view: 'google-ads-keywords', gate: null, app: 'google-ads-keywords', parent: 'google-ads', name: 'Keyword Analytics', icon: 'ph ph-magnifying-glass', group: 'Marketing' },
+  /* The ads themselves, segmented by the surface they ran on. Google Ads
+     Analytics lists ads in one table under its campaigns; this is that table
+     given room, with the channel split the account is actually read by. */
+  { slug: 'google-ads/ads', view: 'google-ads-ads', gate: null, app: 'google-ads-ads', parent: 'google-ads', name: 'Ad Analytics', icon: 'ph ph-image-square', group: 'Marketing' },
   { slug: 'creatives',   view: 'creatives',   gate: 'isCreative', name: 'Creative Intelligence', icon: 'ph ph-film-strip',       group: 'Marketing' },
   { slug: 'audiences',   view: 'audiences',   gate: 'isAud',      name: 'Audience Analytics',   icon: 'ph ph-users',             group: 'Marketing' },
   { slug: 'attribution', view: 'attribution', gate: 'isAttr',     name: 'Attribution',          icon: 'ph ph-tree-structure',    group: 'Marketing' },

@@ -2601,7 +2601,13 @@ async function googleAdsPayload(req) {
   campaignTotal.cplText = campaignTotal.conversions > 0 ? asMoney(campaignTotal.spend / campaignTotal.conversions) : null;
 
   const adGroups = rollUp(entities.googleAdGroups, (r) => r.adgroupId, (r) => ({ adgroup: r.adgroup }));
-  const ads = rollUp(entities.googleAds, (r) => r.adId, (r) => ({ ad: r.ad, adId: r.adId, adType: r.adType, status: r.status }));
+  const ads = rollUp(entities.googleAds, (r) => r.adId, (r) => ({
+    ad: r.ad, adId: r.adId, adType: r.adType, status: r.status,
+    /* Where it ran, carried so Ad Analytics can segment by surface without a
+       second read: an ad row names its ad group and its campaign, and the
+       campaign is what knows whether this is Search, Video or Display. */
+    adgroupId: r.adgroupId, campaignId: r.campaignId,
+  }));
   const keywords = rollUp(entities.googleKeywords, (r) => r.keyword, (r) => ({
     keyword: r.keyword, matchType: r.matchType, qualityScore: r.qualityScore,
   }));
@@ -2770,6 +2776,76 @@ async function googleAdsPayload(req) {
      same objects, and a campaign nobody selected has no reason to be re-sorted.
      A copy, for the same reason: mutating the row the picker holds would order
      every campaign by whatever the reader asked of one. */
+  /* ── Ad Analytics: the ads, and the surface each one ran on ──────────────
+   *
+   * Google does not report a "channel" on an ad. It reports one on the
+   * campaign, and the ad's own type — RESPONSIVE_SEARCH_AD, VIDEO_RESPONSIVE_AD
+   * — describes the creative rather than the surface. So the segment here is
+   * the campaign's advertising channel, which is Google's own classification
+   * and the one its interface uses.
+   *
+   * **The consequence is worth stating rather than hiding: a Demand Gen or
+   * Performance Max campaign serves video and display creatives and is neither
+   * a Video campaign nor a Display one.** Sorting those ads into the Video
+   * segment would be a guess dressed as a fact; the screen shows the ad type
+   * beside every row instead, so the reader can see what the creative is
+   * without the tool inventing a channel for it. */
+  const campaignById = new Map();
+  for (const day of googleDays) {
+    if (day.campaignId === null || day.campaignId === undefined) continue;
+    const id = String(day.campaignId);
+    const held = campaignById.get(id);
+    /* Descriptions from the last dated row, the same rule the rollup uses. */
+    if (!held || (day.date && (!held.date || day.date > held.date))) {
+      campaignById.set(id, { campaign: day.campaign, channelType: day.channelType, date: day.date });
+    }
+  }
+
+  const adRows = ads.map((a) => {
+    const of_ = a.campaignId === null || a.campaignId === undefined ? null : campaignById.get(String(a.campaignId));
+    return {
+      ...a,
+      campaign: of_ ? of_.campaign : null,
+      /* Null, not "Other": an ad whose campaign is not in this range is a row
+         whose surface is unknown, and the screen says unknown. */
+      channel: of_ && of_.channelType ? String(of_.channelType).toUpperCase() : null,
+      adgroup: (entities.googleAdGroups || []).length
+        ? (adGroups.find((g) => String(g.adgroupId) === String(a.adgroupId)) || {}).adgroup || null
+        : null,
+    };
+  });
+
+  /* The three surfaces asked for by name, then anything else the account
+     actually runs. A segment with no ads is still drawn — "no Video campaigns
+     ran in this range" is an answer, and an absent chip would leave the reader
+     wondering whether the screen forgot. */
+  const NAMED_CHANNELS = [
+    { key: 'SEARCH', label: 'Search' },
+    { key: 'VIDEO', label: 'Video' },
+    { key: 'DISPLAY', label: 'Display' },
+  ];
+  const extraChannels = [...new Set(adRows.map((a) => a.channel).filter(Boolean))]
+    .filter((c) => !NAMED_CHANNELS.some((n) => n.key === c))
+    .sort()
+    .map((key) => ({ key, label: key.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (m) => m.toUpperCase()) }));
+
+  const segments = [...NAMED_CHANNELS, ...extraChannels].map((c) => {
+    const rows = adRows.filter((a) => a.channel === c.key);
+    return {
+      ...c,
+      count: rows.length,
+      spend: rows.reduce((t, a) => t + (a.measured ? a.spend : 0), 0),
+      spendText: rows.some((a) => a.measured) ? asMoney(rows.reduce((t, a) => t + (a.measured ? a.spend : 0), 0)) : null,
+      impressions: rows.reduce((t, a) => t + (a.impressions || 0), 0),
+      clicks: rows.reduce((t, a) => t + (a.clicks || 0), 0),
+      conversions: rows.reduce((t, a) => t + (a.conversions || 0), 0),
+    };
+  });
+
+  const unplaced = adRows.filter((a) => !a.channel).length;
+  const askedSegment = String(req.query.segment || '').toUpperCase();
+  const segment = segments.some((c) => c.key === askedSegment) ? askedSegment : null;
+
   /* **Every table on this screen sorts, and each one has its own parameter.**
      One shared `sort` would mean ordering the search terms by CTR silently
      reordered the keyword list too — and half the columns do not exist on the
@@ -2792,6 +2868,7 @@ async function googleAdsPayload(req) {
     sortKeywords: googleAdsRollup.parseSort(req.query.sortKeywords, 'spend'),
     sortCampaigns: googleAdsRollup.parseSort(req.query.sortCampaigns, 'spend'),
     sortTerms: googleAdsRollup.parseSort(req.query.sortTerms, 'spend'),
+    sortAds: googleAdsRollup.parseSort(req.query.sortAds, 'spend'),
   };
 
   const selectedOrdered = selectedCampaign
@@ -3103,6 +3180,11 @@ async function googleAdsPayload(req) {
     table: String(req.query.table || ''),
     connected: live.has('google_ads'),
     campaigns, campaignTotal, adGroups, ads, conversions,
+    /* Ad Analytics reads these three; the Google Ads screen ignores them, which
+       is cheaper than a second payload that could disagree with this one. */
+    adRows: googleAdsRollup.orderRows(segment ? adRows.filter((a) => a.channel === segment) : adRows, sorts.sortAds, 'spend'),
+    adTotal: adRows.length,
+    segments, segment, unplaced,
     /* Ordered here rather than in the view: which rows a ten-row preview shows
        depends on the order, so a table sorted in the template would preview one
        set of rows and describe another. */
@@ -3162,6 +3244,9 @@ app.get('/google-ads', (req, res, next) => { renderGoogleAds(req, res, 'google-a
    and would give this slug the generic design-screen route — a route that
    reads a data module and audits a schema neither of which this screen has. */
 app.get('/google-ads/keywords', (req, res, next) => { renderGoogleAds(req, res, 'google-ads/keywords').catch(next); });
+/* The third face of the same payload: campaigns and ad groups on the first,
+   keywords and terms on the second, the ads themselves here. */
+app.get('/google-ads/ads', (req, res, next) => { renderGoogleAds(req, res, 'google-ads/ads').catch(next); });
 
 /* Creative thumbnails, proxied.
  *

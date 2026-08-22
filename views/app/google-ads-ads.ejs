@@ -1,0 +1,232 @@
+<%
+/* Ad Analytics — the ads themselves, segmented by the surface they ran on.
+ *
+ * The third face of googleAdsPayload. Google Ads Analytics answers "how are the
+ * campaigns doing" and lists ads in one table beneath them; Keyword Analytics
+ * answers "what are we bidding on". Neither answers "which ads are running, and
+ * on which surface", which is a different question with a different shape: an
+ * account runs Search text ads, video and display creative, and they are not
+ * comparable rows in one undifferentiated list.
+ *
+ * **The segment is the campaign's advertising channel, which is Google's own
+ * classification.** Google does not report a channel on an ad — it reports the
+ * ad's *type*, which describes the creative rather than where it served. So a
+ * Demand Gen or Performance Max campaign serves video and display creative
+ * while being neither a Video campaign nor a Display one, and this screen says
+ * that in the copy rather than sorting those ads into Video on a guess. The Type
+ * column beside every row is what the creative actually is.
+ *
+ * A segment with no ads keeps its chip. "No Video campaigns ran in this range"
+ * is an answer; a missing chip is a reader wondering whether the screen forgot.
+ *
+ * Markup borrows the OTA vocabulary the other two Google screens use — those
+ * classes exist and are styled, and inventing unstyled ones renders bare tables.
+ */
+const d = data || {};
+const num = (v) => (v === null || v === undefined ? '—' : Number(v).toLocaleString('en-IN'));
+const txt = (v) => (v === null || v === undefined || v === '' ? '—' : v);
+const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
+
+const rows = d.adRows || [];
+const segments = d.segments || [];
+const segment = d.segment || null;
+const unplaced = d.unplaced || 0;
+const sorts = d.sorts || {};
+
+const qs = d.qs || '';
+
+/* Same link discipline as the keyword screen: parameters are replaced, never
+   appended, so a segment chip cannot leave two segments in the URL. */
+const params = (() => {
+  const out = [];
+  const seen = new Set();
+  for (const pair of String(qs).replace(/^\?/, '').split('&')) {
+    if (!pair) continue;
+    const [rawName, rawValue = ''] = pair.split('=');
+    const name = decodeURIComponent(rawName);
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    out.push({ name, value: decodeURIComponent(rawValue.replace(/\+/g, ' ')) });
+  }
+  return out;
+})();
+
+const link = (over = {}) => {
+  const pairs = params.filter((k) => !Object.prototype.hasOwnProperty.call(over, k.name));
+  for (const [name, value] of Object.entries(over)) {
+    if (value === null || value === undefined || value === '') continue;
+    pairs.push({ name, value: String(value) });
+  }
+  const q = pairs.map((k) => encodeURIComponent(k.name) + '=' + encodeURIComponent(k.value)).join('&');
+  return q ? '/google-ads/ads?' + q : '/google-ads/ads';
+};
+
+const TEXT_SORTS = new Set(['ad', 'adtype', 'status', 'campaign', 'adgroup', 'channel']);
+
+/* The same header control as Keyword Analytics, and for the same reason: a
+   reader sorting a table looks at its headers, and the order belongs in the URL
+   so it survives a reload. Sorting lands back on the table rather than at the
+   top of the page. */
+const headRow = (cols) => {
+  const now = sorts.sortAds || { key: 'spend', reversed: false };
+  return cols.map(([key, label]) => {
+    const on = now.key === key;
+    const numeric = !TEXT_SORTS.has(key);
+    const next = on ? !now.reversed : false;
+    const asked = next ? `-${key}` : key;
+    const href = link({ sortAds: (key === 'spend' && !next) ? null : asked }) + '#ads';
+    const descending = numeric ? !now.reversed : now.reversed;
+    const caret = on ? (descending ? '&darr;' : '&uarr;') : '&#8597;';
+    return `<th${numeric ? ' class="li-num"' : ''}${on ? ` aria-sort="${descending ? 'descending' : 'ascending'}"` : ''}>`
+      + `<a class="li-sort${on ? ' li-sort--on' : ''}" href="${href}">${label}`
+      + `<span class="li-sort-caret" aria-hidden="true">${caret}</span></a></th>`;
+  }).join('');
+};
+
+const chosen = segments.find((c) => c.key === segment) || null;
+const running = segments.filter((c) => c.count > 0);
+%>
+
+<% if (!d.connected) { %>
+  <p class="li-conn-notice li-conn-notice--warn">
+    <i class="ph ph-warning-diamond"></i>
+    <strong>Google Ads is not connected.</strong>
+    Store a credential on the Connections screen — nothing below is invented while it is absent.
+  </p>
+<% } %>
+
+<p class="li-ota-foot">
+  <a href="/google-ads<%= qs %>">Back to Google Ads Analytics</a> — campaigns, ad groups and
+  reservation value. This screen is the ads beneath them, over the same range
+  (<%= txt(d.rangeLabel) %>), split by the surface each one ran on.
+</p>
+
+<!-- The surfaces ------------------------------------------------------------>
+<section class="li-ota-panel">
+  <div class="li-ota-panel-head">
+    <h2>Where the ads ran</h2>
+    <p>
+      Google reports an advertising channel on the <strong>campaign</strong>, not on the ad, so
+      that is what these segments are — its own classification, the one its interface uses. The
+      ad's <em>type</em> is a different fact and has its own column: a
+      <strong>Demand Gen</strong> or <strong>Performance Max</strong> campaign serves video and
+      display creative while being neither a Video campaign nor a Display one. Filing those ads
+      under Video would be a guess wearing the clothes of a measurement, so they are filed where
+      Google files them and the Type column says what the creative is.
+    </p>
+  </div>
+
+  <div class="li-ota-scroll">
+    <table class="li-ota-table">
+      <thead>
+        <tr>
+          <th>Surface</th><th class="li-num">Ads</th><th class="li-num">Spend</th>
+          <th class="li-num">Impressions</th><th class="li-num">Clicks</th><th class="li-num">Conv.</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% segments.forEach((c) => { %>
+          <tr>
+            <td>
+              <a href="<%= link({ segment: c.key === segment ? null : c.key }) %>#ads"><%= c.label %></a>
+              <% if (c.key === segment) { %> <span class="li-chip">showing</span><% } %>
+            </td>
+            <td class="li-num"><%= num(c.count) %></td>
+            <td class="li-num"><%= txt(c.spendText) %></td>
+            <td class="li-num"><%= c.count ? num(c.impressions) : '—' %></td>
+            <td class="li-num"><%= c.count ? num(c.clicks) : '—' %></td>
+            <td class="li-num"><%= c.count ? num(c.conversions) : '—' %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="li-ota-foot">
+    <% if (!running.length) { %>
+      No ad rows in this range at all — the ads report is what carries them, and it is empty.
+    <% } else { %>
+      <%= running.map((c) => `${c.count} on ${c.label}`).join(' · ') %>.
+      <% const idle = segments.filter((c) => !c.count).map((c) => c.label); %>
+      <% if (idle.length) { %>
+        Nothing ran on <strong><%= idle.join(' or ') %></strong> in this range — the account has no
+        such campaign, which is a different statement from an ad that spent nothing.
+      <% } %>
+    <% } %>
+    <% if (unplaced) { %>
+      <%= num(unplaced) %> ad<%= unplaced === 1 ? '' : 's' %> could not be placed: the campaign
+      they name reported no spend in this range, so its channel is unknown rather than assumed.
+    <% } %>
+  </p>
+</section>
+
+<!-- The ads ----------------------------------------------------------------->
+<section class="li-ota-panel" id="ads">
+  <div class="li-ota-panel-head">
+    <h2>
+      <% if (chosen) { %><%= chosen.label %> ads<% } else { %>Every ad<% } %>
+    </h2>
+    <p>
+      One row per ad over the range, summed from its days. An ad with no name is shown by its id:
+      responsive search ads and Performance Max assets are unnamed in the account, and a blank
+      cell would read as missing data rather than as a thing Google does not give.
+    </p>
+  </div>
+
+  <% if (!rows.length) { %>
+    <p class="li-ota-foot">
+      <% if (chosen) { %>
+        No <%= chosen.label %> ads in this range.
+        <a href="<%= link({ segment: null }) %>#ads">Show every ad</a> instead.
+      <% } else { %>
+        No ad rows in this range.
+      <% } %>
+    </p>
+  <% } else { %>
+    <p class="li-ota-foot">
+      <strong><%= num(rows.length) %></strong> ad<%= rows.length === 1 ? '' : 's' %><% if (chosen) { %>
+        on <%= chosen.label %>, of <%= num(d.adTotal) %> in the range<% } %>.
+      <% if (chosen) { %>
+        <a href="<%= link({ segment: null }) %>#ads">Show every ad</a>.
+      <% } %>
+    </p>
+    <div class="li-ota-scroll">
+      <table class="li-ota-table">
+        <thead>
+          <tr>
+            <%- headRow([
+              ['ad', 'Ad'], ['adtype', 'Type'], ['status', 'Status'],
+              ['channel', 'Surface'], ['campaign', 'Campaign'], ['adgroup', 'Ad group'],
+              ['spend', 'Spend'], ['impressions', 'Impressions'], ['clicks', 'Clicks'],
+              ['ctr', 'CTR'], ['cpc', 'CPC'], ['conversions', 'Conv.'], ['cpl', 'Cost/conv.'],
+            ]) %>
+          </tr>
+        </thead>
+        <tbody>
+          <% rows.forEach((a) => { %>
+            <tr>
+              <td><%= txt(a.ad || (a.adId ? `#${a.adId}` : null)) %></td>
+              <td><span class="li-chip"><%= chip(a.adType) %></span></td>
+              <td><span class="li-chip"><%= chip(a.status) %></span></td>
+              <td><%= a.channel ? chip(a.channel) : '—' %></td>
+              <td><%= txt(a.campaign) %></td>
+              <td><%= txt(a.adgroup) %></td>
+              <td class="li-num"><%= txt(a.spendText) %></td>
+              <td class="li-num"><%= num(a.impressions) %></td>
+              <td class="li-num"><%= num(a.clicks) %></td>
+              <td class="li-num"><%= txt(a.ctr) %></td>
+              <td class="li-num"><%= txt(a.cpcText) %></td>
+              <td class="li-num"><%= num(a.conversions) %></td>
+              <td class="li-num"><%= txt(a.cplText) %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+    <p class="li-ota-foot">
+      Cost per <em>conversion</em>, not per lead: Google's conversion count sums every action the
+      account defines — a booking enquiry and a phone click alike. Until one of them is nominated
+      as the lead action, this is not a cost per lead.
+    </p>
+  <% } %>
+</section>

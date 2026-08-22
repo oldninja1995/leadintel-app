@@ -308,7 +308,8 @@ test('every column the screen offers is a column the sort knows', () => {
   /* The six tables on the keyword screen draw a header per key they use; a key
      the sort does not know would draw a control that silently does nothing. */
   assert.deepEqual(SORT_KEYS, [
-    'keyword', 'term', 'word', 'match', 'status', 'adgroup',
+    'keyword', 'term', 'word', 'match', 'ad', 'adtype', 'campaign', 'channel',
+    'status', 'adgroup',
     'spend', 'impressions', 'clicks', 'conversions', 'quality', 'terms',
     'ctr', 'cpc', 'cpl', 'convrate',
   ]);
