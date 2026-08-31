@@ -58,10 +58,11 @@ const store = require('./lib/store');
 const snapshot = require('./lib/store/snapshot');
 const entityFreshness = require('./lib/store/freshness');
 const { Layouts } = require('./lib/layout');
+/* Read-only here — the sidebar filters against it (filterNavGroups below),
+   but it is written from marketing/server.js's /admin/config now. */
 const { SiteConfig } = require('./lib/site-config');
-const { AccountOverrides } = require('./lib/account-overrides');
-const { opsAuth } = require('./lib/auth/ops');
-const adminAccounts = require('./data/admin-accounts');
+/* /login still authenticates a real, signed-up tenant — see the note above
+   MARKETING_URL. Creating one moved to marketing/server.js's /signup. */
 const { Tenants } = require('./lib/auth/tenants');
 
 const app = express();
@@ -314,11 +315,11 @@ const dispatches = new reports.Dispatches(undefined, { backend: backends.dispatc
 const connections = new Connections({ backend: backends.docs });
 /* Which cards each person keeps on each screen — see lib/layout.js. */
 const layouts = new Layouts(undefined, { backend: backends.docs });
-/* Product & marketing config the control plane writes — see lib/site-config.js. */
+/* Product & marketing config — written by marketing/server.js's /admin/config,
+   read here to filter the sidebar (filterNavGroups below). */
 const siteConfig = new SiteConfig(undefined, { backend: backends.docs });
-/* Per-account plan overrides from the ops Accounts panel — see lib/account-overrides.js. */
-const accountOverrides = new AccountOverrides(undefined, { backend: backends.docs });
-/* Real, self-serve workspaces created through /signup — see lib/auth/tenants.js. */
+/* Real, self-serve workspaces — created by marketing/server.js's /signup,
+   authenticated here in POST /login. See lib/auth/tenants.js. */
 const tenants = new Tenants(undefined, { backend: backends.docs });
 
 /* The repository reads through the same snapshot the metric layer does.
@@ -959,6 +960,13 @@ if (process.env.LEADINTEL_PROXIES) app.set('trust proxy', Number(process.env.LEA
 const TLS = process.env.LEADINTEL_TLS === 'on';
 app.use(hardening.secureHeaders({ secure: TLS }));
 
+/* The public marketing site, sign-up and internal ops all moved to their own
+   deployment — see marketing/server.js. This app keeps only what a session
+   needs: /login accepts a real tenant's email/password (lib/auth/tenants.js
+   is still shared, read off the same database) and links out to /signup
+   there rather than hosting it. */
+const MARKETING_URL = (process.env.LEADINTEL_MARKETING_URL || 'https://leadintel-marketing.vercel.app').replace(/\/$/, '');
+
 /* Timing every request, so the design's "< 200 ms p95" is measured rather than
    hoped for. Reported at /health. */
 const timings = new observability.Timings();
@@ -1067,7 +1075,9 @@ app.get('/login', (req, res) => {
     workspaces: auth.identity.workspaces(),
     next: typeof req.query.next === 'string' ? req.query.next : '/',
     error: req.query.error || null,
+    welcome: Boolean(req.query.welcome),
     seedPassword: auth.identity.SEED_PASSWORD,
+    marketingUrl: MARKETING_URL,
   });
 });
 
@@ -1130,236 +1140,6 @@ app.post('/logout', async (req, res) => {
   res.setHeader('Set-Cookie', authSessions.clearHeader());
   if ((req.get('accept') || '').includes('text/html')) return res.redirect(303, '/login');
   return res.json({ ok: true });
-});
-
-/* ── Public marketing site, self-serve signup, internal ops ─────────────────
- *
- * Six standalone documents built on login.ejs's own pattern (views/app/
- * home.ejs, pricing.ejs, signup.ejs, onboarding.ejs, admin-accounts.ejs,
- * admin-config.ejs) — see lib/site-config.js, lib/auth/tenants.js,
- * lib/auth/ops.js. All public per lib/auth/index.js's PUBLIC list; /admin
- * carries its own Basic Auth gate below, independent of a workspace session,
- * because an ops accounts list spans every tenant and has nowhere to attach
- * inside the per-workspace session model.
- *
- * These document stores (siteConfig, tenants, accountOverrides) sit outside
- * the big per-request prefetch further down — that one runs only when
- * `req.workspace` is set, which it never is on a public path. Hydrated here
- * instead, the same shape, only for the routes that read them. */
-async function publicHydrate(req, res, next) {
-  if (!store.usingPostgres()) return next();
-  try {
-    await Promise.all([siteConfig.hydrate(), tenants.hydrate(), accountOverrides.hydrate()]);
-  } catch (err) {
-    console.error('public hydrate failed:', err.message);
-    return res.status(503).send('Temporarily unavailable — try again shortly.');
-  }
-  next();
-}
-app.use(['/home', '/pricing', '/signup', '/onboarding'], publicHydrate);
-app.use('/admin', opsAuth, publicHydrate);
-
-app.get('/home', (req, res) => {
-  res.render('app/home', { cfg: siteConfig.get(), active: 'home' });
-});
-
-app.get('/pricing', (req, res) => {
-  res.render('app/pricing', {
-    cfg: siteConfig.get(), active: 'pricing',
-    planDefaults: adminAccounts.PLAN_DEFAULTS, entitlementDefs: adminAccounts.ENTITLEMENTS,
-  });
-});
-
-app.get('/signup', (req, res) => {
-  const cfg = siteConfig.get();
-  res.render('app/signup', {
-    cfg, active: 'signup', error: null,
-    values: { plan: adminAccounts.PLAN_DEFAULTS[req.query.plan] ? req.query.plan : cfg.popular },
-  });
-});
-
-const signupLimiter = new hardening.RateLimiter({ limit: 10, windowMs: 60_000 });
-
-app.post('/signup',
-  hardening.limit(signupLimiter, { message: 'too many sign-up attempts' }),
-  express.urlencoded({ extended: false }),
-  async (req, res) => {
-    const cfg = siteConfig.get();
-    const body = req.body || {};
-
-    if (!cfg.selfServe || !cfg.registration) {
-      return res.render('app/signup', { cfg, active: 'signup', error: 'Self-serve sign-up is turned off right now — talk to sales instead.', values: body });
-    }
-
-    let user;
-    try {
-      user = tenants.create({
-        workspaceName: body.company,
-        ownerName: body.name,
-        email: body.email,
-        password: body.password,
-        plan: adminAccounts.PLAN_DEFAULTS[body.plan] ? body.plan : cfg.popular,
-      });
-    } catch (err) {
-      return res.render('app/signup', { cfg, active: 'signup', error: err.message, values: body });
-    }
-
-    const settled = tenants.flush();
-    if (settled && typeof settled.then === 'function') {
-      try { await settled; } catch (err) {
-        console.error('signup: tenant store write failed —', err.message);
-        return res.render('app/signup', { cfg, active: 'signup', error: 'Sign-up could not be saved — try again.', values: body });
-      }
-    }
-
-    let session;
-    try {
-      session = await gatekeeper.sessions.create(user);
-    } catch (err) {
-      console.error('signup: session store refused a write —', err.message);
-      return res.render('app/signup', { cfg, active: 'signup', error: 'Your account was created, but sign-in failed — try signing in from /login.', values: body });
-    }
-    res.setHeader('Set-Cookie', authSessions.cookieHeader(session.cookie, { secure: TLS }));
-    gatekeeper.audit.record({ user, action: 'auth.signup', outcome: 'allowed', workspace: user.workspace });
-    return res.redirect(303, '/onboarding');
-  });
-
-/* The four sources a brand-new workspace is offered first — the ones with the
-   shortest path from "just signed up" to a real number on screen. Every other
-   source stays reachable from the real Connections screen; this is a warm
-   welcome, not the only door.
- *
- * Keyed by `siteConfig`'s own connector ids (google/meta/pms/crm — the same
- * four the control plane's Connectors tab toggles) rather than by
- * lib/connections.js's source ids directly, so turning one off there
- * actually removes it here — the control plane note promises exactly this
- * and nothing enforced it before. `crm` maps to `telecrm` because that is
- * the one CRM this app can actually connect; showing a generic "CRM" chooser
- * over a single real connector would be inventing a choice nobody has. */
-const ONBOARDING_CONNECTORS = { google: 'google_ads', meta: 'meta_ads', pms: 'pms', crm: 'telecrm' };
-
-app.get('/onboarding', async (req, res) => {
-  const cfg = siteConfig.get();
-  let user = null;
-  try {
-    const read = gatekeeper.sessions.read(authSessions.fromRequest(req));
-    user = read && typeof read.then === 'function' ? await read : read;
-  } catch (err) {
-    user = null;
-  }
-
-  /* `connections.describe` reads a workspace id that has nothing stored as
-     cleanly as one that does — every card renders "not connected" for a
-     visitor with no session, which is the honest state for someone who has
-     not signed up yet. */
-  const sourceCards = Object.entries(ONBOARDING_CONNECTORS)
-    .filter(([connectorId]) => cfg.connectors[connectorId])
-    .map(([, sourceId]) => connections.describe(user ? user.workspace : '__anonymous__', sourceId));
-
-  res.render('app/onboarding', { cfg, active: 'onboarding', user, sourceCards });
-});
-
-/* ── Internal ops: control plane + accounts ──────────────────────────────── */
-
-app.get('/admin', (req, res) => res.redirect(303, '/admin/accounts'));
-
-function adminAccountRows() {
-  const real = [
-    ...auth.identity.workspaces().map((w) => ({
-      id: w.id, name: w.name, initials: w.initials, real: true,
-      sub: w.id === 'parakkat' ? 'Seeded — live customer' : 'Seeded — proves tenant isolation',
-      signup: null, status: 'active',
-    })),
-    ...tenants.list().map((t) => ({
-      id: t.id, name: t.name, initials: t.initials, real: true,
-      sub: `${t.ownerName} · ${t.ownerEmail}`,
-      signup: t.createdAt.slice(0, 10),
-      status: new Date(t.trialEndsAt) > new Date() ? 'trial' : 'active',
-    })),
-  ];
-  /* Illustrative rows only — there is no billing engine, so these can never
-     become real by connecting anything. Kept, clearly tagged, so the panel
-     is not empty the day before the first real sign-up. See the header of
-     data/admin-accounts.js for why they exist at all. */
-  const sample = adminAccounts.ACCOUNTS.map((a) => ({ ...a, real: false }));
-  return [...real, ...sample];
-}
-
-app.get('/admin/accounts', (req, res) => {
-  const rows = adminAccountRows().map((a) => {
-    const override = accountOverrides.get(a.id);
-    const plan = (override && override.plan) || a.plan || 'Starter';
-    const entitlements = { ...adminAccounts.PLAN_DEFAULTS[plan], ...(override || {}) };
-    return { ...a, plan, entitlements, customized: Boolean(override) };
-  });
-  res.render('app/admin-accounts', {
-    active: 'accounts', rows,
-    plans: Object.keys(adminAccounts.PLAN_DEFAULTS),
-    entitlementDefs: adminAccounts.ENTITLEMENTS,
-    supportLevels: adminAccounts.SUPPORT_LEVELS,
-  });
-});
-
-app.post('/admin/accounts/:id/override', express.urlencoded({ extended: false }), async (req, res) => {
-  const body = req.body || {};
-  const draft = {};
-  if (body.plan) draft.plan = body.plan;
-  if (body.support) draft.support = body.support;
-  for (const ent of adminAccounts.ENTITLEMENTS) {
-    if (body[ent.key] !== undefined && body[ent.key] !== '') draft[ent.key] = Number(body[ent.key]);
-  }
-  accountOverrides.set(req.params.id, draft);
-  const settled = accountOverrides.flush();
-  if (settled && typeof settled.then === 'function') {
-    try { await settled; } catch (err) { console.error('admin: override save failed —', err.message); }
-  }
-  res.redirect(303, `/admin/accounts#${req.params.id}`);
-});
-
-app.post('/admin/accounts/:id/reset', async (req, res) => {
-  accountOverrides.reset(req.params.id);
-  const settled = accountOverrides.flush();
-  if (settled && typeof settled.then === 'function') {
-    try { await settled; } catch (err) { console.error('admin: override reset failed —', err.message); }
-  }
-  res.redirect(303, `/admin/accounts#${req.params.id}`);
-});
-
-app.get('/admin/config', (req, res) => {
-  res.render('app/admin-config', { active: 'config', cfg: siteConfig.get() });
-});
-
-app.post('/admin/config', express.urlencoded({ extended: true }), async (req, res) => {
-  const body = req.body || {};
-  const current = siteConfig.get();
-  const patch = {
-    selfServe: body.selfServe === 'on',
-    registration: body.registration === 'on',
-    googleSSO: body.googleSSO === 'on',
-    seededAuth: body.seededAuth === 'on',
-    showBadgeSystem: body.showBadgeSystem === 'on',
-    popular: current.tiers[body.popular] ? body.popular : current.popular,
-    freeConnections: Number(body.freeConnections) || 0,
-    freeLookback: Number(body.freeLookback) || 0,
-    freeSeats: Number(body.freeSeats) || 0,
-    tiers: {}, modules: {}, connectors: {},
-  };
-  for (const tier of Object.keys(current.tiers)) {
-    const rupees = Number(body.tiers && body.tiers[tier] && body.tiers[tier].price);
-    if (!Number.isNaN(rupees) && body.tiers && body.tiers[tier]) patch.tiers[tier] = { price: Math.round(rupees * 100) };
-  }
-  for (const mod of Object.keys(current.modules)) {
-    patch.modules[mod] = Boolean(body.modules && body.modules[mod] === 'on');
-  }
-  for (const conn of Object.keys(current.connectors)) {
-    patch.connectors[conn] = Boolean(body.connectors && body.connectors[conn] === 'on');
-  }
-  siteConfig.patch(patch);
-  const settled = siteConfig.flush();
-  if (settled && typeof settled.then === 'function') {
-    try { await settled; } catch (err) { console.error('admin: config save failed —', err.message); }
-  }
-  res.redirect(303, '/admin/config');
 });
 
 /* ── Webhook intake ──────────────────────────────────────────────────────────
@@ -1739,7 +1519,7 @@ app.use((req, res, next) => {
      behind connections.configured(), the run log behind the shell's freshness
      line, and the fire log and dispatch list behind the notifications tray. */
   const ready = timed('prefetch', store.prefetch({
-    documents: { connections, workspace, webhookTokens, layouts, siteConfig, accountOverrides, tenants, definitionLog: metrics.definitionLog },
+    documents: { connections, workspace, webhookTokens, layouts, siteConfig, tenants, definitionLog: metrics.definitionLog },
     lists: [dispatches],
     logs: [
       { store: runner.log, kind: 'hydrate', perTag: EDGE_RUN_WINDOW },

@@ -51,9 +51,9 @@
       </div>
 
       <div class="li-onb-foot">
-        <a href="/" style="font-size:13.5px;">Skip for now — go to dashboard</a>
+        <a href="<%= appUrl %>/" style="font-size:13.5px;">Skip for now — go to dashboard</a>
         <% if (user) { %>
-          <a href="/connections" class="btn btn-primary" style="width:auto;">Connect a source</a>
+          <a href="<%= appUrl %>/connections" class="btn btn-primary" style="width:auto;">Connect a source</a>
         <% } else { %>
           <a href="/signup" class="btn btn-primary" style="width:auto;">Start free trial</a>
         <% } %>

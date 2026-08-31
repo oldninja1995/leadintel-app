@@ -1,9 +1,16 @@
 <%
 /* Self-serve sign-up — creates a REAL workspace via lib/auth/tenants.js,
    POST /signup. Not a lead-capture form standing in for one: it hashes a
-   real password and starts a real session, the same way /login does for a
-   seeded fixture. What it does NOT do is touch billing — there is no billing
-   engine (see data/admin-accounts.js's header), so the plan chosen here is
+   real password, the same way /login does for a seeded fixture.
+ *
+ * This deployment (marketing/server.js) does NOT set a session cookie —
+   see its header for why cookies can't cross to the app's own domain.
+   `appUrl` points there; the post-signup redirect lands on its /login,
+   which already accepts the email and password just created because both
+   deployments share the same tenants store.
+ *
+ * What it also does NOT do is touch billing — there is no billing engine
+   (see data/admin-accounts.js's header), so the plan chosen here is
    recorded and nothing is charged. Say so on the page rather than implying
    a card will be billed. */
 const closed = !cfg.selfServe || !cfg.registration;
@@ -24,7 +31,7 @@ const closed = !cfg.selfServe || !cfg.registration;
 
     <% if (closed) { %>
       <p style="font-size:14px;line-height:1.6;color:color-mix(in srgb, var(--color-text) 75%, transparent);">
-        Self-serve sign-up is turned off right now. <a href="/login">Sign in</a> if you already have an account, or reach out and we will set one up for you.
+        Self-serve sign-up is turned off right now. <a href="<%= appUrl %>/login">Sign in</a> if you already have an account, or reach out and we will set one up for you.
       </p>
     <% } else { %>
       <% if (error) { %>
@@ -62,7 +69,7 @@ const closed = !cfg.selfServe || !cfg.registration;
         No payment is taken to start — there is no billing engine behind this yet, so a plan chosen here is
         recorded but never charged. You can change it any time.
       </p>
-      <p class="li-auth-note">Already have an account? <a href="/login">Sign in</a>.</p>
+      <p class="li-auth-note">Already have an account? <a href="<%= appUrl %>/login">Sign in</a>.</p>
     <% } %>
   </div>
 </div>

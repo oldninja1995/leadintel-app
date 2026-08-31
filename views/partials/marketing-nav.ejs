@@ -4,7 +4,12 @@
    login.ejs shows only the brand mark. `active` and `cfg` are required
    locals; `cfg.selfServe` decides whether the right-hand CTA points at the
    proposed signup flow or falls back to a plain "Talk to sales" — see
-   lib/site-config.js and /admin/config's "Marketing site" tab. */
+   lib/site-config.js and /admin/config's "Marketing site" tab.
+ *
+ * `appUrl` is the signed-in product's own deployment — this site is a
+   separate Vercel project (marketing/server.js) and cannot serve /login
+   itself, so that one link has to be absolute. Every other link here stays
+   relative because it points at this same deployment. */
 %><header class="li-topnav">
   <div class="li-topnav-left">
     <a href="/home" class="li-brand">
@@ -21,7 +26,7 @@
     </nav>
   </div>
   <div class="li-topnav-right">
-    <a href="/login" style="font-size:14px;">Sign in</a>
+    <a href="<%= appUrl %>/login" style="font-size:14px;">Sign in</a>
     <% if (cfg.selfServe) { %>
       <a href="/signup" class="btn btn-primary">Start free</a>
     <% } else { %>

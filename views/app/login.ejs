@@ -55,6 +55,11 @@
       </div>
     </div>
 
+    <% if (welcome) { %>
+      <p class="li-login-note" style="color:var(--color-accent-300, #9B8FF5);">
+        <i class="ph ph-check-circle"></i> Account created — sign in below with the email and password you just chose.
+      </p>
+    <% } %>
     <% if (error) { %>
       <p class="li-login-error"><i class="ph ph-warning-circle"></i><%= error %></p>
     <% } %>
@@ -99,7 +104,7 @@
       <input id="li-tenant-password" name="password" type="password" autocomplete="current-password">
       <button type="submit">Sign in</button>
     </form>
-    <p class="li-login-note">No account yet? <a href="/signup">Start free</a>.</p>
+    <p class="li-login-note">No account yet? <a href="<%= marketingUrl %>/signup">Start free</a>.</p>
   </div>
 </div>
 </body>
