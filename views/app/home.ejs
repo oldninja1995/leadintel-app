@@ -3,16 +3,18 @@
    pattern (see views/partials/marketing-head.ejs's header for why these six
    pages are not wrapped in layout.ejs).
  *
- * Not from the design canvas — see the same note on login.ejs. Built from
- * the Nocturne tokens and the real, shipped feature set rather than a
- * mockup's numbers, because this is the one page a stranger reads with
- * nothing else to check it against.
+ * The hero's product-shot and copy are drawn from LeadIntel v2.dc.html, the
+   design canvas at claude.ai/design/p/c270d0de-a990-4e90-9a6b-b90e8a789114
+   — read directly off a local copy, since DesignSync/claude_design was not
+   authorized in this session to pull it live. Structure and headline match
+   its own reference render (sidebar, KPI row, tile row, spend chart, funnel).
  *
- * No fabricated testimonial, no invented client logos. This codebase has a
- * standing rule against authored content dressed as real (PHASES.md, the
- * 2026-08-21 demo-data purge) and a public marketing page is not the place
- * to relax it — so the proof band below states real, checkable facts about
- * how the product is built, not a quote nobody said. */
+ * What the canvas has that this page does NOT reproduce: a "340+ properties"
+   social-proof line and a testimonial quote attributed to a named seeded
+   user. This codebase has a standing rule against authored content dressed
+   as real (PHASES.md, the 2026-08-21 demo-data purge) and a public marketing
+   page is not the place to relax it — canvas or not. The proof band below
+   states real, checkable facts about how the product is built instead. */
 %><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,11 +28,11 @@
     <div class="li-hero-glow"></div>
     <div class="li-hero-body">
       <span class="li-hero-badge"><b>NEW</b> Ad Analytics, sortable Keyword Analytics, real revenue funnels</span>
-      <h1>One truth for what your marketing <em>actually</em> earns.</h1>
+      <h1>See every rupee of revenue, traced back to the channel that <em>earned it</em>.</h1>
       <p class="li-lede">
-        LeadIntel pulls Meta, Google Ads, Google Analytics, TeleCRM and your PMS into one
-        registry of metrics — every ROAS, every cost per booking, every attribution model
-        computed the same way everywhere it appears, never authored twice.
+        LeadIntel AI joins ad spend, your booking engine, GA4 and your CRM into one ledger — so revenue
+        teams know which keyword and campaign produced each confirmed reservation, and which number they
+        can take to the owners.
       </p>
       <div class="li-cta-row">
         <% if (cfg.selfServe) { %>
@@ -38,38 +40,96 @@
         <% } %>
         <a href="/pricing" class="btn btn-secondary" style="width:auto;">See pricing</a>
       </div>
-      <span class="li-hero-fine">No credit card to start · connect your first source in minutes</span>
+      <span class="li-hero-fine">No card &middot; <%= cfg.freeConnections %> data sources free &middot; <%= cfg.freeLookback %>-day lookback</span>
     </div>
 
+    <%
+    /* Illustrative only — see the header above. Shaped like the real shell
+       (partials/sidebar.ejs + topbar.ejs + the Marketing Dashboard) so a
+       visitor is looking at the product, not a chart nobody will recognise
+       once they sign in. */
+    const previewNav = [
+      ['OVERVIEW', ['Executive Dashboard']],
+      ['MARKETING', ['Marketing Dashboard', 'Meta Ads Analytics', 'Google Ads Analytics', 'Creative Intelligence', 'Attribution', 'Website Analytics']],
+      ['INTELLIGENCE', ['AI Command Center', 'Reports & Dashboards']],
+      ['SALES', ['CRM Dashboard', 'Lead Intelligence', 'Sales Pipeline']],
+    ];
+    const previewKpis = [
+      { label: 'AD SPEND', kind: 'ADS', value: '₹3,50,171', delta: '−14.5%', up: false, sub: 'Meta ₹2.78L · Google ₹71,742' },
+      { label: 'ATTRIBUTED REVENUE', kind: 'BLND', value: '₹7,91,151', delta: '+29.2%', up: true, sub: '1,835 of 5,413 leads tagged' },
+      { label: 'BLENDED CPL', kind: 'BLND', value: '₹65', delta: '+33.2%', up: true, sub: '5,413 leads' },
+      { label: 'ROAS', kind: 'BLND', value: '2.3x', delta: '+0.8x', up: true, sub: 'CRM + GA4 paid search + spend' },
+    ];
+    const previewTiles = [
+      ['IMPRESSIONS', '33.9L'], ['CLICKS', '48,804'], ['CTR', '1.44%'], ['CPM', '₹103'], ['RESERVATIONS', '51'],
+    ];
+    const previewFunnel = [
+      ['Impressions', '33.9L', 100], ['Clicks', '48,804', 76], ['Leads', '1,835', 58], ['Qualified', '663', 40], ['Bookings', '46', 24],
+    ];
+    %>
     <div class="li-preview">
-      <div class="li-preview-top">
-        <strong>Marketing Dashboard</strong>
-        <span>Illustrative preview — your numbers replace these the moment you connect a source</span>
-      </div>
-      <div class="li-stat-grid">
-        <div class="li-stat-tile">
-          <span class="li-tag-blnd">BLENDED</span>
-          <span class="li-stat-label">AD SPEND</span>
-          <span class="li-stat-value">₹10.9L</span>
-          <span class="li-stat-sub">Meta + Google, this period</span>
+      <aside class="li-preview-sidebar">
+        <div class="li-preview-sidebar-brand">
+          <span class="li-brand-mark" style="width:16px;height:16px;font-size:8px;"><i class="ph-fill ph-pulse"></i></span>
+          <div><strong>LeadIntel AI</strong><span>HOSPITALITY REVENUE OS</span></div>
         </div>
-        <div class="li-stat-tile">
-          <span class="li-tag-blnd">BLENDED</span>
-          <span class="li-stat-label">ROAS</span>
-          <span class="li-stat-value">4.8x</span>
-          <span class="li-stat-sub">Revenue credited to spend</span>
+        <div class="li-preview-search"><span>Search&hellip;</span><span>&#8984;K</span></div>
+        <% previewNav.forEach(function (group) { %>
+          <div class="li-preview-navgroup">
+            <span class="li-preview-navgroup-label"><%= group[0] %></span>
+            <% group[1].forEach(function (item) { %>
+              <div class="li-preview-navitem <%= item === 'Marketing Dashboard' ? 'li-active' : '' %>"><%= item %></div>
+            <% }); %>
+          </div>
+        <% }); %>
+      </aside>
+      <div class="li-preview-main">
+        <div class="li-preview-topbar">
+          <div class="li-preview-ws-chip"><span class="li-preview-ws-dot"></span>Parakkat Hospitality</div>
+          <div class="li-preview-ranges">
+            <span>7d</span><span class="li-active">30d</span><span>90d</span><span>This month</span>
+          </div>
         </div>
-        <div class="li-stat-tile">
-          <span class="li-tag-ads">ADS</span>
-          <span class="li-stat-label">COST PER LEAD</span>
-          <span class="li-stat-value">₹68</span>
-          <span class="li-stat-sub">Across connected channels</span>
-        </div>
-        <div class="li-stat-tile">
-          <span class="li-tag-ads">CRM</span>
-          <span class="li-stat-label">LEAD → BOOKING</span>
-          <span class="li-stat-value">18.4%</span>
-          <span class="li-stat-sub">Full funnel, per channel</span>
+        <div class="li-preview-content">
+          <div class="li-preview-content-head"><strong>Marketing Dashboard</strong><span>all platforms &middot; CRM-verified revenue</span></div>
+          <div class="li-preview-kpi-grid">
+            <% previewKpis.forEach(function (k) { %>
+              <div class="li-preview-kpi">
+                <div class="li-preview-kpi-top">
+                  <span class="li-preview-kpi-label"><%= k.label %></span>
+                  <span class="<%= k.kind === 'ADS' ? 'li-tag-ads' : 'li-tag-blnd' %>"><%= k.kind %></span>
+                </div>
+                <div class="li-preview-kpi-value-row">
+                  <span class="li-preview-kpi-value"><%= k.value %></span>
+                  <span class="li-preview-kpi-delta <%= k.up ? 'li-up' : 'li-down' %>"><%= k.delta %></span>
+                </div>
+                <span class="li-preview-kpi-sub"><%= k.sub %></span>
+              </div>
+            <% }); %>
+          </div>
+          <div class="li-preview-tile-grid">
+            <% previewTiles.forEach(function (t) { %>
+              <div class="li-preview-tile"><span class="li-preview-tile-label"><%= t[0] %></span><span class="li-preview-tile-value"><%= t[1] %></span></div>
+            <% }); %>
+          </div>
+          <div class="li-preview-chart-row">
+            <div class="li-preview-panel">
+              <span class="li-preview-panel-title">Spend by platform vs revenue</span>
+              <svg viewBox="0 0 300 100" preserveAspectRatio="none" style="width:100%;flex:1;">
+                <polyline points="0,70 40,55 80,80 120,50 160,58 200,38 240,42 300,20" fill="none" stroke="var(--color-text)" stroke-width="2" vector-effect="non-scaling-stroke" />
+                <polyline points="0,90 40,92 80,95 120,88 160,85 200,80 240,60 300,50" fill="none" stroke="var(--color-accent-400)" stroke-width="2" vector-effect="non-scaling-stroke" />
+              </svg>
+            </div>
+            <div class="li-preview-panel">
+              <span class="li-preview-panel-title">Marketing funnel</span>
+              <% previewFunnel.forEach(function (f) { %>
+                <div class="li-preview-funnel-row">
+                  <div class="li-preview-funnel-row-top"><span><%= f[0] %></span><span><%= f[1] %></span></div>
+                  <div class="li-preview-funnel-bar"><span style="width:<%= f[2] %>%"></span></div>
+                </div>
+              <% }); %>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -80,7 +140,7 @@
       <span class="card-kicker">WHAT IT DOES</span>
       <h2 style="margin:0;">Every screen reads one registry, so no two numbers disagree</h2>
       <p style="margin:0;color:color-mix(in srgb, var(--color-text) 65%, transparent);">
-        The dashboard, the reports and the AI explanations all compute a metric the same way —
+        The dashboard, the reports and the AI explanations all compute a metric the same way &mdash;
         change the definition once and it moves everywhere it is used, including the ones already sent.
       </p>
     </div>
@@ -88,19 +148,19 @@
     <div class="li-feature-row">
       <div class="li-feature-text">
         <span class="card-kicker">META + GOOGLE ADS</span>
-        <h3 style="margin:0;">Campaign, ad group, ad and keyword — never borrowed shapes</h3>
+        <h3 style="margin:0;">Campaign, ad group, ad and keyword &mdash; never borrowed shapes</h3>
         <div class="li-feature-bullets">
           <div><i class="ph ph-check-circle"></i>Meta's ad sets and Google's ad groups stay separate hierarchies, never forced into one column</div>
-          <div><i class="ph ph-check-circle"></i>Impression share, lost-to-budget vs lost-to-rank — only Google reports it, so only Google shows it</div>
+          <div><i class="ph ph-check-circle"></i>Impression share, lost-to-budget vs lost-to-rank &mdash; only Google reports it, so only Google shows it</div>
           <div><i class="ph ph-check-circle"></i>Every table sorts, and a sort keeps your place on the page</div>
         </div>
       </div>
       <div class="li-feature-panel">
         <div class="li-feature-panel-head"><span>KEYWORD ANALYTICS</span><span>SORTED BY WASTED SPEND</span></div>
         <div class="li-feature-panel-body">
-          <div class="li-feature-panel-row"><span>hotel booking kerala</span><div class="li-feature-panel-bar"><span style="width:88%"></span></div><strong>₹14,220</strong></div>
-          <div class="li-feature-panel-row"><span>resort near me</span><div class="li-feature-panel-bar"><span style="width:61%"></span></div><strong>₹9,140</strong></div>
-          <div class="li-feature-panel-row"><span>beach resort offers</span><div class="li-feature-panel-bar"><span style="width:44%"></span></div><strong>₹6,005</strong></div>
+          <div class="li-feature-panel-row"><span>hotel booking kerala</span><div class="li-feature-panel-bar"><span style="width:88%"></span></div><strong>&#8377;14,220</strong></div>
+          <div class="li-feature-panel-row"><span>resort near me</span><div class="li-feature-panel-bar"><span style="width:61%"></span></div><strong>&#8377;9,140</strong></div>
+          <div class="li-feature-panel-row"><span>beach resort offers</span><div class="li-feature-panel-bar"><span style="width:44%"></span></div><strong>&#8377;6,005</strong></div>
         </div>
       </div>
     </div>
@@ -110,7 +170,7 @@
         <span class="card-kicker">ATTRIBUTION</span>
         <h3 style="margin:0;">Revenue reapportioned, never invented</h3>
         <div class="li-feature-bullets">
-          <div><i class="ph ph-check-circle"></i>Seven credit models — every one accounts for the same total revenue, only the split moves</div>
+          <div><i class="ph ph-check-circle"></i>Seven credit models &mdash; every one accounts for the same total revenue, only the split moves</div>
           <div><i class="ph ph-check-circle"></i>The identity ladder joins a booking to a lead to an ad, and records the weakest link, not the best fact available</div>
           <div><i class="ph ph-check-circle"></i>Untagged revenue is shown as untagged, not folded into the nearest channel</div>
         </div>
@@ -131,7 +191,7 @@
         <h3 style="margin:0;">From first click to the folio, one funnel</h3>
         <div class="li-feature-bullets">
           <div><i class="ph ph-check-circle"></i>TeleCRM leads, deals and stages, joined to the ad or campaign that produced them</div>
-          <div><i class="ph ph-check-circle"></i>PMS bookings tie revenue to the night stayed, not the day booked — occupancy and RevPAR line up</div>
+          <div><i class="ph ph-check-circle"></i>PMS bookings tie revenue to the night stayed, not the day booked &mdash; occupancy and RevPAR line up</div>
           <div><i class="ph ph-check-circle"></i>A field nothing can compute renders as declined, never as a borrowed number from somewhere else</div>
         </div>
       </div>
@@ -148,9 +208,9 @@
 
   <section class="li-section li-quote-band">
     <div class="li-proof-grid" style="max-width:1080px;margin:0 auto;">
-      <div class="li-proof-cell"><strong>11</strong><span>data connectors built — Meta, Google Ads, GA4, TeleCRM, PMS, Razorpay and six OTAs</span></div>
+      <div class="li-proof-cell"><strong>11</strong><span>data connectors built &mdash; Meta, Google Ads, GA4, TeleCRM, PMS, Razorpay and six OTAs</span></div>
       <div class="li-proof-cell"><strong>Server-side</strong><span>every permission and every workspace boundary enforced on the server, never trusted from a browser</span></div>
-      <div class="li-proof-cell"><strong>Sub-second</strong><span>typical page render, warm — measured in production, not claimed</span></div>
+      <div class="li-proof-cell"><strong>Sub-second</strong><span>typical page render, warm &mdash; measured in production, not claimed</span></div>
       <div class="li-proof-cell"><strong>Derive or decline</strong><span>a number the data cannot support renders as declined, never guessed</span></div>
     </div>
   </section>
