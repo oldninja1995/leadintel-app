@@ -1227,8 +1227,16 @@ app.post('/signup',
 /* The four sources a brand-new workspace is offered first — the ones with the
    shortest path from "just signed up" to a real number on screen. Every other
    source stays reachable from the real Connections screen; this is a warm
-   welcome, not the only door. */
-const ONBOARDING_SOURCES = ['meta_ads', 'google_ads', 'google_analytics', 'pms'];
+   welcome, not the only door.
+ *
+ * Keyed by `siteConfig`'s own connector ids (google/meta/pms/crm — the same
+ * four the control plane's Connectors tab toggles) rather than by
+ * lib/connections.js's source ids directly, so turning one off there
+ * actually removes it here — the control plane note promises exactly this
+ * and nothing enforced it before. `crm` maps to `telecrm` because that is
+ * the one CRM this app can actually connect; showing a generic "CRM" chooser
+ * over a single real connector would be inventing a choice nobody has. */
+const ONBOARDING_CONNECTORS = { google: 'google_ads', meta: 'meta_ads', pms: 'pms', crm: 'telecrm' };
 
 app.get('/onboarding', async (req, res) => {
   const cfg = siteConfig.get();
@@ -1244,7 +1252,9 @@ app.get('/onboarding', async (req, res) => {
      cleanly as one that does — every card renders "not connected" for a
      visitor with no session, which is the honest state for someone who has
      not signed up yet. */
-  const sourceCards = ONBOARDING_SOURCES.map((id) => connections.describe(user ? user.workspace : '__anonymous__', id));
+  const sourceCards = Object.entries(ONBOARDING_CONNECTORS)
+    .filter(([connectorId]) => cfg.connectors[connectorId])
+    .map(([, sourceId]) => connections.describe(user ? user.workspace : '__anonymous__', sourceId));
 
   res.render('app/onboarding', { cfg, active: 'onboarding', user, sourceCards });
 });

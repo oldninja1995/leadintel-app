@@ -37,10 +37,11 @@
     <div class="li-ops-header">
       <div><h1 style="margin:0;font-size:19px;">Product &amp; site configuration</h1><span style="font-size:12.5px;color:color-mix(in srgb, var(--color-text) 55%, transparent);">Global settings — per-account exceptions live on each row of Accounts</span></div>
       <div class="li-cp-tabs" style="flex-direction:row;">
-        <a href="#pricing">Pricing</a>
-        <a href="#modules">Modules</a>
-        <a href="#access">Sign-in &amp; sign-up</a>
+        <a href="#pricing">Plans &amp; pricing</a>
+        <a href="#modules">App modules</a>
         <a href="#connectors">Connectors</a>
+        <a href="#marketing">Marketing site</a>
+        <a href="#access">Access &amp; auth</a>
       </div>
     </div>
 
@@ -102,14 +103,25 @@
         <% }); %>
       </div>
 
-      <div id="access" class="li-cp-group-label">SIGN-IN &amp; SIGN-UP</div>
+      <div id="connectors" class="li-cp-group-label">CONNECTORS</div>
+      <div class="li-cp-group">
+        <% var CONNECTOR_LABEL = { google: 'Google Ads', meta: 'Meta Ads', pms: 'PMS / booking engine', crm: 'CRM (TeleCRM)' }; %>
+        <% Object.keys(cfg.connectors).forEach(function (c) { %>
+          <div class="li-cp-row">
+            <div class="li-cp-row-label"><strong><%= CONNECTOR_LABEL[c] || c %></strong><span>Offered on the /onboarding welcome screen when on; off hides it there and blocks new authorisations — an existing sync keeps running until disconnected</span></div>
+            <label class="li-toggle-btn">
+              <input type="checkbox" name="connectors[<%= c %>]" <%= cfg.connectors[c] ? 'checked' : '' %> style="position:absolute;opacity:0;width:1px;height:1px;">
+              <span class="li-toggle-track" data-on="<%= cfg.connectors[c] ? 'true' : 'false' %>"><span class="li-toggle-knob"></span></span>
+            </label>
+          </div>
+        <% }); %>
+      </div>
+
+      <div id="marketing" class="li-cp-group-label">MARKETING SITE</div>
       <div class="li-cp-group">
         <% [
-          ['selfServe', 'Self-serve mode', 'Master switch — off replaces every "Start free" with "Talk to sales" sitewide'],
-          ['registration', 'Sign-up form', '/signup accepts new workspaces when on; off shows a closed message instead'],
-          ['googleSSO', 'Google sign-in on /signup', 'Cosmetic today — no Google OAuth is wired for sign-up yet'],
-          ['seededAuth', 'Seeded fixture logins on /login', 'Turns off the dropdown of seeded users, leaving only real accounts'],
-          ['showBadgeSystem', 'Show ADS / BLND provenance badges', 'The provenance tags on marketing pages that mirror the real app\'s metric badges'],
+          ['selfServe', 'Self-serve sign-up', 'Master switch — off replaces every "Start free" with "Talk to sales" sitewide'],
+          ['showBadgeSystem', 'ADS / BLND provenance badges', 'The core marketing claim, not just a label — the provenance tags on marketing pages mirror the real app\'s own metric badges'],
         ].forEach(function (row) { %>
           <div class="li-cp-row">
             <div class="li-cp-row-label"><strong><%= row[1] %></strong><span><%= row[2] %></span></div>
@@ -121,14 +133,18 @@
         <% }); %>
       </div>
 
-      <div id="connectors" class="li-cp-group-label">ONBOARDING CONNECTORS</div>
+      <div id="access" class="li-cp-group-label">ACCESS &amp; AUTH</div>
       <div class="li-cp-group">
-        <% Object.keys(cfg.connectors).forEach(function (c) { %>
+        <% [
+          ['seededAuth', 'Seeded fixture logins on /login', 'The dropdown of seeded demo users — off leaves only real, signed-up accounts'],
+          ['googleSSO', 'Continue with Google on /signup', 'Cosmetic today — no Google OAuth is wired for sign-up yet'],
+          ['registration', 'Email + password registration', 'Open — anyone can create a workspace at /signup; off closes it to ops-provisioned accounts only'],
+        ].forEach(function (row) { %>
           <div class="li-cp-row">
-            <div class="li-cp-row-label"><strong><%= c %></strong><span>Offered on the /onboarding welcome screen when on</span></div>
+            <div class="li-cp-row-label"><strong><%= row[1] %></strong><span><%= row[2] %></span></div>
             <label class="li-toggle-btn">
-              <input type="checkbox" name="connectors[<%= c %>]" <%= cfg.connectors[c] ? 'checked' : '' %> style="position:absolute;opacity:0;width:1px;height:1px;">
-              <span class="li-toggle-track" data-on="<%= cfg.connectors[c] ? 'true' : 'false' %>"><span class="li-toggle-knob"></span></span>
+              <input type="checkbox" name="<%= row[0] %>" <%= cfg[row[0]] ? 'checked' : '' %> style="position:absolute;opacity:0;width:1px;height:1px;">
+              <span class="li-toggle-track" data-on="<%= cfg[row[0]] ? 'true' : 'false' %>"><span class="li-toggle-knob"></span></span>
             </label>
           </div>
         <% }); %>
