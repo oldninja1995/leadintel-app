@@ -86,6 +86,20 @@
       <% workspaces.forEach(function (w, i) { %><%= w.name %><%= i < workspaces.length - 1 ? ' and ' : '' %><% }); %>.
       Signing into one shows nothing of the other.
     </p>
+
+    <%# A second, real door — lib/auth/tenants.js. Same route, same cookie;
+        POST /login tries the seeded fixtures first and a signed-up tenant
+        second, so this is one form's sibling rather than a second system. %>
+    <div class="li-or-rule" style="margin-top:6px;">or</div>
+    <form method="post" action="/login" style="margin-top:2px;">
+      <input type="hidden" name="next" value="<%= next %>">
+      <label for="li-tenant-user">Sign in with your email</label>
+      <input id="li-tenant-user" name="user" type="email" autocomplete="username" placeholder="you@yourproperty.com">
+      <label for="li-tenant-password">Password</label>
+      <input id="li-tenant-password" name="password" type="password" autocomplete="current-password">
+      <button type="submit">Sign in</button>
+    </form>
+    <p class="li-login-note">No account yet? <a href="/signup">Start free</a>.</p>
   </div>
 </div>
 </body>

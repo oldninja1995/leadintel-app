@@ -1,0 +1,155 @@
+<%
+/* Internal ops — Accounts. Gated by lib/auth/ops.js's Basic Auth, not a
+   workspace session: this list is cross-tenant by nature.
+ *
+ * Two kinds of row, and each says which it is rather than blending them.
+   REAL rows are the two seeded workspaces plus every /signup — entitlements
+   come from data/admin-accounts.js PLAN_DEFAULTS layered under
+   lib/account-overrides.js, same as the pricing page; billing is declined
+   because there is no billing engine (see that file's header). SAMPLE rows
+   are the original mockup's invented accounts, kept only so this panel is
+   not empty before the first real sign-up, and tagged as such everywhere. */
+%><!DOCTYPE html>
+<html lang="en">
+<head>
+<%- include('../partials/marketing-head', { title: 'Ops — Accounts' }) %>
+</head>
+<body class="li-page">
+<div class="li-ops-shell">
+  <aside class="li-ops-side">
+    <div class="li-ops-brand">
+      <span class="li-brand-mark" style="width:22px;height:22px;font-size:11px;"><i class="ph-fill ph-pulse"></i></span>
+      <strong style="font-size:13px;">LeadIntel Ops</strong>
+    </div>
+    <nav class="li-ops-nav">
+      <a href="/admin/accounts" aria-current="<%= active === 'accounts' ? 'page' : 'false' %>"><i class="ph ph-buildings"></i>Accounts</a>
+      <a href="/admin/config" aria-current="<%= active === 'config' ? 'page' : 'false' %>"><i class="ph ph-sliders"></i>Control plane</a>
+    </nav>
+    <div class="li-ops-health">
+      <span style="font-size:11px;color:color-mix(in srgb, var(--color-text) 55%, transparent);">NO BILLING ENGINE</span>
+      <span style="font-size:12px;">Plans below are informational until one is connected.</span>
+    </div>
+  </aside>
+
+  <div class="li-ops-main">
+    <div class="li-ops-header">
+      <div><h1 style="margin:0;font-size:19px;">Accounts</h1><span style="font-size:12.5px;color:color-mix(in srgb, var(--color-text) 55%, transparent);">Every workspace, real and sample</span></div>
+    </div>
+    <div class="li-ops-stats">
+      <div class="li-ops-stat"><span class="li-stat-label" style="font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.1em;color:color-mix(in srgb, var(--color-text) 55%, transparent);">REAL WORKSPACES</span><span class="li-stat-value"><%= rows.filter(r => r.real).length %></span></div>
+      <div class="li-ops-stat"><span class="li-stat-label" style="font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.1em;color:color-mix(in srgb, var(--color-text) 55%, transparent);">TRIAL</span><span class="li-stat-value"><%= rows.filter(r => r.status === 'trial').length %></span></div>
+      <div class="li-ops-stat"><span class="li-stat-label" style="font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.1em;color:color-mix(in srgb, var(--color-text) 55%, transparent);">CUSTOMIZED PLANS</span><span class="li-stat-value"><%= rows.filter(r => r.customized).length %></span></div>
+      <div class="li-ops-stat"><span class="li-stat-label" style="font-family:ui-monospace,monospace;font-size:10px;letter-spacing:.1em;color:color-mix(in srgb, var(--color-text) 55%, transparent);">SAMPLE ROWS</span><span class="li-stat-value"><%= rows.filter(r => !r.real).length %></span></div>
+    </div>
+
+    <div class="li-accounts-table">
+      <% rows.forEach(function (a) { %>
+        <details id="<%= a.id %>">
+          <summary>
+            <div class="li-account-row">
+              <div class="li-account-who">
+                <div class="li-account-avatar"><%= a.initials %></div>
+                <div>
+                  <strong><%= a.name %></strong>
+                  <span><%= a.sub %></span>
+                </div>
+              </div>
+              <span class="tag <%= a.real ? 'tag-accent' : 'tag-neutral' %>" style="justify-self:start;"><%= a.real ? 'LIVE' : 'SAMPLE' %></span>
+              <span class="tag <%= a.status === 'churned' ? 'tag-neutral' : (a.status === 'trial' ? 'tag-outline' : 'tag-accent-2') %>" style="justify-self:start;"><%= a.status %></span>
+              <span style="font-size:12.5px;"><%= a.plan %></span>
+              <span style="font-family:ui-monospace,monospace;font-size:11.5px;color:color-mix(in srgb, var(--color-text) 55%, transparent);"><%= a.signup || '—' %></span>
+              <i class="ph ph-caret-down"></i>
+            </div>
+          </summary>
+
+          <div class="li-account-detail">
+            <div class="li-account-detail-grid">
+              <div class="li-detail-block">
+                <span class="li-detail-label"><%= a.real ? 'BILLING' : 'BILLING (SAMPLE DATA)' %></span>
+                <% if (a.real) { %>
+                  <p style="margin:0;font-size:13px;color:color-mix(in srgb, var(--color-text) 70%, transparent);">
+                    No billing engine connected — <%= a.plan %> list price is
+                    &#8377;<%= ((a.entitlements.price || 0) / 100).toLocaleString('en-IN') %>/mo, informational only. Nothing has been charged.
+                  </p>
+                <% } else { %>
+                  <div class="li-billing-list">
+                    <% (a.billing || []).forEach(function (b) { %>
+                      <div class="li-billing-row">
+                        <span><%= b.date %></span><span><%= b.desc %></span><span><%= b.amount %></span>
+                        <span class="tag <%= b.status === 'Paid' ? 'tag-accent' : (b.status === 'Failed' ? 'tag-neutral' : 'tag-outline') %>"><%= b.status %></span>
+                      </div>
+                    <% }); %>
+                  </div>
+                <% } %>
+              </div>
+              <div class="li-detail-block">
+                <span class="li-detail-label"><%= a.real ? 'ACCOUNT' : 'USAGE (SAMPLE DATA)' %></span>
+                <% if (a.real) { %>
+                  <div class="li-usage-block">
+                    <div class="li-usage-row"><span>Workspace id</span><code><%= a.id %></code></div>
+                    <div class="li-usage-row"><span>Status</span><span><%= a.status %></span></div>
+                  </div>
+                <% } else { %>
+                  <div class="li-usage-block">
+                    <% (a.usage || []).forEach(function (u) { %>
+                      <div class="li-usage-row">
+                        <span><%= u.label %> — <%= u.value %></span>
+                        <div class="li-usage-bar"><span style="width:<%= u.pct %>%"></span></div>
+                      </div>
+                    <% }); %>
+                  </div>
+                <% } %>
+              </div>
+            </div>
+
+            <form method="post" action="/admin/accounts/<%= a.id %>/override">
+              <div class="li-package-editor">
+                <div class="li-package-editor-head">
+                  <strong style="font-size:13px;">Plan &amp; entitlements<%= a.customized ? ' — customized' : '' %></strong>
+                  <% if (a.customized) { %>
+                    <button type="submit" formaction="/admin/accounts/<%= a.id %>/reset" style="font-size:11.5px;padding:5px 10px;border-radius:6px;border:1px solid var(--color-divider);background:transparent;color:inherit;cursor:pointer;">Reset to plan defaults</button>
+                  <% } %>
+                </div>
+                <div class="li-package-editor-body">
+                  <div class="li-package-col">
+                    <label style="font-size:11px;color:color-mix(in srgb, var(--color-text) 55%, transparent);">PLAN</label>
+                    <div class="li-plan-chips">
+                      <% plans.forEach(function (p) { %>
+                        <label class="li-chip" aria-current="<%= a.plan === p ? 'true' : 'false' %>">
+                          <input type="radio" name="plan" value="<%= p %>" <%= a.plan === p ? 'checked' : '' %> style="margin-right:5px;"><%= p %>
+                        </label>
+                      <% }); %>
+                    </div>
+                    <label style="font-size:11px;color:color-mix(in srgb, var(--color-text) 55%, transparent);margin-top:6px;">SUPPORT</label>
+                    <div class="li-support-chips">
+                      <% supportLevels.forEach(function (s) { %>
+                        <label class="li-chip" aria-current="<%= a.entitlements.support === s ? 'true' : 'false' %>">
+                          <input type="radio" name="support" value="<%= s %>" <%= a.entitlements.support === s ? 'checked' : '' %> style="margin-right:5px;"><%= s %>
+                        </label>
+                      <% }); %>
+                    </div>
+                  </div>
+                  <div class="li-package-col">
+                    <% entitlementDefs.forEach(function (def) { %>
+                      <div class="li-entitlement-row">
+                        <span><%= def.label %></span>
+                        <input class="li-stepper-value" type="number" name="<%= def.key %>" min="<%= def.min %>" max="<%= def.max %>" step="<%= def.step %>" value="<%= a.entitlements[def.key] %>">
+                        <span class="li-entitlement-tag" style="background:color-mix(in srgb, var(--color-text) 8%, transparent);color:color-mix(in srgb, var(--color-text) 60%, transparent);"><%= def.unit %></span>
+                      </div>
+                    <% }); %>
+                  </div>
+                </div>
+                <div class="li-package-editor-foot">
+                  <span style="font-size:12px;color:color-mix(in srgb, var(--color-text) 55%, transparent);">Saved to lib/account-overrides.js — never billed automatically.</span>
+                  <button type="submit" class="btn btn-primary" style="width:auto;">Save overrides</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </details>
+      <% }); %>
+    </div>
+  </div>
+</div>
+</body>
+</html>

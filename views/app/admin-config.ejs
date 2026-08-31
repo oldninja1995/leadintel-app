@@ -1,0 +1,144 @@
+<%
+/* Internal ops — Control plane. One form, POST /admin/config, that writes
+   lib/site-config.js in one patch() call. Section links are in-page anchors
+   rather than a server round trip per tab — the whole document is one
+   coherent save, and splitting it into separate POSTs would let one section
+   land while another is mid-edit.
+ *
+ * Deliberately NOT here: a "Contracted MRR" control. The design canvas this
+   was drafted from (LeadIntel v2.dc.html, admin section) has one, but it
+   predates data/admin-accounts.js's own finding — confirmed by exploring the
+   codebase before that file was written — that there is no billing engine
+   anywhere in this app. A number this screen could edit but nothing could
+   ever charge would be worse than not showing it. */
+%><!DOCTYPE html>
+<html lang="en">
+<head>
+<%- include('../partials/marketing-head', { title: 'Ops — Control plane' }) %>
+</head>
+<body class="li-page">
+<div class="li-ops-shell">
+  <aside class="li-ops-side">
+    <div class="li-ops-brand">
+      <span class="li-brand-mark" style="width:22px;height:22px;font-size:11px;"><i class="ph-fill ph-pulse"></i></span>
+      <strong style="font-size:13px;">LeadIntel Ops</strong>
+    </div>
+    <nav class="li-ops-nav">
+      <a href="/admin/accounts" aria-current="<%= active === 'accounts' ? 'page' : 'false' %>"><i class="ph ph-buildings"></i>Accounts</a>
+      <a href="/admin/config" aria-current="<%= active === 'config' ? 'page' : 'false' %>"><i class="ph ph-sliders"></i>Control plane</a>
+    </nav>
+    <div class="li-ops-health">
+      <span style="font-size:11px;color:color-mix(in srgb, var(--color-text) 55%, transparent);">LIVE WIRING</span>
+      <span style="font-size:12px;line-height:1.5;">Plan prices, free-tier limits, the sidebar's visible modules, onboarding's connectors and /signup all read what you save here.</span>
+    </div>
+  </aside>
+
+  <div class="li-ops-main">
+    <div class="li-ops-header">
+      <div><h1 style="margin:0;font-size:19px;">Product &amp; site configuration</h1><span style="font-size:12.5px;color:color-mix(in srgb, var(--color-text) 55%, transparent);">Global settings — per-account exceptions live on each row of Accounts</span></div>
+      <div class="li-cp-tabs" style="flex-direction:row;">
+        <a href="#pricing">Pricing</a>
+        <a href="#modules">Modules</a>
+        <a href="#access">Sign-in &amp; sign-up</a>
+        <a href="#connectors">Connectors</a>
+      </div>
+    </div>
+
+    <form method="post" action="/admin/config" class="li-cp-body">
+      <div class="li-cp-note">
+        Every save writes one document (<code>lib/site-config.js</code>) and is what <code>filterNavGroups()</code> in
+        server.js reads to decide which screens show in the real app's sidebar — a module turned off here disappears
+        from every workspace immediately, it does not hide the data underneath.
+      </div>
+
+      <div id="pricing" class="li-cp-group-label" style="margin-top:6px;">PLANS &amp; PRICING</div>
+      <div class="li-cp-group">
+        <% Object.keys(cfg.tiers).forEach(function (t) { %>
+          <div class="li-cp-row">
+            <div class="li-cp-row-label">
+              <strong><%= cfg.tiers[t].name || t %></strong>
+              <span>Monthly price, in rupees — entitlements for this tier are edited per-account on Accounts</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-family:ui-monospace,monospace;font-size:13px;color:color-mix(in srgb, var(--color-text) 55%, transparent);">&#8377;</span>
+              <input type="number" min="0" step="1" name="tiers[<%= t %>][price]" value="<%= Math.round(cfg.tiers[t].price / 100) %>"
+                     style="width:120px;padding:8px 10px;border:1px solid var(--color-divider);border-radius:7px;background:var(--color-bg);color:var(--color-text);font-family:inherit;">
+              <span style="font-size:12px;color:color-mix(in srgb, var(--color-text) 55%, transparent);">/ month</span>
+            </div>
+          </div>
+        <% }); %>
+        <div class="li-cp-row">
+          <div class="li-cp-row-label"><strong>Most popular plan</strong><span>Which tier gets the flag on /pricing and /signup</span></div>
+          <select name="popular" style="padding:8px 10px;border:1px solid var(--color-divider);border-radius:7px;background:var(--color-bg);color:var(--color-text);font-family:inherit;">
+            <% Object.keys(cfg.tiers).forEach(function (t) { %><option value="<%= t %>" <%= cfg.popular === t ? 'selected' : '' %>><%= cfg.tiers[t].name || t %></option><% }); %>
+          </select>
+        </div>
+        <div class="li-cp-row">
+          <div class="li-cp-row-label"><strong>Free trial limits</strong><span>Shown on /pricing and offered to every new sign-up, all tiers</span></div>
+          <div style="display:flex;gap:14px;">
+            <label style="display:flex;flex-direction:column;gap:3px;font-size:11px;color:color-mix(in srgb, var(--color-text) 55%, transparent);">CONNECTIONS
+              <input type="number" min="0" name="freeConnections" value="<%= cfg.freeConnections %>" style="width:70px;padding:7px 9px;border:1px solid var(--color-divider);border-radius:6px;background:var(--color-bg);color:var(--color-text);font-family:inherit;">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:3px;font-size:11px;color:color-mix(in srgb, var(--color-text) 55%, transparent);">LOOKBACK DAYS
+              <input type="number" min="0" name="freeLookback" value="<%= cfg.freeLookback %>" style="width:70px;padding:7px 9px;border:1px solid var(--color-divider);border-radius:6px;background:var(--color-bg);color:var(--color-text);font-family:inherit;">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:3px;font-size:11px;color:color-mix(in srgb, var(--color-text) 55%, transparent);">SEATS
+              <input type="number" min="0" name="freeSeats" value="<%= cfg.freeSeats %>" style="width:70px;padding:7px 9px;border:1px solid var(--color-divider);border-radius:6px;background:var(--color-bg);color:var(--color-text);font-family:inherit;">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div id="modules" class="li-cp-group-label">SIDEBAR MODULES</div>
+      <div class="li-cp-group">
+        <% Object.keys(cfg.modules).forEach(function (m) { %>
+          <div class="li-cp-row">
+            <div class="li-cp-row-label"><strong><%= m %></strong><span>Visible in the real app's sidebar when on</span></div>
+            <label class="li-toggle-btn">
+              <input type="checkbox" name="modules[<%= m %>]" <%= cfg.modules[m] ? 'checked' : '' %> style="position:absolute;opacity:0;width:1px;height:1px;">
+              <span class="li-toggle-track" data-on="<%= cfg.modules[m] ? 'true' : 'false' %>"><span class="li-toggle-knob"></span></span>
+            </label>
+          </div>
+        <% }); %>
+      </div>
+
+      <div id="access" class="li-cp-group-label">SIGN-IN &amp; SIGN-UP</div>
+      <div class="li-cp-group">
+        <% [
+          ['selfServe', 'Self-serve mode', 'Master switch — off replaces every "Start free" with "Talk to sales" sitewide'],
+          ['registration', 'Sign-up form', '/signup accepts new workspaces when on; off shows a closed message instead'],
+          ['googleSSO', 'Google sign-in on /signup', 'Cosmetic today — no Google OAuth is wired for sign-up yet'],
+          ['seededAuth', 'Seeded fixture logins on /login', 'Turns off the dropdown of seeded users, leaving only real accounts'],
+          ['showBadgeSystem', 'Show ADS / BLND provenance badges', 'The provenance tags on marketing pages that mirror the real app\'s metric badges'],
+        ].forEach(function (row) { %>
+          <div class="li-cp-row">
+            <div class="li-cp-row-label"><strong><%= row[1] %></strong><span><%= row[2] %></span></div>
+            <label class="li-toggle-btn">
+              <input type="checkbox" name="<%= row[0] %>" <%= cfg[row[0]] ? 'checked' : '' %> style="position:absolute;opacity:0;width:1px;height:1px;">
+              <span class="li-toggle-track" data-on="<%= cfg[row[0]] ? 'true' : 'false' %>"><span class="li-toggle-knob"></span></span>
+            </label>
+          </div>
+        <% }); %>
+      </div>
+
+      <div id="connectors" class="li-cp-group-label">ONBOARDING CONNECTORS</div>
+      <div class="li-cp-group">
+        <% Object.keys(cfg.connectors).forEach(function (c) { %>
+          <div class="li-cp-row">
+            <div class="li-cp-row-label"><strong><%= c %></strong><span>Offered on the /onboarding welcome screen when on</span></div>
+            <label class="li-toggle-btn">
+              <input type="checkbox" name="connectors[<%= c %>]" <%= cfg.connectors[c] ? 'checked' : '' %> style="position:absolute;opacity:0;width:1px;height:1px;">
+              <span class="li-toggle-track" data-on="<%= cfg.connectors[c] ? 'true' : 'false' %>"><span class="li-toggle-knob"></span></span>
+            </label>
+          </div>
+        <% }); %>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:4px;">
+        <button type="submit" class="btn btn-primary" style="width:auto;">Save configuration</button>
+      </div>
+    </form>
+  </div>
+</div>
+</body>
+</html>

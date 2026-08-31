@@ -1,0 +1,182 @@
+<%
+/* The public marketing homepage — a standalone document, the login.ejs
+   pattern (see views/partials/marketing-head.ejs's header for why these six
+   pages are not wrapped in layout.ejs).
+ *
+ * Not from the design canvas — see the same note on login.ejs. Built from
+ * the Nocturne tokens and the real, shipped feature set rather than a
+ * mockup's numbers, because this is the one page a stranger reads with
+ * nothing else to check it against.
+ *
+ * No fabricated testimonial, no invented client logos. This codebase has a
+ * standing rule against authored content dressed as real (PHASES.md, the
+ * 2026-08-21 demo-data purge) and a public marketing page is not the place
+ * to relax it — so the proof band below states real, checkable facts about
+ * how the product is built, not a quote nobody said. */
+%><!DOCTYPE html>
+<html lang="en">
+<head>
+<%- include('../partials/marketing-head', { title: 'Hospitality revenue OS' }) %>
+</head>
+<body class="li-page">
+<%- include('../partials/marketing-nav', { active: 'home', cfg: cfg }) %>
+
+<main>
+  <section class="li-hero">
+    <div class="li-hero-glow"></div>
+    <div class="li-hero-body">
+      <span class="li-hero-badge"><b>NEW</b> Ad Analytics, sortable Keyword Analytics, real revenue funnels</span>
+      <h1>One truth for what your marketing <em>actually</em> earns.</h1>
+      <p class="li-lede">
+        LeadIntel pulls Meta, Google Ads, Google Analytics, TeleCRM and your PMS into one
+        registry of metrics — every ROAS, every cost per booking, every attribution model
+        computed the same way everywhere it appears, never authored twice.
+      </p>
+      <div class="li-cta-row">
+        <% if (cfg.selfServe) { %>
+          <a href="/signup" class="btn btn-primary btn-block" style="width:auto;">Start free</a>
+        <% } %>
+        <a href="/pricing" class="btn btn-secondary" style="width:auto;">See pricing</a>
+      </div>
+      <span class="li-hero-fine">No credit card to start · connect your first source in minutes</span>
+    </div>
+
+    <div class="li-preview">
+      <div class="li-preview-top">
+        <strong>Marketing Dashboard</strong>
+        <span>Illustrative preview — your numbers replace these the moment you connect a source</span>
+      </div>
+      <div class="li-stat-grid">
+        <div class="li-stat-tile">
+          <span class="li-tag-blnd">BLENDED</span>
+          <span class="li-stat-label">AD SPEND</span>
+          <span class="li-stat-value">₹10.9L</span>
+          <span class="li-stat-sub">Meta + Google, this period</span>
+        </div>
+        <div class="li-stat-tile">
+          <span class="li-tag-blnd">BLENDED</span>
+          <span class="li-stat-label">ROAS</span>
+          <span class="li-stat-value">4.8x</span>
+          <span class="li-stat-sub">Revenue credited to spend</span>
+        </div>
+        <div class="li-stat-tile">
+          <span class="li-tag-ads">ADS</span>
+          <span class="li-stat-label">COST PER LEAD</span>
+          <span class="li-stat-value">₹68</span>
+          <span class="li-stat-sub">Across connected channels</span>
+        </div>
+        <div class="li-stat-tile">
+          <span class="li-tag-ads">CRM</span>
+          <span class="li-stat-label">LEAD → BOOKING</span>
+          <span class="li-stat-value">18.4%</span>
+          <span class="li-stat-sub">Full funnel, per channel</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="li-section">
+    <div class="li-section-head">
+      <span class="card-kicker">WHAT IT DOES</span>
+      <h2 style="margin:0;">Every screen reads one registry, so no two numbers disagree</h2>
+      <p style="margin:0;color:color-mix(in srgb, var(--color-text) 65%, transparent);">
+        The dashboard, the reports and the AI explanations all compute a metric the same way —
+        change the definition once and it moves everywhere it is used, including the ones already sent.
+      </p>
+    </div>
+
+    <div class="li-feature-row">
+      <div class="li-feature-text">
+        <span class="card-kicker">META + GOOGLE ADS</span>
+        <h3 style="margin:0;">Campaign, ad group, ad and keyword — never borrowed shapes</h3>
+        <div class="li-feature-bullets">
+          <div><i class="ph ph-check-circle"></i>Meta's ad sets and Google's ad groups stay separate hierarchies, never forced into one column</div>
+          <div><i class="ph ph-check-circle"></i>Impression share, lost-to-budget vs lost-to-rank — only Google reports it, so only Google shows it</div>
+          <div><i class="ph ph-check-circle"></i>Every table sorts, and a sort keeps your place on the page</div>
+        </div>
+      </div>
+      <div class="li-feature-panel">
+        <div class="li-feature-panel-head"><span>KEYWORD ANALYTICS</span><span>SORTED BY WASTED SPEND</span></div>
+        <div class="li-feature-panel-body">
+          <div class="li-feature-panel-row"><span>hotel booking kerala</span><div class="li-feature-panel-bar"><span style="width:88%"></span></div><strong>₹14,220</strong></div>
+          <div class="li-feature-panel-row"><span>resort near me</span><div class="li-feature-panel-bar"><span style="width:61%"></span></div><strong>₹9,140</strong></div>
+          <div class="li-feature-panel-row"><span>beach resort offers</span><div class="li-feature-panel-bar"><span style="width:44%"></span></div><strong>₹6,005</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="li-feature-row li-flip">
+      <div class="li-feature-text">
+        <span class="card-kicker">ATTRIBUTION</span>
+        <h3 style="margin:0;">Revenue reapportioned, never invented</h3>
+        <div class="li-feature-bullets">
+          <div><i class="ph ph-check-circle"></i>Seven credit models — every one accounts for the same total revenue, only the split moves</div>
+          <div><i class="ph ph-check-circle"></i>The identity ladder joins a booking to a lead to an ad, and records the weakest link, not the best fact available</div>
+          <div><i class="ph ph-check-circle"></i>Untagged revenue is shown as untagged, not folded into the nearest channel</div>
+        </div>
+      </div>
+      <div class="li-feature-panel">
+        <div class="li-feature-panel-head"><span>ATTRIBUTION</span><span>LAST-TOUCH MODEL</span></div>
+        <div class="li-feature-panel-body">
+          <div class="li-feature-panel-row"><span>Google Ads</span><div class="li-feature-panel-bar"><span style="width:34%"></span></div><strong>34%</strong></div>
+          <div class="li-feature-panel-row"><span>Meta Ads</span><div class="li-feature-panel-bar"><span style="width:22%"></span></div><strong>22%</strong></div>
+          <div class="li-feature-panel-row"><span>Untagged</span><div class="li-feature-panel-bar"><span style="width:44%"></span></div><strong>44%</strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="li-feature-row">
+      <div class="li-feature-text">
+        <span class="card-kicker">CRM + LEAD INTELLIGENCE</span>
+        <h3 style="margin:0;">From first click to the folio, one funnel</h3>
+        <div class="li-feature-bullets">
+          <div><i class="ph ph-check-circle"></i>TeleCRM leads, deals and stages, joined to the ad or campaign that produced them</div>
+          <div><i class="ph ph-check-circle"></i>PMS bookings tie revenue to the night stayed, not the day booked — occupancy and RevPAR line up</div>
+          <div><i class="ph ph-check-circle"></i>A field nothing can compute renders as declined, never as a borrowed number from somewhere else</div>
+        </div>
+      </div>
+      <div class="li-feature-panel">
+        <div class="li-feature-panel-head"><span>WEBSITE FUNNEL</span><span>GA4</span></div>
+        <div class="li-feature-panel-body">
+          <div class="li-feature-panel-row"><span>Landed</span><div class="li-feature-panel-bar"><span style="width:100%"></span></div><strong>100%</strong></div>
+          <div class="li-feature-panel-row"><span>Checked availability</span><div class="li-feature-panel-bar"><span style="width:38%"></span></div><strong>38%</strong></div>
+          <div class="li-feature-panel-row"><span>Booked online</span><div class="li-feature-panel-bar"><span style="width:6%"></span></div><strong>6%</strong></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="li-section li-quote-band">
+    <div class="li-proof-grid" style="max-width:1080px;margin:0 auto;">
+      <div class="li-proof-cell"><strong>11</strong><span>data connectors built — Meta, Google Ads, GA4, TeleCRM, PMS, Razorpay and six OTAs</span></div>
+      <div class="li-proof-cell"><strong>Server-side</strong><span>every permission and every workspace boundary enforced on the server, never trusted from a browser</span></div>
+      <div class="li-proof-cell"><strong>Sub-second</strong><span>typical page render, warm — measured in production, not claimed</span></div>
+      <div class="li-proof-cell"><strong>Derive or decline</strong><span>a number the data cannot support renders as declined, never guessed</span></div>
+    </div>
+  </section>
+
+  <section class="li-cta-band">
+    <div class="li-cta-band-glow"></div>
+    <div class="li-cta-band-body">
+      <h2>Connect your first source in minutes.</h2>
+      <div class="li-cta-row">
+        <% if (cfg.selfServe) { %>
+          <a href="/signup" class="btn btn-primary" style="width:auto;">Start free</a>
+        <% } else { %>
+          <span class="btn btn-secondary" style="width:auto;cursor:default;">Talk to sales</span>
+        <% } %>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="li-footer">
+  <span>&copy; LeadIntel AI</span>
+  <nav>
+    <a href="/home">Platform</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/login">Sign in</a>
+  </nav>
+</footer>
+</body>
+</html>

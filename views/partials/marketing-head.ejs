@@ -1,0 +1,17 @@
+<%
+/* Shared <head> for the public marketing site and the internal ops screens
+   (views/app/home.ejs, pricing.ejs, signup.ejs, onboarding.ejs,
+   admin-accounts.ejs, admin-config.ejs) — six standalone documents built on
+   the login.ejs pattern. Pulled into its own partial because it is otherwise
+   byte-identical six times over; see login.ejs for why each of these pages is
+   its own document rather than routed through layout.ejs. */
+%><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= title %> — LeadIntel AI</title>
+<link rel="icon" href="<%= asset('favicon.svg') %>" type="image/svg+xml">
+<link rel="preload" href="/assets/fonts/Inter-latin.f11d729b.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="<%= asset('inter.css') %>">
+<link rel="stylesheet" href="<%= asset('phosphor.css') %>">
+<link rel="stylesheet" href="<%= asset('nocturne.css') %>">
+<link rel="stylesheet" href="<%= asset('app.css') %>">
+<link rel="stylesheet" href="<%= asset('marketing.css') %>">

@@ -1,0 +1,96 @@
+<%
+/* Pricing — reads two documents that answer two different questions: cfg
+   (lib/site-config.js, /admin/config) owns what a tier is CALLED and what it
+   COSTS; planDefaults (data/admin-accounts.js, the same table the ops
+   Accounts panel edits per account) owns what a tier INCLUDES. Splitting
+   them is deliberate — marketing can reprice a plan without touching what a
+   Growth customer's entitlement editor defaults to, and vice versa. */
+%><!DOCTYPE html>
+<html lang="en">
+<head>
+<%- include('../partials/marketing-head', { title: 'Pricing' }) %>
+</head>
+<body class="li-page">
+<%- include('../partials/marketing-nav', { active: 'pricing', cfg: cfg }) %>
+
+<main>
+  <section class="li-hero" style="padding-bottom:8px;">
+    <div class="li-hero-body" style="gap:14px;">
+      <h1 style="font-size:clamp(30px,4.4vw,46px);">Simple pricing, by property scale</h1>
+      <p class="li-lede">Every tier reads the same registry of metrics — nothing is held back behind a higher plan, only how much history, how many connections, and how many seats.</p>
+    </div>
+  </section>
+
+  <div class="li-free-row">
+    <div>
+      <strong style="font-size:14.5px;">Every plan starts with a 14-day free trial</strong>
+      <div style="font-size:13px;color:color-mix(in srgb, var(--color-text) 60%, transparent);margin-top:3px;">
+        Up to <%= cfg.freeConnections %> connected sources, <%= cfg.freeLookback %> days of history, <%= cfg.freeSeats %> seat<%= cfg.freeSeats === 1 ? '' : 's' %> — no credit card required.
+      </div>
+    </div>
+    <% if (cfg.selfServe) { %><a href="/signup" class="btn btn-primary" style="width:auto;">Start free</a><% } %>
+  </div>
+
+  <div class="li-tier-grid">
+    <% Object.keys(cfg.tiers).forEach(function (tierName) { %>
+      <% const tier = cfg.tiers[tierName]; const ent = planDefaults[tierName] || {}; const popular = tierName === cfg.popular; %>
+      <div class="li-tier-card <%= popular ? 'li-tier-popular' : '' %>">
+        <% if (popular) { %><span class="li-tier-popular-flag">MOST POPULAR</span><% } %>
+        <div>
+          <div class="li-tier-name"><%= tier.name || tierName %></div>
+          <div class="li-tier-desc">
+            <%= ent.properties ? `Up to ${ent.properties} ${ent.properties === 1 ? 'property' : 'properties'}` : 'For growing portfolios' %>
+          </div>
+        </div>
+        <div class="li-tier-price"><strong>&#8377;<%= (tier.price / 100).toLocaleString('en-IN') %></strong><span>/ month</span></div>
+        <div class="li-tier-features">
+          <% if (ent.connections) { %><div><i class="ph ph-check"></i><%= ent.connections %> data source connections</div><% } %>
+          <% if (ent.seats) { %><div><i class="ph ph-check"></i><%= ent.seats %> seats</div><% } %>
+          <% if (ent.history) { %><div><i class="ph ph-check"></i><%= ent.history %> months of history</div><% } %>
+          <% if (ent.support) { %><div><i class="ph ph-check"></i><%= ent.support %> support</div><% } %>
+          <div><i class="ph ph-check"></i>Attribution, Creative Intelligence, AI Command Center</div>
+        </div>
+        <% if (cfg.selfServe) { %>
+          <a href="/signup?plan=<%= encodeURIComponent(tierName) %>" class="btn <%= popular ? 'btn-primary' : 'btn-secondary' %> btn-block">Start free</a>
+        <% } else { %>
+          <span class="btn btn-secondary btn-block" style="text-align:center;cursor:default;">Talk to sales</span>
+        <% } %>
+      </div>
+    <% }); %>
+  </div>
+
+  <div class="li-compare-wrap">
+    <h2>Compare plans</h2>
+    <div class="li-compare">
+      <table class="table">
+        <thead><tr><th>Entitlement</th><% Object.keys(cfg.tiers).forEach(function (t) { %><th><%= cfg.tiers[t].name || t %></th><% }); %></tr></thead>
+        <tbody>
+          <% entitlementDefs.forEach(function (def) { %>
+            <tr>
+              <td><%= def.label %></td>
+              <% Object.keys(cfg.tiers).forEach(function (t) { %>
+                <% const v = (planDefaults[t] || {})[def.key]; %>
+                <td><%= v === undefined ? '—' : (def.key === 'api' ? Number(v).toLocaleString('en-IN') : v) %><%= (v !== undefined && def.unit && def.key !== 'api') ? ` ${def.unit}` : '' %></td>
+              <% }); %>
+            </tr>
+          <% }); %>
+          <tr>
+            <td>Support</td>
+            <% Object.keys(cfg.tiers).forEach(function (t) { %><td><%= (planDefaults[t] || {}).support || '—' %></td><% }); %>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<footer class="li-footer">
+  <span>&copy; LeadIntel AI</span>
+  <nav>
+    <a href="/home">Platform</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/login">Sign in</a>
+  </nav>
+</footer>
+</body>
+</html>

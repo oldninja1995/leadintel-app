@@ -1,0 +1,31 @@
+<%
+/* Shared top nav for the public marketing pages (home, pricing). Not used by
+   signup/onboarding — those are focused single-task screens, same reason
+   login.ejs shows only the brand mark. `active` and `cfg` are required
+   locals; `cfg.selfServe` decides whether the right-hand CTA points at the
+   proposed signup flow or falls back to a plain "Talk to sales" — see
+   lib/site-config.js and /admin/config's "Marketing site" tab. */
+%><header class="li-topnav">
+  <div class="li-topnav-left">
+    <a href="/home" class="li-brand">
+      <span class="li-brand-mark"><i class="ph-fill ph-pulse"></i></span>
+      <span class="li-brand-text">
+        <strong>LeadIntel AI</strong>
+        <span>HOSPITALITY REVENUE OS</span>
+      </span>
+    </a>
+    <nav class="li-topnav-links">
+      <a href="/home" <%= active === 'home' ? "aria-current='page'" : '' %>>Platform</a>
+      <a href="/home#attribution">Attribution</a>
+      <a href="/pricing" <%= active === 'pricing' ? "aria-current='page'" : '' %>>Pricing</a>
+    </nav>
+  </div>
+  <div class="li-topnav-right">
+    <a href="/login" style="font-size:14px;">Sign in</a>
+    <% if (cfg.selfServe) { %>
+      <a href="/signup" class="btn btn-primary">Start free</a>
+    <% } else { %>
+      <span class="btn btn-secondary" style="cursor:default;">Talk to sales</span>
+    <% } %>
+  </div>
+</header>

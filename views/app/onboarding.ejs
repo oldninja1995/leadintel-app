@@ -1,0 +1,65 @@
+<%
+/* Post-signup onboarding — a welcome screen, not a second credential form.
+   The real Connections screen (views/app/connections.ejs, /connections)
+   already has per-source fields, hints and paste-time validation for all
+   eleven sources; duplicating that here would be the exact kind of borrowed
+   shape this codebase avoids elsewhere. This page shows the four sources
+   that get a new hotel to a real number fastest and links each "Connect"
+   into the real screen, already scrolled to that source. */
+%><!DOCTYPE html>
+<html lang="en">
+<head>
+<%- include('../partials/marketing-head', { title: 'Get started' }) %>
+</head>
+<body class="li-page">
+<div class="li-auth-grid">
+  <div class="li-onb-shell">
+    <div class="li-onb-head">
+      <a href="/home" class="li-brand" style="text-decoration:none;">
+        <span class="li-brand-mark"><i class="ph-fill ph-pulse"></i></span>
+        <span class="li-brand-text"><strong>LeadIntel AI</strong><span>HOSPITALITY REVENUE OS</span></span>
+      </a>
+      <span class="li-onb-steps">STEP <b>1</b> OF 2 — CONNECT A SOURCE</span>
+    </div>
+
+    <div class="li-onb-body">
+      <% if (user) { %>
+        <h2 style="margin:0 0 6px;">Welcome, <%= user.name %>.</h2>
+        <p style="margin:0;color:color-mix(in srgb, var(--color-text) 65%, transparent);">
+          <%= user.workspaceName %> is live. Connect at least one source below and the dashboard stops showing
+          "not connected" and starts showing your own numbers.
+        </p>
+      <% } else { %>
+        <h2 style="margin:0 0 6px;">Get started</h2>
+        <p style="margin:0;color:color-mix(in srgb, var(--color-text) 65%, transparent);">
+          You are not signed in yet — <a href="/signup">start a free trial</a> first, then come back here to connect
+          your data. What follows is a preview of that step.
+        </p>
+      <% } %>
+
+      <div class="li-onb-sources">
+        <% sourceCards.forEach(function (c) { %>
+          <div class="li-onb-source <%= c.configured ? '' : (user ? '' : 'li-onb-off') %>">
+            <div class="li-onb-source-icon"><i class="<%= c.icon %>"></i></div>
+            <strong style="font-size:13.5px;"><%= c.name %></strong>
+            <span style="font-size:11.5px;color:color-mix(in srgb, var(--color-text) 55%, transparent);"><%= c.feeds %></span>
+            <span class="tag <%= c.configured ? 'tag-accent' : 'tag-neutral' %>" style="align-self:flex-start;margin-top:4px;">
+              <%= c.configured ? 'Connected' : 'Not connected' %>
+            </span>
+          </div>
+        <% }); %>
+      </div>
+
+      <div class="li-onb-foot">
+        <a href="/" style="font-size:13.5px;">Skip for now — go to dashboard</a>
+        <% if (user) { %>
+          <a href="/connections" class="btn btn-primary" style="width:auto;">Connect a source</a>
+        <% } else { %>
+          <a href="/signup" class="btn btn-primary" style="width:auto;">Start free trial</a>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
