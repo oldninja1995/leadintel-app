@@ -24,3 +24,4 @@ var-backups/
 .cron-secret.local
 
 .env*
+.vercel
