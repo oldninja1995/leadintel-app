@@ -335,6 +335,28 @@ const openSource = canManage
                 <button type="submit" <%= secretSet ? '' : 'disabled' %>>
                   <i class="ph <%= c.configured ? 'ph-arrow-clockwise' : 'ph-plugs-connected' %>"></i><%= c.configured ? 'Update' : 'Connect' %>
                 </button>
+                <%
+                /* A Google refresh token expires — in seven days while the OAuth
+                   consent screen is in Testing — and replacing it by hand meant
+                   the OAuth playground and a copied string. This does the same
+                   exchange in the browser instead: sign in, approve, and the
+                   token is stored without anyone seeing it. A link rather than a
+                   submit button because it navigates to Google, and posting the
+                   credential form on the way would save half-filled fields.
+
+                   Shown before the source is fully configured, not only after —
+                   the refresh token field above is optional for exactly this
+                   reason. The client id and secret still have to be saved first
+                   (the route itself says so if they are missing), but nobody
+                   has to mint a token by hand to get there. */
+                %>
+                <% if (c.source === 'google_ads' || c.source === 'google_analytics') {
+                  var hasToken = c.fields.some(function (f) { return f.key === 'refreshToken' && f.set; });
+                %>
+                  <a class="li-conn-secondary li-conn-oauth" href="/connections/<%= c.source %>/oauth/start" title="Sign in with Google and store a refresh token">
+                    <i class="ph ph-google-logo"></i><%= hasToken ? 'Re-authorise' : 'Connect with Google' %>
+                  </a>
+                <% } %>
                 <% if (c.configured) { %>
                   <button type="submit" formaction="/connections/<%= c.source %>/test" class="li-conn-secondary"><i class="ph ph-pulse"></i>Test</button>
                   <%# Runs this source now, whether or not the scheduler thinks it
@@ -342,17 +364,6 @@ const openSource = canManage
                       how somebody changes that answer without waiting for a cron
                       tick. %>
                   <button type="submit" formaction="/connections/<%= c.source %>/sync" class="li-conn-secondary" title="Pull this source now, without waiting for the schedule"><i class="ph ph-arrows-clockwise"></i>Sync now</button>
-                  <%# A Google refresh token expires — in seven days while the
-                      OAuth consent screen is in Testing — and replacing it meant
-                      the OAuth playground and a copied string. This does the same
-                      exchange in the browser. A link rather than a submit button:
-                      it navigates to Google, and posting the credential form on
-                      the way would save half-filled fields. %>
-                  <% if (c.source === 'google_ads' || c.source === 'google_analytics') { %>
-                    <a class="li-conn-secondary li-conn-oauth" href="/connections/<%= c.source %>/oauth/start" title="Sign in with Google and store a fresh refresh token">
-                      <i class="ph ph-google-logo"></i>Re-authorise
-                    </a>
-                  <% } %>
                   <%# A year of history, a week per round trip. The window is
                       too wide for one request — see the backfill route — so the
                       button carries where the last press stopped and continues
