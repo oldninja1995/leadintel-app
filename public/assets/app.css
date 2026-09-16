@@ -368,4 +368,20 @@ main { flex: 1; overflow-y: auto; padding: 18px; }
   /* Deliberately untouched: text inside an <svg>. A sparkline label is drawn
      in the chart's own coordinate space and scales with it, so lifting it
      moves the chart rather than the type. */
+
+  /* ── phase 4: header rows that do not fit ───────────────────────────────
+     Several screens draw a title-and-toolbar row as one `display:flex;
+     align-items:center` line with no wrap: Campaign Analytics' and Leads'
+     search-and-pills bar (a fixed 230px search box that cannot shrink), and
+     Creative Intelligence's title bar (the "Judge by" / "Sort" pills). None
+     of them wrap on their own, so the rigid control took the room the title
+     or summary needed and squeezed it into a one-word column instead of
+     taking one more line. Found by a child each one actually has — the
+     markup is generated and carries no other hook, the same reason the type
+     floor above matches on inline style substrings rather than a class. */
+  main div:has(> [data-li-slot="goal"]),
+  main div:has(> [style*="width:230px"]) {
+    flex-wrap: wrap !important;
+    row-gap: 8px;
+  }
 }
