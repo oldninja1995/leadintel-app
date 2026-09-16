@@ -68,7 +68,14 @@
     const rangeGroup = kids.find((el) => el.querySelector('[data-action^="?period="], [data-action*="period="]'))
       || kids.find((el) => el.children.length > 3 && /today/i.test(el.textContent || ''));
 
-    const byAction = (name) => kids.find((el) => el.getAttribute('data-action') === name);
+    /* Searches the whole header, not just `kids` — topbar.ejs groups search,
+       theme, notifications, Ask AI and the profile avatar into one flex item
+       (its own comment explains why: a *desktop* wrapping bug, unrelated to
+       this one) so none of them is a direct child of `header` any more. A
+       `kids.find` here always came back empty, `quiet` was always `[]`, and
+       the whole group sat unmoved and unhidden — every control this file
+       exists to compact, still there, still 1,257px wide. */
+    const byAction = (name) => header.querySelector('[data-action="' + name + '"]');
     const quiet = ['openPalette', 'toggleTheme', 'toggleAi'].map(byAction).filter(Boolean);
 
     /* The "vs previous period" note and the flex spacer: one is a caption that

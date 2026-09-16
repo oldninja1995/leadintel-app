@@ -448,6 +448,17 @@
 @media (max-width: 780px) {
   .li-conn-grid { grid-template-columns: 1fr; }
   .li-conn-id span { display: none; }
+
+  /* Side by side, the tally and Sync-all stayed pinned to the title's first
+     line while the description wrapped to six, leaving both stranded above a
+     tall column of empty space. Stacked instead, in reading order. */
+  .li-conn-head { flex-direction: column; align-items: stretch; gap: 14px; }
+  .li-conn-tally {
+    text-align: left; border-left: none; padding-left: 0;
+    border-top: 1px solid var(--color-neutral-800); padding-top: 12px;
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .li-conn-syncall { align-self: flex-start; }
 }
 
 /* — skip link (Phase 10) — */
@@ -472,7 +483,7 @@ main:focus { outline: none; }
 /* — sign-in (Phase 9) — */
 .li-login { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
 .li-login-card {
-  width: min(420px, 100%); background: var(--color-surface);
+  width: min(420px, 100%); min-width: 0; background: var(--color-surface);
   border: 1px solid var(--color-neutral-800); border-radius: 14px;
   padding: 26px 26px 20px; box-shadow: var(--shadow-pop);
 }
