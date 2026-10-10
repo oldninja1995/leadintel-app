@@ -30,6 +30,11 @@ function fakeDb({ rows = 3, seq = '99' } = {}) {
       return value === undefined ? [] : [{ value }];
     }
     if (/^INSERT INTO docs/.test(text)) { calls.write += 1; docs.set(params[0], params[1]); return []; }
+    if (/^UPDATE docs/.test(text)) {
+      calls.write += 1;
+      if (String(docs.get(params[0]) || '').startsWith(params[2])) docs.set(params[0], params[1]);
+      return [];
+    }
     return [];
   };
 
@@ -165,8 +170,9 @@ test('the stored row is compressed, not raw JSON', async () => {
     await snapshot.through('parakkat', { connected: [], build: async () => big });
 
     const stored = JSON.parse(db.docs.get(snapshot.KEY('parakkat')));
+    const size = Object.values(stored.parts).reduce((n, part) => n + part.length, 0);
     const raw = JSON.stringify(big).length;
-    assert.ok(stored.gz.length < raw / 5, `stored ${stored.gz.length} against ${raw} raw — compression is not happening`);
+    assert.ok(size < raw / 5, `stored ${size} against ${raw} raw — compression is not happening`);
   } finally { db.restore(); }
 });
 
@@ -178,4 +184,99 @@ test('what comes back out is what went in', async () => {
     const again = await snapshot.through('parakkat', { connected: [], build: async () => { throw new Error('should not rebuild'); } });
     assert.deepEqual(again, original);
   } finally { db.restore(); }
+});
+
+test('a collection is only inflated when something reads it', async () => {
+  /* The cold-start saving: a page that reads leads must not pay for search
+     terms. Proven by breaking one part — reading the others still works, and
+     the broken one fails only when it is actually asked for. */
+  const db = fakeDb();
+  try {
+    await snapshot.through('parakkat', { connected: [], build: async () => ENTITIES() });
+    const key = snapshot.KEY('parakkat');
+    const stored = JSON.parse(db.docs.get(key));
+    stored.parts.deals = 'not gzip';
+    db.docs.set(key, JSON.stringify(stored));
+
+    const entities = await snapshot.through('parakkat', { connected: [], build: async () => { throw new Error('should not rebuild'); } });
+    assert.deepEqual(entities.leads, ENTITIES().leads);
+    assert.ok(Object.keys(entities).includes('deals'), 'an undecoded collection must still be listed');
+    assert.throws(() => entities.deals);
+  } finally { db.restore(); }
+});
+
+test('a row in the old single-blob format is still read', async () => {
+  /* Rows written before per-collection parts stay readable until the next
+     rebuild replaces them; a format change must not cost a replay. */
+  const db = fakeDb();
+  try {
+    const zlib = require('zlib');
+    const marker = await snapshot.markerFor('parakkat', [], '');
+    const gz = zlib.gzipSync(Buffer.from(JSON.stringify(ENTITIES()))).toString('base64');
+    db.docs.set(snapshot.KEY('parakkat'), JSON.stringify({ marker, gz }));
+
+    const entities = await snapshot.through('parakkat', { connected: [], build: async () => { throw new Error('should not rebuild'); } });
+    assert.deepEqual(entities, ENTITIES());
+
+    /* …and re-saved as parts in the background, so the next cold instance
+       gets the lazy read without waiting for a sync to rebuild. */
+    for (let i = 0; i < 50 && !JSON.parse(db.docs.get(snapshot.KEY('parakkat'))).parts; i += 1) {
+      await new Promise((r) => setTimeout(r, 10));
+    }
+    const resaved = JSON.parse(db.docs.get(snapshot.KEY('parakkat')));
+    assert.equal(resaved.marker, marker);
+    assert.ok(resaved.parts && !resaved.gz, 'the legacy row was not re-saved as parts');
+    const again = await snapshot.through('parakkat', { connected: [], build: async () => { throw new Error('should not rebuild'); } });
+    assert.deepEqual(again, ENTITIES());
+  } finally { db.restore(); }
+});
+
+test('a legacy re-save never overwrites a newer snapshot', async () => {
+  const db = fakeDb();
+  try {
+    const zlib = require('zlib');
+    const marker = await snapshot.markerFor('parakkat', [], '');
+    const gz = zlib.gzipSync(Buffer.from(JSON.stringify(ENTITIES()))).toString('base64');
+    db.docs.set(snapshot.KEY('parakkat'), JSON.stringify({ marker, gz }));
+    await snapshot.through('parakkat', { connected: [], build: async () => ENTITIES() });
+    /* A rebuild lands before the background re-save does. */
+    const newer = JSON.stringify({ marker: 'newer', parts: {} });
+    db.docs.set(snapshot.KEY('parakkat'), newer);
+    await new Promise((r) => setTimeout(r, 200));
+    assert.equal(db.docs.get(snapshot.KEY('parakkat')), newer);
+  } finally { db.restore(); }
+});
+
+test('narrowing by a period does not read collections nobody asks for', () => {
+  const period = require('../lib/metrics/period');
+  const lazy = require('../lib/store/lazy');
+  const read = new Set();
+  const entities = {};
+  for (const [key, rows] of Object.entries({
+    leads: [{ id: 'a', createdAt: '2026-08-02T00:00:00Z' }, { id: 'b', createdAt: '2026-06-01T00:00:00Z' }],
+    deals: [{ id: 'd', updatedAt: '2026-08-03T00:00:00Z' }],
+    identity: { links: 1 },
+  })) lazy.define(entities, key, () => { read.add(key); return rows; });
+
+  const narrowed = period.within(entities, { from: '2026-08-01T00:00:00Z', to: '2026-09-01T00:00:00Z' });
+  assert.deepEqual([...read], [], 'within() decoded collections up front');
+
+  assert.deepEqual(narrowed.leads.map((l) => l.id), ['a']);
+  assert.deepEqual([...read], ['leads']);
+  assert.deepEqual(narrowed.identity, { links: 1 });
+  assert.deepEqual(Object.keys(narrowed).sort(), ['deals', 'identity', 'leads']);
+});
+
+test('extend reads like a spread without reading the base', () => {
+  const lazy = require('../lib/store/lazy');
+  let reads = 0;
+  const base = { plain: 1, over: 'base' };
+  lazy.define(base, 'heavy', () => { reads += 1; return [1, 2]; });
+
+  const out = lazy.extend(base, { over: 'extra', added: true });
+  assert.equal(reads, 0);
+  assert.deepEqual(out, { ...base, over: 'extra', added: true });
+  assert.equal(reads, 1, 'the base was decoded more than once');
+  out.heavy = 'replaced';
+  assert.equal(out.heavy, 'replaced');
 });
