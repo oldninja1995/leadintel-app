@@ -57,6 +57,7 @@ const hardening = require('./lib/http/hardening');
 const observability = require('./lib/http/observability');
 const store = require('./lib/store');
 const snapshot = require('./lib/store/snapshot');
+const lazy = require('./lib/store/lazy');
 const entityFreshness = require('./lib/store/freshness');
 const { Layouts } = require('./lib/layout');
 /* Read-only here — the sidebar filters against it (filterNavGroups below),
@@ -2632,6 +2633,16 @@ const GOOGLE_KEYWORD_TYPES = new Set(['SEARCH', 'DISPLAY', 'MULTI_CHANNEL', 'UNK
  * matched them are now a screen of their own, and this returns the whole payload
  * so both render from one read rather than from two free to disagree.
  */
+/* A thunk that runs once and then answers from memory. */
+function once(fn) {
+  let done = false;
+  let value;
+  return () => {
+    if (!done) { value = fn(); done = true; }
+    return value;
+  };
+}
+
 async function googleAdsPayload(req) {
   const { over } = periodFor(req.query);
   const entities = metrics.period.within(entitiesFor(req.workspace), over);
@@ -2727,117 +2738,122 @@ async function googleAdsPayload(req) {
      in lib/google-ads-rollup.js beside the rest of the Google arithmetic. */
   const measuredKeywords = googleAdsRollup.keywordMetricsIndex(entities.googleKeywords);
 
-  const liveCampaigns = (() => {
-    const by = new Map();
-    for (const row of listing) {
-      const id = row.campaignId === null || row.campaignId === undefined ? '' : String(row.campaignId);
-      if (!by.has(id)) {
-        by.set(id, {
-          campaignId: id || null,
-          campaign: row.campaign || campaignNameById.get(id) || (id ? `Unnamed campaign (${id})` : 'No campaign reported'),
-          status: row.campaignStatus || null,
-          channelType: row.channelType || null,
-          keywords: [],
+  /* The keyword screen's picker. Built on first read — see `lazy.define` on
+     the return below — so the overview and Ad Analytics never pay for it. */
+  const keywordPicker = once(() => {
+    const liveCampaigns = (() => {
+      const by = new Map();
+      for (const row of listing) {
+        const id = row.campaignId === null || row.campaignId === undefined ? '' : String(row.campaignId);
+        if (!by.has(id)) {
+          by.set(id, {
+            campaignId: id || null,
+            campaign: row.campaign || campaignNameById.get(id) || (id ? `Unnamed campaign (${id})` : 'No campaign reported'),
+            status: row.campaignStatus || null,
+            channelType: row.channelType || null,
+            keywords: [],
+          });
+        }
+        const c = by.get(id);
+        const metrics = measuredKeywords.find(row);
+        c.keywords.push({
+          keyword: row.keyword,
+          matchType: row.matchType,
+          status: row.status,
+          adgroup: row.adgroup,
+          /* Null, never zero: a keyword absent from the metrics report did not
+             spend nothing in the range — Google did not report it, which is a
+             different statement and the one the dash makes. */
+          measured: Boolean(metrics && metrics.measured),
+          spendText: metrics && metrics.measured ? asMoney(metrics.spend) : null,
+          spend: metrics && metrics.measured ? metrics.spend : null,
+          impressions: metrics ? metrics.impressions : null,
+          clicks: metrics ? metrics.clicks : null,
+          conversions: metrics ? metrics.conversions : null,
+          ctr: metrics ? rate(metrics.clicks, metrics.impressions) : null,
+          cpcText: metrics && metrics.clicks > 0 ? asMoney(metrics.spend / metrics.clicks) : null,
         });
       }
-      const c = by.get(id);
-      const metrics = measuredKeywords.find(row);
-      c.keywords.push({
-        keyword: row.keyword,
-        matchType: row.matchType,
-        status: row.status,
-        adgroup: row.adgroup,
-        /* Null, never zero: a keyword absent from the metrics report did not
-           spend nothing in the range — Google did not report it, which is a
-           different statement and the one the dash makes. */
-        measured: Boolean(metrics && metrics.measured),
-        spendText: metrics && metrics.measured ? asMoney(metrics.spend) : null,
-        spend: metrics && metrics.measured ? metrics.spend : null,
-        impressions: metrics ? metrics.impressions : null,
-        clicks: metrics ? metrics.clicks : null,
-        conversions: metrics ? metrics.conversions : null,
-        ctr: metrics ? rate(metrics.clicks, metrics.impressions) : null,
-        cpcText: metrics && metrics.clicks > 0 ? asMoney(metrics.spend / metrics.clicks) : null,
-      });
-    }
 
-    return [...by.values()]
-      .map((c) => {
-        const mix = new Map();
-        let paused = 0;
-        let spend = 0;
-        let measured = 0;
-        for (const k of c.keywords) {
-          const match = String(k.matchType || 'unknown').replace(/_/g, ' ').toLowerCase();
-          mix.set(match, (mix.get(match) || 0) + 1);
-          if (String(k.status || '').toUpperCase() === 'PAUSED') paused += 1;
-          if (k.measured) { measured += 1; spend += k.spend || 0; }
-        }
-        /* Alphabetical, not by spend.
-         *
-         * This is a list of what is in the account, and the question asked of
-         * it is "is X in here, and on what match type" — which is answered by
-         * scanning, and scanning needs an order a reader can predict. Ranking
-         * by spend put the same two funded keywords at the top of every
-         * campaign and scattered the rest, and on a list where most rows have
-         * no spend at all it is barely an order. What each keyword *did* is the
-         * measured table below, which stays ranked by spend. */
-        c.keywords.sort((a, b) => BY_NAME.compare(String(a.keyword || ''), String(b.keyword || '')));
-        return {
-          ...c,
-          count: c.keywords.length,
-          paused,
-          /* How much of the list the range actually has figures for. It is the
-             sentence the screen needs: "31 keywords, 2 with delivery in this
-             range" is the honest reading of a table mostly full of dashes. */
-          measured,
-          spendText: measured ? asMoney(spend) : null,
-          matchMix: [...mix.entries()].sort((a, b) => b[1] - a[1]).map(([m, n]) => `${n} ${m}`).join(' · '),
-        };
-      })
-      /* Alphabetical here too, so the picker is a list somebody can find a
-         name in rather than a ranking they have to read through. */
-      .sort((a, b) => BY_NAME.compare(String(a.campaign || ''), String(b.campaign || '')));
-  })();
+      return [...by.values()]
+        .map((c) => {
+          const mix = new Map();
+          let paused = 0;
+          let spend = 0;
+          let measured = 0;
+          for (const k of c.keywords) {
+            const match = String(k.matchType || 'unknown').replace(/_/g, ' ').toLowerCase();
+            mix.set(match, (mix.get(match) || 0) + 1);
+            if (String(k.status || '').toUpperCase() === 'PAUSED') paused += 1;
+            if (k.measured) { measured += 1; spend += k.spend || 0; }
+          }
+          /* Alphabetical, not by spend.
+           *
+           * This is a list of what is in the account, and the question asked of
+           * it is "is X in here, and on what match type" — which is answered by
+           * scanning, and scanning needs an order a reader can predict. Ranking
+           * by spend put the same two funded keywords at the top of every
+           * campaign and scattered the rest, and on a list where most rows have
+           * no spend at all it is barely an order. What each keyword *did* is the
+           * measured table below, which stays ranked by spend. */
+          c.keywords.sort((a, b) => BY_NAME.compare(String(a.keyword || ''), String(b.keyword || '')));
+          return {
+            ...c,
+            count: c.keywords.length,
+            paused,
+            /* How much of the list the range actually has figures for. It is the
+               sentence the screen needs: "31 keywords, 2 with delivery in this
+               range" is the honest reading of a table mostly full of dashes. */
+            measured,
+            spendText: measured ? asMoney(spend) : null,
+            matchMix: [...mix.entries()].sort((a, b) => b[1] - a[1]).map(([m, n]) => `${n} ${m}`).join(' · '),
+          };
+        })
+        /* Alphabetical here too, so the picker is a list somebody can find a
+           name in rather than a ranking they have to read through. */
+        .sort((a, b) => BY_NAME.compare(String(a.campaign || ''), String(b.campaign || '')));
+    })();
 
-  /* **Only campaigns that are live, and only Search.**
-   *
-   * The account's keyword list carries every campaign that has ever had
-   * criteria, so a paused campaign's 309 keywords sat at the top of the picker
-   * describing spend nobody is making. What this screen is opened to answer is
-   * what the account is bidding on *now*.
-   *
-   * Search-only is not a second opinion, it is what the concept means: App,
-   * Performance Max, Demand Gen and Shopping campaigns have no keywords by
-   * construction, so one appearing here would be a classification error rather
-   * than a campaign worth reading.
-   *
-   * Counted rather than silently dropped — a picker that quietly shows six of
-   * nine is a picker somebody will mistrust once they notice, and the line
-   * beneath it says how many are missing and why. */
-  const liveOnly = liveCampaigns.filter((c) => (
-    String(c.status || '').toUpperCase() === 'ENABLED'
-    && String(c.channelType || '').toUpperCase() === 'SEARCH'
-  ));
-  const hiddenCampaigns = liveCampaigns.length - liveOnly.length;
+    /* **Only campaigns that are live, and only Search.**
+     *
+     * The account's keyword list carries every campaign that has ever had
+     * criteria, so a paused campaign's 309 keywords sat at the top of the picker
+     * describing spend nobody is making. What this screen is opened to answer is
+     * what the account is bidding on *now*.
+     *
+     * Search-only is not a second opinion, it is what the concept means: App,
+     * Performance Max, Demand Gen and Shopping campaigns have no keywords by
+     * construction, so one appearing here would be a classification error rather
+     * than a campaign worth reading.
+     *
+     * Counted rather than silently dropped — a picker that quietly shows six of
+     * nine is a picker somebody will mistrust once they notice, and the line
+     * beneath it says how many are missing and why. */
+    const liveOnly = liveCampaigns.filter((c) => (
+      String(c.status || '').toUpperCase() === 'ENABLED'
+      && String(c.channelType || '').toUpperCase() === 'SEARCH'
+    ));
+    const hiddenCampaigns = liveCampaigns.length - liveOnly.length;
 
-  /* If nothing is enabled, show what there is rather than an empty picker: an
-     account that is entirely paused is a real state, and a blank screen
-     describes it worse than a list marked paused would. */
-  const pickable = liveOnly.length ? liveOnly : liveCampaigns;
+    /* If nothing is enabled, show what there is rather than an empty picker: an
+       account that is entirely paused is a real state, and a blank screen
+       describes it worse than a list marked paused would. */
+    const pickable = liveOnly.length ? liveOnly : liveCampaigns;
 
-  /* Which campaign the reader picked. Unknown or absent shows the first, which
-     is now the alphabetically first live Search campaign — a picker that opens
-     on nothing makes the reader choose before it will tell them anything. */
-  const askedCampaign = req.query.campaign === undefined ? null : String(req.query.campaign);
-  /* A link to a campaign that has since been paused still resolves — searched
-     across every campaign, not only the pickable ones — because answering a
-     bookmark with somebody else's campaign is worse than showing a paused one
-     that was asked for by name. */
-  const selectedCampaign = pickable.find((c) => String(c.campaignId) === askedCampaign)
-    || liveCampaigns.find((c) => String(c.campaignId) === askedCampaign)
-    || pickable[0]
-    || null;
+    /* Which campaign the reader picked. Unknown or absent shows the first, which
+       is now the alphabetically first live Search campaign — a picker that opens
+       on nothing makes the reader choose before it will tell them anything. */
+    const askedCampaign = req.query.campaign === undefined ? null : String(req.query.campaign);
+    /* A link to a campaign that has since been paused still resolves — searched
+       across every campaign, not only the pickable ones — because answering a
+       bookmark with somebody else's campaign is worse than showing a paused one
+       that was asked for by name. */
+    const selectedCampaign = pickable.find((c) => String(c.campaignId) === askedCampaign)
+      || liveCampaigns.find((c) => String(c.campaignId) === askedCampaign)
+      || pickable[0]
+      || null;
+    return { pickable, hiddenCampaigns, selectedCampaign };
+  });
 
   /* Which order that campaign's keyword list is in. Alphabetical unless asked
      otherwise — the argument for that default is beside the sort in
@@ -2861,90 +2877,93 @@ async function googleAdsPayload(req) {
    * segment would be a guess dressed as a fact; the screen shows the ad type
    * beside every row instead, so the reader can see what the creative is
    * without the tool inventing a channel for it. */
-  const campaignById = new Map();
-  for (const day of googleDays) {
-    if (day.campaignId === null || day.campaignId === undefined) continue;
-    const id = String(day.campaignId);
-    const held = campaignById.get(id);
-    /* Descriptions from the last dated row, the same rule the rollup uses. */
-    if (!held || (day.date && (!held.date || day.date > held.date))) {
-      campaignById.set(id, {
-        campaign: day.campaign,
-        channelType: day.channelType,
-        /* From the last dated row: Google reports a campaign's *current* state
-           on every day it returns, so the newest row is the true one. */
-        status: day.campaignStatus || null,
-        date: day.date,
-      });
+  const adTables = once(() => {
+    const campaignById = new Map();
+    for (const day of googleDays) {
+      if (day.campaignId === null || day.campaignId === undefined) continue;
+      const id = String(day.campaignId);
+      const held = campaignById.get(id);
+      /* Descriptions from the last dated row, the same rule the rollup uses. */
+      if (!held || (day.date && (!held.date || day.date > held.date))) {
+        campaignById.set(id, {
+          campaign: day.campaign,
+          channelType: day.channelType,
+          /* From the last dated row: Google reports a campaign's *current* state
+             on every day it returns, so the newest row is the true one. */
+          status: day.campaignStatus || null,
+          date: day.date,
+        });
+      }
     }
-  }
 
-  const adRows = ads.map((a) => {
-    const of_ = a.campaignId === null || a.campaignId === undefined ? null : campaignById.get(String(a.campaignId));
-    return {
-      ...a,
-      campaign: of_ ? of_.campaign : null,
-      /* Null, not "Other": an ad whose campaign is not in this range is a row
-         whose surface is unknown, and the screen says unknown. */
-      channel: of_ && of_.channelType ? String(of_.channelType).toUpperCase() : null,
-      campaignStatus: of_ && of_.status ? String(of_.status).toUpperCase() : null,
-      adgroup: (entities.googleAdGroups || []).length
-        ? (adGroups.find((g) => String(g.adgroupId) === String(a.adgroupId)) || {}).adgroup || null
-        : null,
-    };
+    const adRows = ads.map((a) => {
+      const of_ = a.campaignId === null || a.campaignId === undefined ? null : campaignById.get(String(a.campaignId));
+      return {
+        ...a,
+        campaign: of_ ? of_.campaign : null,
+        /* Null, not "Other": an ad whose campaign is not in this range is a row
+           whose surface is unknown, and the screen says unknown. */
+        channel: of_ && of_.channelType ? String(of_.channelType).toUpperCase() : null,
+        campaignStatus: of_ && of_.status ? String(of_.status).toUpperCase() : null,
+        adgroup: (entities.googleAdGroups || []).length
+          ? (adGroups.find((g) => String(g.adgroupId) === String(a.adgroupId)) || {}).adgroup || null
+          : null,
+      };
+    });
+
+    /* **Only what is live, unless asked otherwise.**
+     *
+     * A paused campaign's ads describe spend nobody is making. They still spent it
+     * inside the range, so they are not wrong — they are answering a question
+     * nobody asked of this screen, which is "what is running".
+     *
+     * Live means the ad is enabled *and* its campaign is: an enabled ad in a
+     * paused campaign serves nothing. **Unknown is kept, never hidden** — a
+     * campaign that reported no spend in the range has no status here, and
+     * treating silence as paused would drop rows for a reason the data does not
+     * support. `?show=all` puts everything back, and the count of what is hidden
+     * is on the screen either way: a table that quietly drops rows is a table
+     * somebody stops trusting the moment they notice. */
+    const showAll = String(req.query.show || '') === 'all';
+    const isLive = (a) => (
+      String(a.status || 'ENABLED').toUpperCase() === 'ENABLED'
+      && String(a.campaignStatus || 'ENABLED').toUpperCase() === 'ENABLED'
+    );
+    const pausedAds = adRows.filter((a) => !isLive(a));
+    const shownRows = showAll ? adRows : adRows.filter(isLive);
+
+    /* The three surfaces asked for by name, then anything else the account
+       actually runs. A segment with no ads is still drawn — "no Video campaigns
+       ran in this range" is an answer, and an absent chip would leave the reader
+       wondering whether the screen forgot. */
+    const NAMED_CHANNELS = [
+      { key: 'SEARCH', label: 'Search' },
+      { key: 'VIDEO', label: 'Video' },
+      { key: 'DISPLAY', label: 'Display' },
+    ];
+    const extraChannels = [...new Set(shownRows.map((a) => a.channel).filter(Boolean))]
+      .filter((c) => !NAMED_CHANNELS.some((n) => n.key === c))
+      .sort()
+      .map((key) => ({ key, label: key.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (m) => m.toUpperCase()) }));
+
+    const segments = [...NAMED_CHANNELS, ...extraChannels].map((c) => {
+      const rows = shownRows.filter((a) => a.channel === c.key);
+      return {
+        ...c,
+        count: rows.length,
+        spend: rows.reduce((t, a) => t + (a.measured ? a.spend : 0), 0),
+        spendText: rows.some((a) => a.measured) ? asMoney(rows.reduce((t, a) => t + (a.measured ? a.spend : 0), 0)) : null,
+        impressions: rows.reduce((t, a) => t + (a.impressions || 0), 0),
+        clicks: rows.reduce((t, a) => t + (a.clicks || 0), 0),
+        conversions: rows.reduce((t, a) => t + (a.conversions || 0), 0),
+      };
+    });
+
+    const unplaced = shownRows.filter((a) => !a.channel).length;
+    const askedSegment = String(req.query.segment || '').toUpperCase();
+    const segment = segments.some((c) => c.key === askedSegment) ? askedSegment : null;
+    return { shownRows, pausedAds, showAll, segments, segment, unplaced };
   });
-
-  /* **Only what is live, unless asked otherwise.**
-   *
-   * A paused campaign's ads describe spend nobody is making. They still spent it
-   * inside the range, so they are not wrong — they are answering a question
-   * nobody asked of this screen, which is "what is running".
-   *
-   * Live means the ad is enabled *and* its campaign is: an enabled ad in a
-   * paused campaign serves nothing. **Unknown is kept, never hidden** — a
-   * campaign that reported no spend in the range has no status here, and
-   * treating silence as paused would drop rows for a reason the data does not
-   * support. `?show=all` puts everything back, and the count of what is hidden
-   * is on the screen either way: a table that quietly drops rows is a table
-   * somebody stops trusting the moment they notice. */
-  const showAll = String(req.query.show || '') === 'all';
-  const isLive = (a) => (
-    String(a.status || 'ENABLED').toUpperCase() === 'ENABLED'
-    && String(a.campaignStatus || 'ENABLED').toUpperCase() === 'ENABLED'
-  );
-  const pausedAds = adRows.filter((a) => !isLive(a));
-  const shownRows = showAll ? adRows : adRows.filter(isLive);
-
-  /* The three surfaces asked for by name, then anything else the account
-     actually runs. A segment with no ads is still drawn — "no Video campaigns
-     ran in this range" is an answer, and an absent chip would leave the reader
-     wondering whether the screen forgot. */
-  const NAMED_CHANNELS = [
-    { key: 'SEARCH', label: 'Search' },
-    { key: 'VIDEO', label: 'Video' },
-    { key: 'DISPLAY', label: 'Display' },
-  ];
-  const extraChannels = [...new Set(shownRows.map((a) => a.channel).filter(Boolean))]
-    .filter((c) => !NAMED_CHANNELS.some((n) => n.key === c))
-    .sort()
-    .map((key) => ({ key, label: key.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (m) => m.toUpperCase()) }));
-
-  const segments = [...NAMED_CHANNELS, ...extraChannels].map((c) => {
-    const rows = shownRows.filter((a) => a.channel === c.key);
-    return {
-      ...c,
-      count: rows.length,
-      spend: rows.reduce((t, a) => t + (a.measured ? a.spend : 0), 0),
-      spendText: rows.some((a) => a.measured) ? asMoney(rows.reduce((t, a) => t + (a.measured ? a.spend : 0), 0)) : null,
-      impressions: rows.reduce((t, a) => t + (a.impressions || 0), 0),
-      clicks: rows.reduce((t, a) => t + (a.clicks || 0), 0),
-      conversions: rows.reduce((t, a) => t + (a.conversions || 0), 0),
-    };
-  });
-
-  const unplaced = shownRows.filter((a) => !a.channel).length;
-  const askedSegment = String(req.query.segment || '').toUpperCase();
-  const segment = segments.some((c) => c.key === askedSegment) ? askedSegment : null;
 
   /* **Every table on this screen sorts, and each one has its own parameter.**
      One shared `sort` would mean ordering the search terms by CTR silently
@@ -2971,109 +2990,115 @@ async function googleAdsPayload(req) {
     sortAds: googleAdsRollup.parseSort(req.query.sortAds, 'spend'),
   };
 
-  const selectedOrdered = selectedCampaign
-    ? { ...selectedCampaign, keywords: googleAdsRollup.orderAccountKeywords(selectedCampaign.keywords, sorts.sort) }
-    : null;
+  /* Everything only the keyword screen reads — the 60,000 search-term rows
+     above all. */
+  const keywordTables = once(() => {
+    const { selectedCampaign } = keywordPicker();
+    const selectedOrdered = selectedCampaign
+      ? { ...selectedCampaign, keywords: googleAdsRollup.orderAccountKeywords(selectedCampaign.keywords, sorts.sort) }
+      : null;
 
-  const keywordsByCampaign = (() => {
-    const rows = rollUp(entities.googleKeywords, (r) => `${r.campaignId} ${r.keyword}`, (r) => ({
-      keyword: r.keyword, matchType: r.matchType, qualityScore: r.qualityScore, campaignId: r.campaignId,
+    const keywordsByCampaign = (() => {
+      const rows = rollUp(entities.googleKeywords, (r) => `${r.campaignId} ${r.keyword}`, (r) => ({
+        keyword: r.keyword, matchType: r.matchType, qualityScore: r.qualityScore, campaignId: r.campaignId,
+      }));
+
+      const by = new Map();
+      for (const row of rows) {
+        const id = row.campaignId === null || row.campaignId === undefined ? '' : String(row.campaignId);
+        if (!by.has(id)) by.set(id, []);
+        by.get(id).push(row);
+      }
+
+      return [...by.entries()]
+        .map(([id, list]) => {
+          const total = list.reduce((t, k) => ({
+            spend: t.spend + k.spend,
+            impressions: t.impressions + k.impressions,
+            clicks: t.clicks + k.clicks,
+            conversions: t.conversions + k.conversions,
+          }), { spend: 0, impressions: 0, clicks: 0, conversions: 0 });
+
+          /* "3 exact · 1 broad" — the shape of the campaign's bidding in one
+             line, so a campaign that is all broad match is visible without
+             reading every row of it. */
+          const mix = new Map();
+          for (const k of list) {
+            const match = String(k.matchType || 'unknown').replace(/_/g, ' ').toLowerCase();
+            mix.set(match, (mix.get(match) || 0) + 1);
+          }
+
+          return {
+            campaignId: id || null,
+            /* A campaign the range holds keywords for but no spend rows for
+               cannot be named — say so rather than printing a bare id as though
+               it were a name. */
+            campaign: campaignNameById.get(id) || (id ? `Unnamed campaign (${id})` : 'No campaign reported'),
+            named: Boolean(campaignNameById.get(id)),
+            keywords: list,
+            count: list.length,
+            matchMix: [...mix.entries()].sort((a, b) => b[1] - a[1]).map(([m, n]) => `${n} ${m}`).join(' · '),
+            spend: total.spend,
+            spendText: asMoney(total.spend),
+            impressions: total.impressions,
+            clicks: total.clicks,
+            conversions: total.conversions,
+            ctr: rate(total.clicks, total.impressions),
+          };
+        })
+        .sort((a, b) => b.spend - a.spend);
+    })();
+    const searchTerms = rollUp(entities.googleSearchTerms, (r) => r.term, (r) => ({
+      term: r.term, termStatus: r.termStatus, adgroupId: r.adgroupId,
     }));
 
-    const by = new Map();
-    for (const row of rows) {
-      const id = row.campaignId === null || row.campaignId === undefined ? '' : String(row.campaignId);
-      if (!by.has(id)) by.set(id, []);
-      by.get(id).push(row);
+    const adgroupName = new Map(adGroups.map((g) => [g.adgroupId, g.adgroup]));
+
+    const terms = searchTerms.map((t) => ({
+      ...t,
+      adgroup: adgroupName.get(t.adgroupId) || null,
+      ctr: rate(t.clicks, t.impressions),
+      convRate: rate(t.conversions, t.clicks),
+      wasted: t.spend > 0 && !t.conversions,
+    }));
+
+    const wastedTerms = terms.filter((t) => t.wasted);
+    const termSummary = {
+      total: terms.length,
+      converting: terms.filter((t) => t.conversions > 0).length,
+      wasted: wastedTerms.length,
+      wastedSpendText: wastedTerms.length ? asMoney(wastedTerms.reduce((s, t) => s + t.spend, 0)) : null,
+    };
+
+    /* Which *words* are costing money, as opposed to which phrases.
+     *
+     * A search term report is long and mostly one-off phrases — the same waste
+     * shows up as fifty near-identical rows, each too small to notice. Rolling
+     * spend up by word is what makes a negative keyword obvious: one token
+     * appearing across a dozen non-converting terms is the thing worth excluding,
+     * and no per-row view surfaces it.
+     *
+     * Deliberately not stemmed or stopword-filtered beyond the shortest tokens:
+     * this is the account's own vocabulary, and guessing which words are
+     * meaningful is how a tool starts hiding the answer. */
+    const byWord = new Map();
+    for (const t of terms) {
+      const seen = new Set(String(t.term || '').toLowerCase().split(/\s+/).filter((w) => w.length > 2));
+      for (const word of seen) {
+        const acc = byWord.get(word) || { word, terms: 0, spend: 0, clicks: 0, conversions: 0 };
+        acc.terms += 1;
+        acc.spend += t.spend;
+        acc.clicks += t.clicks;
+        acc.conversions += t.conversions;
+        byWord.set(word, acc);
+      }
     }
-
-    return [...by.entries()]
-      .map(([id, list]) => {
-        const total = list.reduce((t, k) => ({
-          spend: t.spend + k.spend,
-          impressions: t.impressions + k.impressions,
-          clicks: t.clicks + k.clicks,
-          conversions: t.conversions + k.conversions,
-        }), { spend: 0, impressions: 0, clicks: 0, conversions: 0 });
-
-        /* "3 exact · 1 broad" — the shape of the campaign's bidding in one
-           line, so a campaign that is all broad match is visible without
-           reading every row of it. */
-        const mix = new Map();
-        for (const k of list) {
-          const match = String(k.matchType || 'unknown').replace(/_/g, ' ').toLowerCase();
-          mix.set(match, (mix.get(match) || 0) + 1);
-        }
-
-        return {
-          campaignId: id || null,
-          /* A campaign the range holds keywords for but no spend rows for
-             cannot be named — say so rather than printing a bare id as though
-             it were a name. */
-          campaign: campaignNameById.get(id) || (id ? `Unnamed campaign (${id})` : 'No campaign reported'),
-          named: Boolean(campaignNameById.get(id)),
-          keywords: list,
-          count: list.length,
-          matchMix: [...mix.entries()].sort((a, b) => b[1] - a[1]).map(([m, n]) => `${n} ${m}`).join(' · '),
-          spend: total.spend,
-          spendText: asMoney(total.spend),
-          impressions: total.impressions,
-          clicks: total.clicks,
-          conversions: total.conversions,
-          ctr: rate(total.clicks, total.impressions),
-        };
-      })
+    const words = [...byWord.values()]
+      .filter((w) => w.terms > 1)
+      .map((w) => ({ ...w, spendText: asMoney(w.spend), wasted: w.spend > 0 && !w.conversions }))
       .sort((a, b) => b.spend - a.spend);
-  })();
-  const searchTerms = rollUp(entities.googleSearchTerms, (r) => r.term, (r) => ({
-    term: r.term, termStatus: r.termStatus, adgroupId: r.adgroupId,
-  }));
-
-  const adgroupName = new Map(adGroups.map((g) => [g.adgroupId, g.adgroup]));
-
-  const terms = searchTerms.map((t) => ({
-    ...t,
-    adgroup: adgroupName.get(t.adgroupId) || null,
-    ctr: rate(t.clicks, t.impressions),
-    convRate: rate(t.conversions, t.clicks),
-    wasted: t.spend > 0 && !t.conversions,
-  }));
-
-  const wastedTerms = terms.filter((t) => t.wasted);
-  const termSummary = {
-    total: terms.length,
-    converting: terms.filter((t) => t.conversions > 0).length,
-    wasted: wastedTerms.length,
-    wastedSpendText: wastedTerms.length ? asMoney(wastedTerms.reduce((s, t) => s + t.spend, 0)) : null,
-  };
-
-  /* Which *words* are costing money, as opposed to which phrases.
-   *
-   * A search term report is long and mostly one-off phrases — the same waste
-   * shows up as fifty near-identical rows, each too small to notice. Rolling
-   * spend up by word is what makes a negative keyword obvious: one token
-   * appearing across a dozen non-converting terms is the thing worth excluding,
-   * and no per-row view surfaces it.
-   *
-   * Deliberately not stemmed or stopword-filtered beyond the shortest tokens:
-   * this is the account's own vocabulary, and guessing which words are
-   * meaningful is how a tool starts hiding the answer. */
-  const byWord = new Map();
-  for (const t of terms) {
-    const seen = new Set(String(t.term || '').toLowerCase().split(/\s+/).filter((w) => w.length > 2));
-    for (const word of seen) {
-      const acc = byWord.get(word) || { word, terms: 0, spend: 0, clicks: 0, conversions: 0 };
-      acc.terms += 1;
-      acc.spend += t.spend;
-      acc.clicks += t.clicks;
-      acc.conversions += t.conversions;
-      byWord.set(word, acc);
-    }
-  }
-  const words = [...byWord.values()]
-    .filter((w) => w.terms > 1)
-    .map((w) => ({ ...w, spendText: asMoney(w.spend), wasted: w.spend > 0 && !w.conversions }))
-    .sort((a, b) => b.spend - a.spend);
+    return { selectedOrdered, keywordsByCampaign, terms, wastedTerms, termSummary, words };
+  });
 
   /* Conversions carry no spend — they are a breakdown of the campaign's — so
      they are rolled up on their own terms rather than through `rollUp`. */
@@ -3268,7 +3293,7 @@ async function googleAdsPayload(req) {
     ? `every campaign in this range is ${types.join(', ')}`
     : null;
 
-  return {
+  const data = {
     rangeLabel: rangeLabel(over),
     /* The range and any filter, carried on the link between the two Google
        screens — following it should not silently reset the window the reader
@@ -3280,33 +3305,54 @@ async function googleAdsPayload(req) {
     table: String(req.query.table || ''),
     connected: live.has('google_ads'),
     campaigns, campaignTotal, adGroups, ads, conversions,
-    /* Ad Analytics reads these three; the Google Ads screen ignores them, which
-       is cheaper than a second payload that could disagree with this one. */
-    adRows: googleAdsRollup.orderRows(segment ? shownRows.filter((a) => a.channel === segment) : shownRows, sorts.sortAds, 'spend'),
-    adTotal: shownRows.length,
-    segments, segment, unplaced,
-    /* What "live" left out, and the way to see it. */
-    pausedAds: pausedAds.length,
-    pausedSpendText: pausedAds.some((a) => a.measured)
-      ? asMoney(pausedAds.reduce((t, a) => t + (a.measured ? a.spend : 0), 0))
-      : null,
-    showingAll: showAll,
     /* Ordered here rather than in the view: which rows a ten-row preview shows
        depends on the order, so a table sorted in the template would preview one
        set of rows and describe another. */
     keywords: googleAdsRollup.orderRows(keywords, sorts.sortKeywords, 'spend'),
-    keywordsByCampaign: keywordsByCampaign.map((c) => ({
-      ...c, keywords: googleAdsRollup.orderRows(c.keywords, sorts.sortCampaigns, 'spend'),
-    })),
-    liveCampaigns: pickable, hiddenCampaigns, selectedCampaign: selectedOrdered, sorts,
-    searchTerms: googleAdsRollup.orderRows(terms, sorts.sortTerms, 'spend'),
-    /* The worklist is its own table with its own column in use, so it is filtered
-       and ordered here rather than sliced out of the sorted report in the view. */
-    wastedTerms: googleAdsRollup.orderRows(wastedTerms, sorts.sortWasted, 'spend'),
-    termSummary,
-    words: googleAdsRollup.orderRows(words, sorts.sortWords, 'spend'),
-    keywordsNotApplicable, paidSearch,
+    sorts, keywordsNotApplicable, paidSearch,
   };
+
+  /* Three screens read this payload and each reads its own slice of it, so the
+     slices are built when a template first reads them rather than up front —
+     the overview never rolls up 60,000 search terms, and on a cold instance
+     never inflates them either (lib/store/lazy.js). Same values, same single
+     payload: only when the work happens has moved. */
+  const later = (key, compute) => lazy.define(data, key, compute);
+
+  /* Ad Analytics. */
+  later('adRows', () => {
+    const { shownRows, segment } = adTables();
+    return googleAdsRollup.orderRows(segment ? shownRows.filter((a) => a.channel === segment) : shownRows, sorts.sortAds, 'spend');
+  });
+  later('adTotal', () => adTables().shownRows.length);
+  later('segments', () => adTables().segments);
+  later('segment', () => adTables().segment);
+  later('unplaced', () => adTables().unplaced);
+  /* What "live" left out, and the way to see it. */
+  later('pausedAds', () => adTables().pausedAds.length);
+  later('pausedSpendText', () => {
+    const { pausedAds } = adTables();
+    return pausedAds.some((a) => a.measured)
+      ? asMoney(pausedAds.reduce((t, a) => t + (a.measured ? a.spend : 0), 0))
+      : null;
+  });
+  later('showingAll', () => adTables().showAll);
+
+  /* Keyword Analytics. */
+  later('keywordsByCampaign', () => keywordTables().keywordsByCampaign.map((c) => ({
+    ...c, keywords: googleAdsRollup.orderRows(c.keywords, sorts.sortCampaigns, 'spend'),
+  })));
+  later('liveCampaigns', () => keywordPicker().pickable);
+  later('hiddenCampaigns', () => keywordPicker().hiddenCampaigns);
+  later('selectedCampaign', () => keywordTables().selectedOrdered);
+  later('searchTerms', () => googleAdsRollup.orderRows(keywordTables().terms, sorts.sortTerms, 'spend'));
+  /* The worklist is its own table with its own column in use, so it is filtered
+     and ordered here rather than sliced out of the sorted report in the view. */
+  later('wastedTerms', () => googleAdsRollup.orderRows(keywordTables().wastedTerms, sorts.sortWasted, 'spend'));
+  later('termSummary', () => keywordTables().termSummary);
+  later('words', () => googleAdsRollup.orderRows(keywordTables().words, sorts.sortWords, 'spend'));
+
+  return data;
 }
 
 /* Both Google screens render through here.
