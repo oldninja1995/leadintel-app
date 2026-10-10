@@ -27,6 +27,15 @@ const failing = connections.filter(function (c) { return c.state === 'failing'; 
 const needsAttention = broken[0] || failing[0]
   || connections.find(function (c) { return !c.configured; });
 
+/* Connected sources first, the rest below — the common visit is to read or
+   repair one of the few that are set up, not to scroll past six unconnected
+   OTAs to find it. Within each group the declared order holds (sort is
+   stable). Receiving leads, then anything set up but in trouble. */
+const RANK = { on: 0, failing: 1, broken: 1, idle: 2, off: 3 };
+const ordered = connections.slice().sort(function (a, b) {
+  return (RANK[a.state] == null ? 3 : RANK[a.state]) - (RANK[b.state] == null ? 3 : RANK[b.state]);
+});
+
 /* Seconds, as somebody reading a status line would say it. */
 function lag(seconds) {
   if (seconds < 90) return seconds + 's';
@@ -106,7 +115,7 @@ const openSource = canManage
   <% } %>
 
   <div class="li-conn-list">
-    <% connections.forEach(function (c) { %>
+    <% ordered.forEach(function (c) { %>
       <%
       /* Five states, and the rule for them is in lib/connections.js — see
          `stateOf` for why. It used to be decided here from webhook deliveries
@@ -355,6 +364,13 @@ const openSource = canManage
                 %>
                   <a class="li-conn-secondary li-conn-oauth" href="/connections/<%= c.source %>/oauth/start" title="Sign in with Google and store a refresh token">
                     <i class="ph ph-google-logo"></i><%= hasToken ? 'Re-authorise' : 'Connect with Google' %>
+                  </a>
+                <% } %>
+                <% if (c.source === 'meta_ads') {
+                  var hasMetaToken = c.fields.some(function (f) { return f.key === 'accessToken' && f.set; });
+                %>
+                  <a class="li-conn-secondary li-conn-oauth" href="/connections/meta_ads/oauth/start" title="Sign in with Facebook and store a long-lived access token">
+                    <i class="ph ph-meta-logo"></i><%= hasMetaToken ? 'Re-authorise' : 'Connect with Facebook' %>
                   </a>
                 <% } %>
                 <% if (c.configured) { %>

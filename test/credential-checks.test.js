@@ -103,8 +103,8 @@ test('every wrong field is reported at once, not one per attempt', () => {
 /* A missing field is a different problem and keeps its own message. */
 test('an empty field still reports as missing rather than malformed', () => {
   assert.throws(
-    () => fresh().set('parakkat', 'meta_ads', { accountId: 'act_1', accessToken: '' }),
-    /needs Access token/
+    () => fresh().set('parakkat', 'meta_ads', { accountId: '', accessToken: 'EAA' + 'x'.repeat(80) }),
+    /needs Ad account id/
   );
 });
 

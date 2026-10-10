@@ -499,3 +499,52 @@ test('the thumbnail size is asked for only where a thumbnail is fetched', () => 
     assert.equal(params.get('thumbnail_width'), null, `${kind} must not ask for a thumbnail size`);
   }
 });
+
+/* ── "Connect with Facebook" ─────────────────────────────────────────────── */
+
+test('the consent URL asks for ads_read against the stored app and redirect', () => {
+  const url = new URL(meta.consentUrl({ appId: '1234567890', redirectUri: 'https://x.test/cb', state: 's1' }));
+  assert.equal(url.origin + url.pathname, `https://www.facebook.com/${meta.VERSION}/dialog/oauth`);
+  assert.equal(url.searchParams.get('client_id'), '1234567890');
+  assert.equal(url.searchParams.get('redirect_uri'), 'https://x.test/cb');
+  assert.equal(url.searchParams.get('scope'), 'ads_read');
+  assert.equal(url.searchParams.get('state'), 's1');
+});
+
+test('a code is traded for a short token, then for a long-lived one', async () => {
+  const calls = [];
+  const fetchImpl = async (u) => {
+    const q = new URL(u).searchParams;
+    calls.push(q);
+    const body = q.get('grant_type') === 'fb_exchange_token'
+      ? { access_token: 'EAAlong', expires_in: 5184000 }
+      : { access_token: 'EAAshort', expires_in: 3600 };
+    return { ok: true, status: 200, json: async () => body };
+  };
+  const out = await meta.tokenFromCode({
+    code: 'c0de', redirectUri: 'https://x.test/cb', credentials: { appId: '1', appSecret: 'sec' },
+  }, fetchImpl);
+
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].get('code'), 'c0de');
+  assert.equal(calls[0].get('redirect_uri'), 'https://x.test/cb');
+  assert.equal(calls[1].get('fb_exchange_token'), 'EAAshort');
+  assert.equal(calls[1].get('client_secret'), 'sec');
+  assert.equal(out.accessToken, 'EAAlong');
+  assert.ok(Date.parse(out.expiresAt) > Date.now() + 59 * 86400 * 1000);
+});
+
+/* Storing the hour-long token would sync once and die by the next cron tick —
+   the exact failure this flow replaces — so a failed exchange is an error. */
+test('a refused long-lived exchange fails rather than storing the short token', async () => {
+  const fetchImpl = async (u) => {
+    const long = new URL(u).searchParams.get('grant_type') === 'fb_exchange_token';
+    return long
+      ? { ok: false, status: 400, json: async () => ({ error: { message: 'Invalid client_secret' } }) }
+      : { ok: true, status: 200, json: async () => ({ access_token: 'EAAshort' }) };
+  };
+  await assert.rejects(
+    meta.tokenFromCode({ code: 'c', redirectUri: 'r', credentials: { appId: '1', appSecret: 'x' } }, fetchImpl),
+    /long-lived token exchange: Invalid client_secret/
+  );
+});

@@ -29,6 +29,7 @@ const backfill = require('./lib/ingest/backfill');
 /* Directly, for the account picker — that call is a Connections-screen concern
    rather than part of any sync. */
 const googleAds = require('./lib/ingest/http/google-ads');
+const metaAds = require('./lib/ingest/http/meta-ads');
 const filters = require('./lib/filters');
 /* The Google day-grain rollup — its own file because every figure on both
    Google screens is its output, and it had no test while it was a closure. */
@@ -1896,7 +1897,7 @@ app.get('/connections/:source/oauth/start',
     const back = (message, key = 'error') =>
       res.redirect(303, `/connections?source=${encodeURIComponent(source)}&${key}=${encodeURIComponent(message)}`);
 
-    if (!scope) return back(`${source} does not authorise through Google.`);
+    if (!scope && source !== 'meta_ads') return back(`${source} does not authorise in the browser.`);
 
     let stored;
     try {
@@ -1904,14 +1905,27 @@ app.get('/connections/:source/oauth/start',
     } catch (err) {
       return back(`the stored credential could not be read — ${err.message}`);
     }
-    if (!stored.clientId || !stored.clientSecret) {
-      return back('Save the OAuth client id and secret first — this flow asks Google for a refresh token against them.');
-    }
-
     /* Signed into the state so the callback knows the request began here and
        for which source. A callback that trusted its query alone would take a
        code from anywhere. */
     const state = auth.sessions.seal(`${req.workspace}:${source}:${Date.now()}`);
+
+    /* Meta: same shape, its own app credentials and dialog. The App ID and
+       secret sit on the Meta card beside the ad account id. */
+    if (source === 'meta_ads') {
+      if (!stored.appId || !stored.appSecret) {
+        return back('Save the App ID and App secret first — this flow asks Meta for an access token against them.');
+      }
+      return res.redirect(302, metaAds.consentUrl({
+        appId: stored.appId,
+        redirectUri: oauthRedirectUri(req, source),
+        state,
+      }));
+    }
+
+    if (!stored.clientId || !stored.clientSecret) {
+      return back('Save the OAuth client id and secret first — this flow asks Google for a refresh token against them.');
+    }
     return res.redirect(302, googleAds.consentUrl({
       clientId: stored.clientId,
       redirectUri: oauthRedirectUri(req, source),
@@ -1924,6 +1938,7 @@ app.get('/connections/:source/oauth/callback',
   gatekeeper.gate('connection.manage', (req) => ({ source: req.params.source, action: 'oauth' })),
   async (req, res) => {
     const source = req.params.source;
+    const vendor = source === 'meta_ads' ? 'Meta' : 'Google';
     const back = (message, key = 'error') =>
       res.redirect(303, `/connections?source=${encodeURIComponent(source)}&${key}=${encodeURIComponent(message)}`);
 
@@ -1931,9 +1946,9 @@ app.get('/connections/:source/oauth/callback',
       /* `access_denied` is somebody pressing Cancel, which is not a fault. */
       return back(req.query.error === 'access_denied'
         ? 'Authorisation was cancelled — nothing has changed.'
-        : `Google refused the authorisation: ${req.query.error}`);
+        : `${vendor} refused the authorisation: ${req.query.error_description || req.query.error}`);
     }
-    if (!req.query.code) return back('Google returned no authorisation code.');
+    if (!req.query.code) return back(`${vendor} returned no authorisation code.`);
     const opened = auth.sessions.unseal(String(req.query.state || ''));
     if (!opened || !opened.startsWith(`${req.workspace}:${source}:`)) {
       return back('That authorisation did not start here, so it was not accepted.');
@@ -1941,13 +1956,30 @@ app.get('/connections/:source/oauth/callback',
 
     try {
       const stored = connections.secretsFor(req.workspace, source) || {};
-      const refreshToken = await googleAds.refreshTokenFromCode({
-        code: String(req.query.code),
-        redirectUri: oauthRedirectUri(req, source),
-        credentials: stored,
-      });
+      let update;
+      let saved;
+      if (source === 'meta_ads') {
+        const minted = await metaAds.tokenFromCode({
+          code: String(req.query.code),
+          redirectUri: oauthRedirectUri(req, source),
+          credentials: stored,
+        });
+        update = { accessToken: minted.accessToken };
+        saved = `Meta Ads: a new access token was stored${minted.expiresAt
+          ? `, valid until ${minted.expiresAt.slice(0, 10)} — press Re-authorise again before then`
+          : ''}. Press Test, then Sync now.`;
+      } else {
+        update = {
+          refreshToken: await googleAds.refreshTokenFromCode({
+            code: String(req.query.code),
+            redirectUri: oauthRedirectUri(req, source),
+            credentials: stored,
+          }),
+        };
+        saved = `${source}: a new refresh token was stored. Press Test, then Sync now.`;
+      }
 
-      connections.set(req.workspace, source, { ...stored, refreshToken }, { by: req.user && req.user.name });
+      connections.set(req.workspace, source, { ...stored, ...update }, { by: req.user && req.user.name });
       await connections.flush();
       /* Which sources read fixtures changes when a credential does, so the
          snapshot has to be rebuilt rather than merely marked stale. */
@@ -1957,7 +1989,7 @@ app.get('/connections/:source/oauth/callback',
         workspace: req.workspace, detail: { source, action: 'oauth' },
       });
 
-      return back(`${source}: a new refresh token was stored. Press Test, then Sync now.`, 'saved');
+      return back(saved, 'saved');
     } catch (err) {
       return back(err.message);
     }
