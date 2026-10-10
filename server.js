@@ -1437,6 +1437,14 @@ app.use((req, res, next) => {
  * loses the reads that got it here, and appending to an absent header is how
  * it ends up reading "undefined, render;dur=…". Durations only, like the rest
  * of the header. */
+/* The snapshot parts this request inflated, if any — see lib/store/snapshot.js. */
+function markInflated(res) {
+  const taken = snapshot.takeInflated();
+  if (!taken.length) return;
+  const ms = taken.reduce((n, entry) => n + Number(entry.split(':').pop()), 0);
+  mark(res, 'inflate', ms, taken.join(' '));
+}
+
 function mark(res, name, ms, desc = null) {
   if (res.headersSent) return;
   const mark = `${name};dur=${ms}${desc ? `;desc="${String(desc).replace(/"/g, '')}"` : ''}`;
@@ -3333,6 +3341,7 @@ async function renderGoogleAds(req, res, slug) {
   }, (err, html) => {
     if (err) throw err;
     mark(res, 'render', since(), `${Math.round(html.length / 1024)}KB`);
+    markInflated(res);
     return res.send(html);
   });
 }
@@ -4264,6 +4273,7 @@ function screenRoute(screen) {
         /* Everything between the last mark and here: the shell, the palette,
            the filter seed and the template itself. */
         mark(res, 'render', since(), `${Math.round(html.length / 1024)}KB`);
+        markInflated(res);
         return res.send(html);
       });
     } catch (err) {
