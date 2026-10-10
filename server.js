@@ -2633,6 +2633,8 @@ const GOOGLE_KEYWORD_TYPES = new Set(['SEARCH', 'DISPLAY', 'MULTI_CHANNEL', 'UNK
  * matched them are now a screen of their own, and this returns the whole payload
  * so both render from one read rather than from two free to disagree.
  */
+const GOOGLE_ADS_SLUGS = new Set(['google-ads', 'google-ads/keywords', 'google-ads/ads']);
+
 /* A thunk that runs once and then answers from memory. */
 function once(fn) {
   let done = false;
@@ -2643,7 +2645,7 @@ function once(fn) {
   };
 }
 
-async function googleAdsPayload(req) {
+async function googleAdsPayload(req, slug = null) {
   const { over } = periodFor(req.query);
   const entities = metrics.period.within(entitiesFor(req.workspace), over);
 
@@ -3312,45 +3314,51 @@ async function googleAdsPayload(req) {
     sorts, keywordsNotApplicable, paidSearch,
   };
 
-  /* Three screens read this payload and each reads its own slice of it, so the
-     slices are built when a template first reads them rather than up front —
-     the overview never rolls up 60,000 search terms, and on a cold instance
-     never inflates them either (lib/store/lazy.js). Same values, same single
-     payload: only when the work happens has moved. */
+  /* Three screens read this payload and each reads its own slice of it, so a
+     slice is attached only for the screen that draws it — the overview never
+     rolls up 60,000 search terms, and on a cold instance never inflates them
+     either. Attached, not merely lazy: `include('app/…', data)` in the layout
+     copies every property into the template's locals, which would read them
+     all. An unknown slug gets everything, as it always did. */
   const later = (key, compute) => lazy.define(data, key, compute);
+  const draws = (screen) => slug === null || !GOOGLE_ADS_SLUGS.has(slug) || slug === screen;
 
   /* Ad Analytics. */
-  later('adRows', () => {
-    const { shownRows, segment } = adTables();
-    return googleAdsRollup.orderRows(segment ? shownRows.filter((a) => a.channel === segment) : shownRows, sorts.sortAds, 'spend');
-  });
-  later('adTotal', () => adTables().shownRows.length);
-  later('segments', () => adTables().segments);
-  later('segment', () => adTables().segment);
-  later('unplaced', () => adTables().unplaced);
-  /* What "live" left out, and the way to see it. */
-  later('pausedAds', () => adTables().pausedAds.length);
-  later('pausedSpendText', () => {
-    const { pausedAds } = adTables();
-    return pausedAds.some((a) => a.measured)
-      ? asMoney(pausedAds.reduce((t, a) => t + (a.measured ? a.spend : 0), 0))
-      : null;
-  });
-  later('showingAll', () => adTables().showAll);
+  if (draws('google-ads/ads')) {
+    later('adRows', () => {
+      const { shownRows, segment } = adTables();
+      return googleAdsRollup.orderRows(segment ? shownRows.filter((a) => a.channel === segment) : shownRows, sorts.sortAds, 'spend');
+    });
+    later('adTotal', () => adTables().shownRows.length);
+    later('segments', () => adTables().segments);
+    later('segment', () => adTables().segment);
+    later('unplaced', () => adTables().unplaced);
+    /* What "live" left out, and the way to see it. */
+    later('pausedAds', () => adTables().pausedAds.length);
+    later('pausedSpendText', () => {
+      const { pausedAds } = adTables();
+      return pausedAds.some((a) => a.measured)
+        ? asMoney(pausedAds.reduce((t, a) => t + (a.measured ? a.spend : 0), 0))
+        : null;
+    });
+    later('showingAll', () => adTables().showAll);
+  }
 
   /* Keyword Analytics. */
-  later('keywordsByCampaign', () => keywordTables().keywordsByCampaign.map((c) => ({
-    ...c, keywords: googleAdsRollup.orderRows(c.keywords, sorts.sortCampaigns, 'spend'),
-  })));
-  later('liveCampaigns', () => keywordPicker().pickable);
-  later('hiddenCampaigns', () => keywordPicker().hiddenCampaigns);
-  later('selectedCampaign', () => keywordTables().selectedOrdered);
-  later('searchTerms', () => googleAdsRollup.orderRows(keywordTables().terms, sorts.sortTerms, 'spend'));
-  /* The worklist is its own table with its own column in use, so it is filtered
-     and ordered here rather than sliced out of the sorted report in the view. */
-  later('wastedTerms', () => googleAdsRollup.orderRows(keywordTables().wastedTerms, sorts.sortWasted, 'spend'));
-  later('termSummary', () => keywordTables().termSummary);
-  later('words', () => googleAdsRollup.orderRows(keywordTables().words, sorts.sortWords, 'spend'));
+  if (draws('google-ads/keywords')) {
+    later('keywordsByCampaign', () => keywordTables().keywordsByCampaign.map((c) => ({
+      ...c, keywords: googleAdsRollup.orderRows(c.keywords, sorts.sortCampaigns, 'spend'),
+    })));
+    later('liveCampaigns', () => keywordPicker().pickable);
+    later('hiddenCampaigns', () => keywordPicker().hiddenCampaigns);
+    later('selectedCampaign', () => keywordTables().selectedOrdered);
+    later('searchTerms', () => googleAdsRollup.orderRows(keywordTables().terms, sorts.sortTerms, 'spend'));
+    /* The worklist is its own table with its own column in use, so it is filtered
+       and ordered here rather than sliced out of the sorted report in the view. */
+    later('wastedTerms', () => googleAdsRollup.orderRows(keywordTables().wastedTerms, sorts.sortWasted, 'spend'));
+    later('termSummary', () => keywordTables().termSummary);
+    later('words', () => googleAdsRollup.orderRows(keywordTables().words, sorts.sortWords, 'spend'));
+  }
 
   return data;
 }
@@ -3369,7 +3377,7 @@ async function googleAdsPayload(req) {
 async function renderGoogleAds(req, res, slug) {
   const since = stopwatch();
   const screen = (await repo.screens()).find((s) => s.slug === slug);
-  const data = await googleAdsPayload(req);
+  const data = await googleAdsPayload(req, slug);
   mark(res, 'payload', since());
 
   res.render('layout', {
