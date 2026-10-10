@@ -4019,7 +4019,10 @@ function freshness(workspaceId) {
   const say = (id) => {
     const row = status.get(id);
     if (!row || !row.lastSuccessAt) return { text: 'never', ok: false };
-    if (row.recentFailures > 0 || row.health === 'down') return { text: 'failing', ok: false };
+    /* The latest run, not the window. `recentFailures` counts the last twenty
+       runs, so a source that recovered kept reading "failing" for weeks on a
+       daily cron — Meta did, the morning its token was replaced. */
+    if (row.lastError || row.health === 'down') return { text: 'failing', ok: false };
     return { text: shortLag(row.lagSeconds), ok: true };
   };
 
