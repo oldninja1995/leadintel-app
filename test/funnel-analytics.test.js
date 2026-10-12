@@ -120,3 +120,20 @@ test('drill-down returns the leads at a stage', () => {
   assert.strictEqual(out.drill.total, 1);
   assert.strictEqual(out.drill.rows[0].id, 'l1');
 });
+
+test('this CRM\'s own statuses: Not interested is not interested, Hot is qualified', () => {
+  const r = (stage) => funnel.reach({ stage }, false);
+  assert.deepStrictEqual(r('Not interested'), { contacted: true, interested: false, qualified: false, booked: false });
+  assert.deepStrictEqual(r('Ringing no answer'), { contacted: true, interested: false, qualified: false, booked: false });
+  assert.deepStrictEqual(r('Interested'), { contacted: true, interested: true, qualified: false, booked: false });
+  assert.deepStrictEqual(r('Hot'), { contacted: true, interested: true, qualified: true, booked: false });
+  assert.deepStrictEqual(r('Won/Converted'), { contacted: true, interested: true, qualified: true, booked: false });
+  assert.deepStrictEqual(r('Fresh'), { contacted: false, interested: false, qualified: false, booked: false });
+});
+
+test('a period with no spend has no cost per lead, rather than a free one', () => {
+  const out = funnel.analyse({ leads: [lead('l1')], deals: [], campaignDays: [] }, { channel: 'meta' });
+  assert.strictEqual(out.summary.spend, 0);
+  assert.strictEqual(out.summary.cpl, null);
+  assert.strictEqual(out.summary.roas, null);
+});
