@@ -1,0 +1,122 @@
+/* Full Funnel Analytics — the judgements that would be easy to get quietly
+ * wrong: spend multiplied by a join, a reservation counted twice, an absent
+ * figure printed as zero, and a funnel that widens.
+ */
+
+const test = require('node:test');
+const assert = require('node:assert');
+
+const funnel = require('../lib/funnel-analytics');
+
+const R = (rupees) => rupees * 100;
+
+const day = (over = {}) => ({
+  entity: 'campaignDay', campaign: 'summer', label: 'Summer', platform: 'meta_ads',
+  date: '2026-09-01', spend: R(1000), impressions: 10000, clicks: 200, leads: 10, ...over,
+});
+const lead = (id, over = {}) => ({
+  entity: 'lead', id, createdAt: '2026-09-01T10:00:00Z', channel: 'meta',
+  campaign: 'summer', stage: 'Fresh', repeat: false, customer: `phone:${id}#0`, ...over,
+});
+const deal = (id, leadId, over = {}) => ({
+  entity: 'deal', id, leadId, outcome: 'won', bookingStatus: 'confirmed',
+  revenue: R(5000), bookingRef: null, updatedAt: '2026-09-20T00:00:00Z', ...over,
+});
+
+test('spend is summed from campaign days alone, never once per lead', () => {
+  const leads = Array.from({ length: 7 }, (_, i) => lead(`l${i}`));
+  const out = funnel.analyse({ leads, deals: [], campaignDays: [day(), day({ date: '2026-09-02' })] }, { channel: 'meta' });
+  assert.strictEqual(out.summary.spend, R(2000));
+  const summer = out.campaigns.find((c) => c.key === 'summer');
+  assert.strictEqual(summer.spend, R(2000));
+  assert.strictEqual(summer.leads, 7);
+  assert.strictEqual(out.summary.cpl, R(2000) / 7);
+});
+
+test('two deals on one reservation are one booking and one revenue', () => {
+  const deals = [
+    deal('d1', 'l1', { bookingRef: 'BK-9', revenue: R(5000) }),
+    deal('d2', 'l1', { bookingRef: 'BK-9', revenue: R(5000) }),
+  ];
+  const out = funnel.analyse({ leads: [lead('l1', { stage: 'Won' })], deals, campaignDays: [day()] }, { channel: 'meta' });
+  assert.strictEqual(out.summary.bookings, 1);
+  assert.strictEqual(out.summary.revenue, R(5000));
+  assert.strictEqual(out.summary.roas, 5);
+});
+
+test('cancelled and lost deals are not bookings', () => {
+  const deals = [
+    deal('d1', 'l1', { bookingStatus: 'Cancelled' }),
+    deal('d2', 'l2', { outcome: 'lost' }),
+  ];
+  const out = funnel.analyse({ leads: [lead('l1'), lead('l2')], deals, campaignDays: [] }, { channel: 'meta' });
+  assert.strictEqual(out.summary.bookings, 0);
+  assert.strictEqual(out.summary.revenue, 0);
+});
+
+test('organic has no ad side: null, not zero, and no ROAS', () => {
+  const leads = [lead('o1', { channel: 'website', campaign: null }), lead('o2', { channel: null, campaign: null })];
+  const out = funnel.analyse({ leads, deals: [deal('d1', 'o1')], campaignDays: [day()] }, { channel: 'organic' });
+  assert.strictEqual(out.summary.spend, null);
+  assert.strictEqual(out.summary.impressions, null);
+  assert.strictEqual(out.summary.roas, null);
+  assert.strictEqual(out.summary.leads, 2);
+  assert.strictEqual(out.summary.revenue, R(5000));
+  assert.strictEqual(out.stages.find((s) => s.key === 'impressions').n, null);
+  /* The first measured stage is the top of the funnel. */
+  assert.strictEqual(out.stages.find((s) => s.key === 'leads').fromTop, 1);
+});
+
+test('channels split leads and spend the same way', () => {
+  const leads = [lead('m1'), lead('g1', { channel: 'google', campaign: 'brand' }), lead('o1', { channel: 'referral' })];
+  const days = [day(), day({ platform: 'google_ads', campaign: 'brand', spend: R(300) })];
+  const meta = funnel.analyse({ leads, deals: [], campaignDays: days }, { channel: 'meta' });
+  const google = funnel.analyse({ leads, deals: [], campaignDays: days }, { channel: 'google' });
+  const paid = funnel.analyse({ leads, deals: [], campaignDays: days }, { channel: 'paid' });
+  assert.deepStrictEqual([meta.summary.leads, google.summary.leads, paid.summary.leads], [1, 1, 2]);
+  assert.deepStrictEqual([meta.summary.spend, google.summary.spend, paid.summary.spend], [R(1000), R(300), R(1300)]);
+});
+
+test('stages are cumulative, so the funnel never widens', () => {
+  /* Straight from Fresh to booked: still contacted, interested and qualified. */
+  const out = funnel.analyse({ leads: [lead('l1', { stage: 'Fresh' }), lead('l2', { stage: 'Ringing no answer' })], deals: [deal('d1', 'l1')], campaignDays: [] }, { channel: 'meta' });
+  const n = Object.fromEntries(out.stages.map((s) => [s.key, s.n]));
+  assert.deepStrictEqual([n.leads, n.contacted, n.interested, n.qualified, n.booked], [2, 2, 1, 1, 1]);
+  const ladder = out.stages.filter((s) => s.n != null).map((s) => s.n);
+  for (let i = 1; i < ladder.length; i += 1) {
+    if (out.stages.filter((s) => s.n != null)[i].side === 'crm' && out.stages.filter((s) => s.n != null)[i - 1].side === 'crm') {
+      assert.ok(ladder[i] <= ladder[i - 1], 'a CRM stage is never larger than the one before');
+    }
+  }
+});
+
+test('NC ROAS counts only first-time customers', () => {
+  const leads = [lead('n1', { stage: 'Won' }), lead('r1', { stage: 'Won', repeat: true })];
+  const out = funnel.analyse({ leads, deals: [deal('d1', 'n1'), deal('d2', 'r1')], campaignDays: [day()] }, { channel: 'meta' });
+  assert.strictEqual(out.summary.roas, 10);
+  assert.strictEqual(out.summary.ncRoas, 5);
+});
+
+test('periods bucket by the lead, weeks start on Monday', () => {
+  assert.strictEqual(funnel.bucketOf('2026-09-06T23:00:00Z', 'week'), '2026-08-31');
+  assert.strictEqual(funnel.bucketOf('2026-09-07', 'week'), '2026-09-07');
+  assert.strictEqual(funnel.bucketOf('2026-09-07', 'month'), '2026-09');
+  const leads = [lead('a', { createdAt: '2026-09-01T00:00:00Z' }), lead('b', { createdAt: '2026-10-02T00:00:00Z' })];
+  /* The deal closed in October; it belongs to the lead's September bucket. */
+  const out = funnel.analyse({ leads, deals: [deal('d1', 'a', { updatedAt: '2026-10-05T00:00:00Z' })], campaignDays: [] }, { channel: 'meta', grain: 'month' });
+  assert.deepStrictEqual(out.periods.map((p) => [p.key, p.leads, p.bookings]), [['2026-09', 1, 1], ['2026-10', 1, 0]]);
+});
+
+test('a CRM campaign no ad platform reported is kept and flagged', () => {
+  const out = funnel.analyse({ leads: [lead('l1', { campaign: 'old-name' })], deals: [], campaignDays: [day()] }, { channel: 'meta' });
+  const orphan = out.campaigns.find((c) => c.key === 'old-name');
+  assert.strictEqual(orphan.matched, false);
+  assert.strictEqual(orphan.spend, null);
+  assert.strictEqual(out.unmatchedLeads, 1);
+});
+
+test('drill-down returns the leads at a stage', () => {
+  const out = funnel.analyse({ leads: [lead('l1', { stage: 'Qualified' }), lead('l2')], deals: [], campaignDays: [] }, { channel: 'meta', stage: 'qualified' });
+  assert.strictEqual(out.drill.total, 1);
+  assert.strictEqual(out.drill.rows[0].id, 'l1');
+});

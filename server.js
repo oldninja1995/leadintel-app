@@ -53,6 +53,7 @@ const auth = require('./lib/auth');
 const authSessions = require('./lib/auth/sessions');
 const { Connections, stateOf, REQUIREMENTS } = require('./lib/connections');
 const ota = require('./lib/ota');
+const funnelAnalytics = require('./lib/funnel-analytics');
 const hardening = require('./lib/http/hardening');
 const observability = require('./lib/http/observability');
 const store = require('./lib/store');
@@ -2610,6 +2611,183 @@ async function renderOta(req, res) {
 }
 
 app.get('/ota', (req, res, next) => { renderOta(req, res).catch(next); });
+
+/* Full Funnel Analytics — paid ads to CRM to revenue.
+ *
+ * Every judgement is made in lib/funnel-analytics.js; this route picks the
+ * rows, runs it twice (this window and the one before, for the change on each
+ * card) and formats. The leads are narrowed by when they arrived and the deals
+ * are NOT narrowed at all — the screen follows a cohort of leads to whatever
+ * they booked, whenever it closed. Narrowing deals by `updatedAt` as the rest
+ * of the app does would drop a September lead's October booking. */
+const FUNNEL_DRILL_ROWS = 100;
+
+const funnelMoney = (paise) => {
+  if (paise === null || paise === undefined || !Number.isFinite(paise)) return null;
+  const n = paise / 100;
+  if (Math.abs(n) >= 100000) return `₹${(n / 100000).toFixed(2)}L`;
+  return `₹${Math.round(n).toLocaleString('en-IN')}`;
+};
+const funnelCount = (n) => (n === null || n === undefined ? null : Math.round(n).toLocaleString('en-IN'));
+const funnelPct = (r) => (r === null || r === undefined ? null : `${(r * 100).toFixed(r < 0.1 ? 2 : 1)}%`);
+const funnelX = (r) => (r === null || r === undefined ? null : `${r.toFixed(2)}x`);
+
+function funnelFigures(s) {
+  return {
+    spend: funnelMoney(s.spend), impressions: funnelCount(s.impressions), clicks: funnelCount(s.clicks),
+    ctr: funnelPct(s.ctr), cpc: funnelMoney(s.cpc), platformLeads: funnelCount(s.platformLeads),
+    leads: funnelCount(s.leads), people: funnelCount(s.people), contacted: funnelCount(s.contacted),
+    interested: funnelCount(s.interested), qualified: funnelCount(s.qualified), bookedLeads: funnelCount(s.bookedLeads),
+    bookings: funnelCount(s.bookings), revenue: funnelMoney(s.revenue), newRevenue: funnelMoney(s.newRevenue),
+    cpl: funnelMoney(s.cpl), cpql: funnelMoney(s.cpql), cpb: funnelMoney(s.cpb),
+    roas: funnelX(s.roas), ncRoas: funnelX(s.ncRoas), leadToBooking: funnelPct(s.leadToBooking), aov: funnelMoney(s.aov),
+  };
+}
+
+async function renderFunnel(req, res) {
+  const screen = (await repo.screens()).find((s) => s.slug === 'funnel-analytics');
+  const { over } = periodFor(req.query);
+  const all = entitiesFor(req.workspace);
+  const opts = {
+    channel: String(req.query.channel || 'paid'),
+    grain: String(req.query.grain || 'day'),
+    stage: req.query.stage ? String(req.query.stage) : null,
+    drillLimit: FUNNEL_DRILL_ROWS,
+  };
+
+  const inWindow = (window) => {
+    const narrowed = metrics.period.within(all, window);
+    return { leads: narrowed.leads || [], deals: all.deals || [], campaignDays: narrowed.campaignDays || [] };
+  };
+  const result = funnelAnalytics.analyse(inWindow(over), opts);
+  const before = metrics.period.previous(over);
+  const prior = before ? funnelAnalytics.analyse(inWindow(before), { ...opts, stage: null }).summary : null;
+
+  /* The change on a card against the window before. `good` says which way is
+     better — a falling cost per lead is the good news — and spend has no good
+     direction at all. */
+  const delta = (key, good = 'up') => {
+    if (!prior) return null;
+    const now = result.summary[key];
+    const then = prior[key];
+    if (now === null || then === null || !then) return null;
+    const change = (now - then) / Math.abs(then);
+    if (!Number.isFinite(change)) return null;
+    const tone = good === 'none' ? 'flat' : (good === 'up' ? change >= 0 : change <= 0) ? 'up' : 'down';
+    return { text: `${change > 0 ? '+' : ''}${(change * 100).toFixed(1)}%`, tone };
+  };
+
+  const f = funnelFigures(result.summary);
+  const kpis = [
+    { label: 'Ad spend', value: f.spend, delta: delta('spend', 'none'), note: result.adSide ? 'as billed by the platforms' : 'organic has no ad spend' },
+    { label: 'Impressions', value: f.impressions, delta: delta('impressions') },
+    { label: 'Clicks', value: f.clicks, delta: delta('clicks'), note: f.ctr ? `${f.ctr} CTR` : null },
+    { label: 'Platform leads', value: f.platformLeads, delta: delta('platformLeads'), note: 'as the ad platform counts them' },
+    { label: 'CRM leads', value: f.leads, delta: delta('leads'), note: f.people ? `${f.people} unique people` : null },
+    { label: 'Contacted', value: f.contacted, delta: delta('contacted') },
+    { label: 'Interested', value: f.interested, delta: delta('interested') },
+    { label: 'Qualified', value: f.qualified, delta: delta('qualified') },
+    { label: 'Bookings', value: f.bookings, delta: delta('bookings'), note: f.leadToBooking ? `${f.leadToBooking} of leads booked` : null },
+    { label: 'Revenue', value: f.revenue, delta: delta('revenue'), note: f.aov ? `${f.aov} per booking` : null, lead: true },
+    { label: 'Cost per lead', value: f.cpl, delta: delta('cpl', 'down'), note: 'spend ÷ CRM leads' },
+    { label: 'Cost per qualified', value: f.cpql, delta: delta('cpql', 'down') },
+    { label: 'Cost per booking', value: f.cpb, delta: delta('cpb', 'down') },
+    { label: 'ROAS', value: f.roas, delta: delta('roas'), note: 'CRM revenue ÷ ad spend', lead: true },
+    { label: 'NC ROAS', value: f.ncRoas, delta: delta('ncRoas'), note: f.newRevenue ? `${f.newRevenue} from first-time customers` : 'first-time customers only' },
+  ];
+
+  /* Links keep every other choice on the page. */
+  const linkWith = (changes) => {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(req.query || {})) if (v !== undefined) params.set(k, String(v));
+    for (const [k, v] of Object.entries(changes)) {
+      if (v === null) params.delete(k); else params.set(k, v);
+    }
+    const q = params.toString();
+    return `/funnel-analytics${q ? `?${q}` : ''}`;
+  };
+
+  /* Bars are scaled within their side. Impressions are hundreds of times the
+     lead count, so one scale for both would draw every CRM stage as a sliver. */
+  const topOf = (side) => Math.max(1, ...result.stages.filter((s) => s.side === side && s.n !== null).map((s) => s.n));
+  const tops = { ads: topOf('ads'), crm: topOf('crm') };
+
+  /* Freshness of the three systems this screen reads. */
+  const status = req.workspace === SYNC_WORKSPACE ? new Map(runner.status().map((s) => [s.source, s])) : new Map();
+  const sync = ['meta_ads', 'google_ads', 'telecrm'].map((id) => {
+    const row = status.get(id);
+    const label = { meta_ads: 'Meta Ads', google_ads: 'Google Ads', telecrm: 'TeleCRM' }[id];
+    if (!row || !row.lastSuccessAt) return { label, text: 'never synced', ok: false };
+    if (row.lastError || row.health === 'down') return { label, text: 'failing', ok: false };
+    return { label, text: `${shortLag(row.lagSeconds)} ago`, ok: true };
+  });
+
+  const periodLabel = (key) => {
+    if (result.grain.id === 'month') return new Date(`${key}-01T00:00:00Z`).toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+    const d = STAY_FORMAT.format(new Date(`${key}T00:00:00Z`));
+    return result.grain.id === 'week' ? `w/c ${d}` : d;
+  };
+  const maxPeriodLeads = Math.max(1, ...result.periods.map((p) => p.leads));
+
+  res.render('layout', {
+    screen,
+    screens: await repo.screens(),
+    shell: await shellData('funnel-analytics', req.query, req.path, req.workspace, req.user),
+    hasView: false,
+    data: {
+      rangeLabel: rangeLabel(over),
+      priorLabel: before ? rangeLabel(before) : null,
+      channel: result.channel,
+      grain: result.grain,
+      adSide: result.adSide,
+      from: req.query.from || '',
+      to: req.query.to || '',
+      channels: funnelAnalytics.CHANNELS.map((c) => ({ ...c, go: linkWith({ channel: c.id, stage: null }), on: c.id === result.channel.id })),
+      grains: funnelAnalytics.GRAINS.map((g) => ({ ...g, go: linkWith({ grain: g.id }), on: g.id === result.grain.id })),
+      /* Carried through the custom-range form so picking dates keeps the
+         channel and grain. */
+      keep: ['channel', 'grain'].filter((k) => req.query[k]).map((k) => ({ k, v: String(req.query[k]) })),
+      kpis,
+      stages: result.stages.map((s) => ({
+        ...s,
+        nText: funnelCount(s.n),
+        fromPrevText: funnelPct(s.fromPrev),
+        fromTopText: funnelPct(s.fromTop),
+        droppedText: s.dropped === null ? null : funnelCount(Math.max(0, s.dropped)),
+        width: s.n === null ? 0 : Math.max(2, Math.round((s.n / tops[s.side]) * 100)),
+        go: s.side === 'crm' ? `${linkWith({ stage: s.key })}#drill` : null,
+        on: s.key === opts.stage,
+      })),
+      revenueText: f.revenue,
+      revenueNote: [f.bookings && `${f.bookings} bookings`, f.roas && `${f.roas} ROAS`].filter(Boolean).join(' · '),
+      periods: result.periods.map((p) => ({ label: periodLabel(p.key), bar: Math.round((p.leads / maxPeriodLeads) * 100), ...funnelFigures(p) })).reverse(),
+      campaigns: result.campaigns.map((c) => ({ key: c.key, label: c.label, platforms: c.platforms, matched: c.matched, f: funnelFigures(c) })),
+      unmatchedLeads: result.unmatchedLeads ? funnelCount(result.unmatchedLeads) : null,
+      stageMap: result.stageMap.map((s) => ({ ...s, nText: funnelCount(s.n) })),
+      stageRules: funnelAnalytics.STAGE_RULES,
+      drill: result.drill && {
+        ...result.drill,
+        label: (result.stages.find((s) => s.key === result.drill.stage) || {}).label,
+        totalText: funnelCount(result.drill.total),
+        close: linkWith({ stage: null }),
+        rows: result.drill.rows.map((r) => ({
+          ...r,
+          created: r.createdAt ? STAY_FORMAT.format(new Date(r.createdAt)) : null,
+          revenueText: r.revenue ? funnelMoney(r.revenue) : null,
+        })),
+      },
+      sync,
+    },
+    drawer: null,
+    palette: await palette(),
+    notifications: notifications(req.workspace),
+    filterData: filterData(null),
+    filterNote: null,
+    attrPreview: null,
+  });
+}
+
+app.get('/funnel-analytics', (req, res, next) => { renderFunnel(req, res).catch(next); });
 
 /* Google Ads Analytics — its own screen, not a tab on the Meta one.
  *

@@ -1,0 +1,237 @@
+<%
+/* Full Funnel Analytics — paid ads, through the CRM, to revenue.
+ *
+ * Not from the design; ours, like OTA Analytics, and built from the same
+ * tokens and panel vocabulary. Every judgement — which leads count, what a
+ * booking is, what is N/A — was made in lib/funnel-analytics.js. This formats.
+ *
+ * N/A, never 0, for a figure nobody measured: organic has no impressions, and
+ * printing 0 there would claim the ads ran and nobody saw them. */
+const na = function (v) { return (v === null || v === undefined || v === '') ? 'N/A' : v; };
+const dash = function (v) { return (v === null || v === undefined || v === '') ? '—' : v; };
+%>
+<div class="li-fa">
+
+  <header class="li-ota-head">
+    <div class="li-ota-title">
+      <h1>Full Funnel Analytics</h1>
+      <p>
+        <strong><%= channel.label %></strong> leads that arrived in <strong><%= rangeLabel %></strong>, followed from
+        the ad through TeleCRM to the revenue they booked — whenever that booking closed. Spend, impressions and
+        clicks are the platforms' own figures for the same window.
+      </p>
+    </div>
+    <div class="li-fa-sync" title="When each system this screen reads last synced">
+      <% sync.forEach(function (s) { %>
+        <a href="/connections" class="li-fa-sync-row"><span class="li-fa-dot <%= s.ok ? 'li-fa-dot--ok' : 'li-fa-dot--bad' %>"></span><%= s.label %> <em><%= s.text %></em></a>
+      <% }); %>
+    </div>
+  </header>
+
+  <div class="li-fa-controls">
+    <div class="li-fa-seg" role="group" aria-label="Channel">
+      <% channels.forEach(function (c) { %>
+        <a href="<%= c.go %>" class="<%= c.on ? 'is-on' : '' %>"><%= c.label %></a>
+      <% }); %>
+    </div>
+    <div class="li-fa-seg" role="group" aria-label="Report grain">
+      <% grains.forEach(function (g) { %>
+        <a href="<%= g.go %>" class="<%= g.on ? 'is-on' : '' %>"><%= g.label %></a>
+      <% }); %>
+    </div>
+    <form class="li-fa-range" method="get" action="/funnel-analytics">
+      <% keep.forEach(function (h) { %><input type="hidden" name="<%= h.k %>" value="<%= h.v %>"><% }); %>
+      <label>From <input type="date" name="from" value="<%= from %>" required></label>
+      <label>To <input type="date" name="to" value="<%= to %>" required></label>
+      <button type="submit">Apply</button>
+    </form>
+  </div>
+
+  <section class="li-ota-kpis li-fa-kpis" aria-label="Headline figures">
+    <% kpis.forEach(function (k) { %>
+      <div class="li-ota-kpi <%= k.lead ? 'li-ota-kpi--lead' : '' %>">
+        <span class="li-ota-kpi-l"><%= k.label %></span>
+        <span class="li-ota-kpi-v <%= k.value === null ? 'li-fa-na' : '' %>"><%= na(k.value) %></span>
+        <% if (k.delta) { %>
+          <span class="li-fa-delta li-fa-delta--<%= k.delta.tone %>" title="against <%= priorLabel %>"><%= k.delta.text %></span>
+        <% } %>
+        <% if (k.note) { %><span class="li-ota-kpi-n"><%= k.note %></span><% } %>
+      </div>
+    <% }); %>
+  </section>
+
+  <section class="li-ota-panel">
+    <div class="li-ota-panel-head">
+      <h2>The funnel</h2>
+      <p>Each stage shows its count, the share of the stage before it that made it through, and how many dropped.
+        Ad stages are scaled against impressions, CRM stages against CRM leads — one scale for both would draw the
+        whole CRM as a sliver. <strong>Click a CRM stage</strong> to see the leads in it.</p>
+    </div>
+    <div class="li-fa-funnel">
+      <% stages.forEach(function (s, i) { %>
+        <% if (i > 0 && s.side === 'crm' && stages[i - 1].side === 'ads') { %>
+          <div class="li-fa-handoff"><i class="ph ph-arrow-down"></i> handed to TeleCRM</div>
+        <% } %>
+        <% const Tag = s.go ? 'a' : 'div'; %>
+        <<%= Tag %> class="li-fa-stage <%= s.n === null ? 'li-fa-stage--na' : '' %> <%= s.on ? 'is-on' : '' %>" <% if (s.go) { %>href="<%= s.go %>"<% } %>>
+          <span class="li-fa-stage-l"><%= s.label %><% if (s.note) { %><em><%= s.note %></em><% } %></span>
+          <span class="li-fa-stage-bar"><span class="li-fa-stage-fill li-fa-stage-fill--<%= s.side %>" style="width:<%= s.width %>%"></span></span>
+          <span class="li-fa-stage-n"><%= na(s.nText) %></span>
+          <span class="li-fa-stage-r">
+            <% if (s.isTop) { %>top of funnel<% } else if (s.fromPrevText) { %><b><%= s.fromPrevText %></b> of previous<% } else if (s.n !== null) { %>— (nothing reached the stage before)<% } else { %><%= channel.id === 'organic' ? 'no ad side for organic' : 'not measured' %><% } %>
+          </span>
+          <span class="li-fa-stage-d"><% if (s.droppedText && s.droppedText !== '0') { %>−<%= s.droppedText %><% } %></span>
+        </<%= Tag %>>
+      <% }); %>
+      <div class="li-fa-stage li-fa-stage--revenue">
+        <span class="li-fa-stage-l">Revenue<em>won, uncancelled CRM deals</em></span>
+        <span class="li-fa-stage-bar"></span>
+        <span class="li-fa-stage-n"><%= na(revenueText) %></span>
+        <span class="li-fa-stage-r"><%= revenueNote %></span>
+        <span class="li-fa-stage-d"></span>
+      </div>
+    </div>
+  </section>
+
+  <% if (drill) { %>
+    <section class="li-ota-panel" id="drill">
+      <div class="li-ota-panel-head li-fa-panel-head">
+        <div>
+          <h2><%= drill.label %> — <%= drill.totalText %> lead<%= drill.total === 1 ? '' : 's' %></h2>
+          <p>Newest first<%= drill.total > drill.rows.length ? `, the latest ${drill.rows.length} shown` : '' %>.</p>
+        </div>
+        <a href="<%= drill.close %>" class="li-fa-close"><i class="ph ph-x"></i> Close</a>
+      </div>
+      <% if (!drill.rows.length) { %>
+        <p class="li-fa-empty">No leads reached this stage in the range.</p>
+      <% } else { %>
+        <div class="li-ota-scroll">
+          <table class="li-ota-table">
+            <thead><tr><th>Lead</th><th>Arrived</th><th>Channel</th><th>Campaign</th><th>Ad</th><th>CRM status</th><th>Owner</th><th class="li-num">Bookings</th><th class="li-num">Revenue</th></tr></thead>
+            <tbody>
+              <% drill.rows.forEach(function (r) { %>
+                <tr>
+                  <th><%= dash(r.name) %><% if (r.repeat) { %> <span class="li-fa-tag">returning</span><% } %></th>
+                  <td><%= dash(r.created) %></td>
+                  <td><%= dash(r.channel) %></td>
+                  <td><%= dash(r.campaign) %></td>
+                  <td><%= dash(r.ad) %></td>
+                  <td><%= dash(r.stage) %></td>
+                  <td><%= dash(r.owner) %></td>
+                  <td class="li-num"><%= r.bookings || '—' %></td>
+                  <td class="li-num"><%= dash(r.revenueText) %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </section>
+  <% } %>
+
+  <section class="li-ota-panel">
+    <div class="li-ota-panel-head">
+      <h2><%= grain.label %> report</h2>
+      <p>Leads, bookings and revenue are bucketed by the <strong>day the lead arrived</strong>, so a lead's booking
+        stays in the <%= grain.id === 'day' ? 'day' : grain.id %> its enquiry came in. Spend is bucketed by the day it was delivered.
+        Newest first.</p>
+    </div>
+    <% if (!periods.length) { %>
+      <p class="li-fa-empty">Nothing in this range for <%= channel.label %>.</p>
+    <% } else { %>
+      <div class="li-ota-scroll">
+        <table class="li-ota-table">
+          <thead><tr>
+            <th><%= grain.id === 'day' ? 'Day' : grain.id === 'week' ? 'Week' : 'Month' %></th>
+            <% if (adSide) { %><th class="li-num">Spend</th><th class="li-num">Impr.</th><th class="li-num">Clicks</th><th class="li-num">CTR</th><th class="li-num">Platform leads</th><% } %>
+            <th>CRM leads</th><th class="li-num">Contacted</th><th class="li-num">Interested</th><th class="li-num">Qualified</th><th class="li-num">Bookings</th><th class="li-num">Revenue</th>
+            <% if (adSide) { %><th class="li-num">CPL</th><th class="li-num">Cost / qual.</th><th class="li-num">Cost / booking</th><th class="li-num">ROAS</th><% } %>
+          </tr></thead>
+          <tbody>
+            <% periods.forEach(function (p) { %>
+              <tr>
+                <th><%= p.label %></th>
+                <% if (adSide) { %>
+                  <td class="li-num"><%= na(p.spend) %></td><td class="li-num"><%= na(p.impressions) %></td><td class="li-num"><%= na(p.clicks) %></td><td class="li-num"><%= dash(p.ctr) %></td><td class="li-num"><%= na(p.platformLeads) %></td>
+                <% } %>
+                <td><span class="li-ota-share"><span class="li-ota-share-bar"><span style="width:<%= p.bar %>%"></span></span><span class="li-ota-share-n"><%= p.leads %></span></span></td>
+                <td class="li-num"><%= p.contacted %></td><td class="li-num"><%= p.interested %></td><td class="li-num"><%= p.qualified %></td><td class="li-num"><%= p.bookings %></td><td class="li-num li-ota-net"><%= dash(p.revenue) %></td>
+                <% if (adSide) { %>
+                  <td class="li-num"><%= dash(p.cpl) %></td><td class="li-num"><%= dash(p.cpql) %></td><td class="li-num"><%= dash(p.cpb) %></td><td class="li-num"><%= dash(p.roas) %></td>
+                <% } %>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </section>
+
+  <section class="li-ota-panel">
+    <div class="li-ota-panel-head">
+      <h2>Campaign to revenue</h2>
+      <p>Spend comes from the ad platforms and leads from TeleCRM, joined on the campaign name the CRM recorded
+        (its UTM). Each side is totalled first and only then put side by side, so spend is never repeated once per lead.
+        <% if (unmatchedLeads) { %><strong><%= unmatchedLeads %> leads</strong> name a campaign no ad platform reported in this range —
+        a renamed campaign, a UTM typo, or spend outside the window — and are listed with N/A spend rather than dropped.<% } %></p>
+    </div>
+    <% if (!campaigns.length) { %>
+      <p class="li-fa-empty">No campaigns in this range.</p>
+    <% } else { %>
+      <div class="li-ota-scroll">
+        <table class="li-ota-table">
+          <thead><tr>
+            <th>Campaign</th><th class="li-num">Spend</th><th class="li-num">Clicks</th><th class="li-num">Platform leads</th><th class="li-num">CRM leads</th><th class="li-num">Interested</th><th class="li-num">Qualified</th><th class="li-num">Bookings</th><th class="li-num">Revenue</th><th class="li-num">CPL</th><th class="li-num">Cost / booking</th><th class="li-num">ROAS</th>
+          </tr></thead>
+          <tbody>
+            <% campaigns.forEach(function (c) { %>
+              <tr class="<%= c.matched ? '' : 'li-fa-row--orphan' %>">
+                <th>
+                  <span class="li-ota-ch">
+                    <% c.platforms.forEach(function (p) { %><i class="ph <%= p === 'meta' ? 'ph-meta-logo' : p === 'google' ? 'ph-google-logo' : 'ph-leaf' %>" title="<%= p %>"></i><% }); %>
+                    <%= c.label %>
+                  </span>
+                  <% if (!c.matched && adSide) { %> <span class="li-fa-tag">not in ad data</span><% } %>
+                </th>
+                <td class="li-num"><%= na(c.f.spend) %></td><td class="li-num"><%= na(c.f.clicks) %></td><td class="li-num"><%= na(c.f.platformLeads) %></td>
+                <td class="li-num"><%= c.f.leads %></td><td class="li-num"><%= c.f.interested %></td><td class="li-num"><%= c.f.qualified %></td><td class="li-num"><%= c.f.bookings %></td>
+                <td class="li-num li-ota-net"><%= dash(c.f.revenue) %></td><td class="li-num"><%= dash(c.f.cpl) %></td><td class="li-num"><%= dash(c.f.cpb) %></td><td class="li-num"><%= dash(c.f.roas) %></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </section>
+
+  <section class="li-ota-panel">
+    <div class="li-ota-panel-head">
+      <h2>How CRM statuses map to stages</h2>
+      <p>Every status TeleCRM holds for these leads, and the furthest stage it counts toward. Stages are cumulative —
+        a booked lead also counts as contacted, interested and qualified, whatever its status says now.</p>
+    </div>
+    <div class="li-fa-map">
+      <ul class="li-fa-rules">
+        <% stageRules.forEach(function (r) { %><li><b><%= r.label %></b> — <%= r.rule %></li><% }); %>
+      </ul>
+      <% if (stageMap.length) { %>
+        <div class="li-ota-scroll">
+          <table class="li-ota-table">
+            <thead><tr><th>CRM status</th><th class="li-num">Leads</th><th>Counts toward</th></tr></thead>
+            <tbody>
+              <% stageMap.forEach(function (s) { %><tr><th><%= s.status %></th><td class="li-num"><%= s.nText %></td><td><%= s.reaches %></td></tr><% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </section>
+
+  <p class="li-ota-foot"><i class="ph ph-info"></i><span>
+    <strong>ROAS</strong> is CRM revenue from won, uncancelled deals ÷ ad spend, both for the same channel.
+    <strong>NC ROAS</strong> counts only revenue from first-time customers (no enquiry from the same phone or email in the
+    previous 365 days) — the same rule as the New Customers figures elsewhere. Revenue is the CRM's deal value; no
+    property management system is connected, so it is booked value, not checked-out stays. Changes on the cards compare
+    against <%= priorLabel || 'nothing (no earlier window)' %>.
+  </span></p>
+</div>

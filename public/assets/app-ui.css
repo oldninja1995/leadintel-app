@@ -702,3 +702,79 @@ body.li-tv main { padding: 0 !important; }
 .li-ota-empty i { font-size: 28px; color: var(--color-neutral-700); }
 .li-ota-empty h2 { margin: 12px 0 6px; font-size: 15px; font-weight: 500; color: var(--color-neutral-300); }
 .li-ota-empty p { margin: 0 auto; max-width: 52ch; font-size: 12px; color: var(--color-neutral-500); line-height: 1.65; }
+
+/* ── Full Funnel Analytics ──────────────────────────────────────────────────
+ * Ours, not the design's. Borrows the OTA screen's head, KPI row, panels and
+ * tables (li-ota-*) and adds only what a funnel needs: the stage ladder, the
+ * channel and grain switches, and the sync line. */
+
+.li-fa { max-width: 1280px; }
+.li-fa-sync { flex: none; display: flex; flex-direction: column; gap: 4px; border-left: 1px solid var(--color-neutral-800); padding-left: 16px; margin-left: auto; }
+.li-fa-sync-row { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--color-neutral-400); text-decoration: none; white-space: nowrap; }
+.li-fa-sync-row em { font-style: normal; color: var(--color-neutral-600); }
+.li-fa-dot { width: 6px; height: 6px; border-radius: 99px; flex: none; }
+.li-fa-dot--ok { background: var(--c-up); }
+.li-fa-dot--bad { background: var(--c-down); }
+
+.li-fa-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 0 0 16px; }
+.li-fa-seg { display: inline-flex; border: 1px solid var(--color-neutral-800); border-radius: 8px; overflow: hidden; }
+.li-fa-seg a { font-size: 11.5px; padding: 6px 12px; color: var(--color-neutral-500); text-decoration: none; border-right: 1px solid var(--color-neutral-800); white-space: nowrap; }
+.li-fa-seg a:last-child { border-right: 0; }
+.li-fa-seg a:hover { color: var(--color-neutral-200); background: var(--color-neutral-900); }
+.li-fa-seg a.is-on { color: var(--color-accent-200); background: var(--color-accent-900); }
+.li-fa-range { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 11.5px; color: var(--color-neutral-600); margin-left: auto; }
+.li-fa-range input { background: var(--color-neutral-900); border: 1px solid var(--color-neutral-800); border-radius: 6px; color: var(--color-neutral-300); font: inherit; padding: 4px 6px; color-scheme: dark; }
+.li-fa-range button { font: inherit; font-size: 11.5px; border: 1px solid var(--color-accent-800); background: var(--color-accent-900); color: var(--color-accent-200); border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+
+.li-fa-kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .li-fa-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.li-fa-na { color: var(--color-neutral-700) !important; }
+.li-fa-delta { display: inline-block; font-size: 10.5px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.li-fa-delta--up { color: var(--c-up); }
+.li-fa-delta--down { color: var(--c-down); }
+.li-fa-delta--flat { color: var(--color-neutral-500); }
+
+.li-fa-funnel { padding: 10px 16px 14px; }
+.li-fa-stage {
+  display: grid; grid-template-columns: minmax(150px, 210px) 1fr 92px minmax(130px, 170px) 70px;
+  align-items: center; gap: 14px; padding: 8px 8px; border-radius: 7px;
+  color: inherit; text-decoration: none;
+}
+a.li-fa-stage:hover { background: var(--color-neutral-900); }
+.li-fa-stage.is-on { background: var(--color-accent-900); }
+.li-fa-stage-l { font-size: 12.5px; color: var(--color-neutral-200); display: flex; flex-direction: column; }
+.li-fa-stage-l em { font-style: normal; font-size: 10.5px; color: var(--color-neutral-600); }
+.li-fa-stage-bar { height: 18px; border-radius: 4px; background: color-mix(in srgb, var(--color-neutral-800) 50%, transparent); overflow: hidden; }
+.li-fa-stage-fill { display: block; height: 100%; border-radius: 4px; }
+.li-fa-stage-fill--ads { background: color-mix(in srgb, var(--color-accent-400) 55%, transparent); }
+.li-fa-stage-fill--crm { background: var(--color-accent-400); }
+.li-fa-stage-n { font-size: 15px; color: var(--color-neutral-100); text-align: right; font-variant-numeric: tabular-nums; }
+.li-fa-stage-r { font-size: 11px; color: var(--color-neutral-500); }
+.li-fa-stage-r b { color: var(--color-neutral-200); font-weight: 500; }
+.li-fa-stage-d { font-size: 11px; color: var(--c-down); text-align: right; font-variant-numeric: tabular-nums; }
+.li-fa-stage--na .li-fa-stage-n, .li-fa-stage--na .li-fa-stage-l { color: var(--color-neutral-700); }
+.li-fa-stage--revenue { border-top: 1px solid var(--color-neutral-800); margin-top: 6px; padding-top: 12px; }
+.li-fa-stage--revenue .li-fa-stage-n { color: var(--color-accent-200); font-size: 17px; }
+.li-fa-handoff { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--color-neutral-600); padding: 6px 8px; display: flex; align-items: center; gap: 6px; }
+
+.li-fa-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.li-fa-close { font-size: 11.5px; color: var(--color-neutral-400); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.li-fa-empty { padding: 22px 16px; font-size: 12px; color: var(--color-neutral-600); margin: 0; }
+.li-fa-tag { font-size: 9.5px; letter-spacing: .05em; text-transform: uppercase; color: var(--c-warn); border: 1px solid color-mix(in srgb, var(--c-warn) 40%, transparent); border-radius: 99px; padding: 0 6px; margin-left: 6px; }
+.li-fa-row--orphan th, .li-fa-row--orphan td { color: var(--color-neutral-600); }
+.li-fa-map { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; }
+.li-fa-rules { margin: 0; padding: 14px 16px 14px 32px; font-size: 11.5px; color: var(--color-neutral-500); line-height: 1.7; border-right: 1px solid var(--color-neutral-800); }
+.li-fa-rules b { color: var(--color-neutral-300); font-weight: 500; }
+
+@media (max-width: 780px) {
+  .li-fa .li-ota-head { flex-wrap: wrap; gap: 12px; }
+  .li-fa-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .li-fa-seg { flex-wrap: wrap; }
+  .li-fa-sync { flex-direction: row; flex-wrap: wrap; gap: 4px 14px; border-left: 0; padding-left: 0; margin-left: 0; }
+  .li-fa-range { margin-left: 0; }
+  .li-fa-stage { grid-template-columns: 1fr auto; gap: 4px 10px; }
+  .li-fa-stage-bar { grid-column: 1 / -1; order: 3; }
+  .li-fa-stage-r, .li-fa-stage-d { order: 4; text-align: left; }
+  .li-fa-map { grid-template-columns: 1fr; }
+  .li-fa-rules { border-right: 0; border-bottom: 1px solid var(--color-neutral-800); }
+}

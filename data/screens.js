@@ -19,6 +19,10 @@
 const SCREENS = [
   { slug: '',            view: 'dashboard',   gate: 'isDash',     name: 'Executive Dashboard',  icon: 'ph ph-squares-four',      group: 'Overview' },
   { slug: 'marketing',   view: 'marketing',   gate: 'isMkt',      name: 'Marketing Dashboard',  icon: 'ph ph-megaphone',         group: 'Marketing' },
+  /* NOT FROM THE DESIGN. Paid ads followed into the CRM and out the other side
+     as revenue — impressions to bookings on one screen, by channel and by
+     day, week or month. See lib/funnel-analytics.js. */
+  { slug: 'funnel-analytics', view: 'funnel-analytics', gate: null, app: 'funnel-analytics', name: 'Full Funnel Analytics', icon: 'ph ph-funnel-simple', group: 'Marketing' },
   { slug: 'campaigns',   view: 'campaigns',   gate: 'isCamp',     name: 'Meta Ads Analytics',   icon: 'ph ph-chart-line-up',     group: 'Marketing' },
   /* Directly after Meta's, because the two are read together: same question,
      different platform. Google's hierarchy is campaign -> ad group -> ad with
