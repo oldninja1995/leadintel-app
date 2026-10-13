@@ -460,6 +460,8 @@ test('a creative pull refused with code 1/99 retries smaller and succeeds', asyn
   const limits = [];
   let refusals = 1;
   const fetchImpl = async (url) => {
+    /* The delivered-ads lookup that precedes a creative pull. */
+    if (url.includes('/insights')) return { ok: true, status: 200, json: async () => page([{ ad_id: '99201' }]) };
     limits.push(Number(new URL(url).searchParams.get('limit')));
     if (refusals-- > 0) {
       return {
@@ -547,4 +549,17 @@ test('a refused long-lived exchange fails rather than storing the short token', 
     meta.tokenFromCode({ code: 'c', redirectUri: 'r', credentials: { appId: '1', appSecret: 'x' } }, fetchImpl),
     /long-lived token exchange: Invalid client_secret/
   );
+});
+
+test('creatives are asked for only for ads that delivered in the window', async () => {
+  const seen = [];
+  const fetchImpl = async (url) => {
+    seen.push(url);
+    if (url.includes('/insights')) return { ok: true, status: 200, json: async () => page([{ ad_id: 'A1' }, { ad_id: 'A2' }, { ad_id: 'A1' }]) };
+    return { ok: true, status: 200, json: async () => page([{ id: 'A1' }, { id: 'A2' }]) };
+  };
+  await httpTransport({ credentials: CREDS, fetchImpl }).fetch({ source: META, kind: 'creative', window: null });
+  const adsCall = new URL(seen.find((u) => u.includes('/ads?')));
+  const byId = JSON.parse(adsCall.searchParams.get('filtering')).find((f) => f.field === 'ad.id');
+  assert.deepStrictEqual(byId.value, ['A1', 'A2']);
 });
