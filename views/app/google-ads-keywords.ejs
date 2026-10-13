@@ -386,10 +386,10 @@ const previewNote = (param, fallback) => {
   <% } else { %>
     <% (whole('negatives') ? negs : negs.slice(0, 3)).forEach((c) => { %>
       <div style="margin-top:14px;">
-        <h3 style="font-size:13px; margin:0 0 6px; display:flex; gap:10px; flex-wrap:wrap; align-items:baseline;">
+        <h3 style="font-size:13px; font-weight:500; margin:0; padding:0 16px 8px; display:flex; gap:12px; flex-wrap:wrap; align-items:baseline;">
           <span><%= c.campaign %></span>
-          <span class="li-ota-foot" style="margin:0;"><%= num(c.suggestions.length) %> negatives · <%= txt(c.spendText) %> spent on unrelated terms</span>
-          <a href="<%= csv(c.campaignId) %>" download style="font-weight:normal;">Download CSV</a>
+          <span style="font-size:11.5px; font-weight:400; color:var(--color-neutral-500);"><%= num(c.suggestions.length) %> negatives · <%= txt(c.spendText) %> spent on unrelated terms</span>
+          <a href="<%= csv(c.campaignId) %>" download style="font-size:12px; font-weight:400;"><i class="ph ph-download-simple"></i> Download CSV</a>
         </h3>
         <div class="li-ota-scroll">
           <table class="li-ota-table">
