@@ -340,34 +340,34 @@ const previewNote = (param, fallback) => {
 <!-- Negative keywords, ready to exclude ---------------------------------------->
 <% if (shows('negatives')) {
   const negs = d.negatives || [];
-  const negCount = negs.reduce((n, c) => n + c.suggestions.length, 0);
+  const flat = d.negativesFlat || [];
+  const negCount = flat.length;
+  const view = d.negativeView || 'campaign';
+  const order = d.negativeSort || 'spend';
   const csv = (campaignId) => {
     const q = params.filter((k) => k.name !== 'table' && !/^sort/.test(k.name))
       .map((k) => encodeURIComponent(k.name) + '=' + encodeURIComponent(k.value));
     if (campaignId) q.push('negCampaign=' + encodeURIComponent(campaignId));
     return '/google-ads/keywords/negatives.csv' + (q.length ? '?' + q.join('&') : '');
   };
+  const pill = (label, over, on) => `<a href="${link(over)}#negatives" style="padding:4px 10px; border-radius:6px; font-size:12px; text-decoration:none; ${on ? 'background:var(--color-accent-900); color:var(--color-accent-200);' : 'color:var(--color-neutral-400);'}">${label}</a>`;
+  const sortHead = (key, label) => `<th class="li-num"><a href="${link({ negSort: key })}#negatives" style="color:inherit; text-decoration:none;">${label}${order === key ? ' ↓' : ''}</a></th>`;
+  const kw = (x) => (x.match === 'exact' ? '[' + x.keyword + ']' : '"' + x.keyword + '"');
 %>
 <section class="li-ota-panel" id="negatives">
   <details class="li-fold" open>
   <summary class="li-ota-panel-head">
     <h2>Negative keywords to add</h2>
     <p>
-      Search terms <strong>unrelated</strong> to the campaign that matched them — judged against
-      that campaign's own keywords, nothing else. <strong>Exact</strong>: a term sharing no word
-      with any of its keywords. <strong>Phrase</strong>: a word found in two or more of those terms
-      and in none of the related ones. Terms already added or excluded are left out. Spend is shown
-      to rank the list, not to choose it. Download as a Google Ads Editor import (campaign-level
-      negatives) — review it before you post.
+      From the <strong>whole account's</strong> search-term history — every date, every campaign — not
+      the range above. A term is suggested only if it is <strong>unrelated</strong> to the campaign that
+      matched it, judged against that campaign's own keywords, nothing else. <strong>Exact</strong>: a
+      term sharing no word with any of its keywords. <strong>Phrase</strong>: a word found in two or more
+      of those terms and in none of the related ones. Terms already added or excluded are left out.
+      Downloads are Google Ads Editor imports (campaign-level negatives), in the order shown.
     </p>
   </summary>
 
-  <% if (negCount) { %>
-    <p class="li-ota-foot">
-      <strong><%= num(negCount) %></strong> negatives across <%= num(negs.length) %> campaign(s).
-      <a href="<%= csv(null) %>" download><i class="ph ph-download-simple"></i> Download all</a>
-    </p>
-  <% } %>
   <% if ((d.negativesUnjudged || []).length) { %>
     <p class="li-ota-foot">
       Not judged — no keywords in the account list to compare against:
@@ -376,45 +376,74 @@ const previewNote = (param, fallback) => {
   <% } %>
 
   <% if (!negCount) { %>
-    <p class="li-ota-foot">
-      <% if (!terms.length) { %>
-        No search term rows in this range — the search terms report is what carries them.
-      <% } else { %>
-        Every search term in this range shares a word with its campaign's keywords, or is already handled.
-      <% } %>
-    </p>
+    <p class="li-ota-foot">Every search term in the account shares a word with its campaign's keywords, or is already handled.</p>
   <% } else { %>
-    <% (whole('negatives') ? negs : negs.slice(0, 3)).forEach((c) => { %>
-      <div style="margin-top:14px;">
-        <h3 style="font-size:13px; font-weight:500; margin:0; padding:0 16px 8px; display:flex; gap:12px; flex-wrap:wrap; align-items:baseline;">
-          <span><%= c.campaign %></span>
-          <span style="font-size:11.5px; font-weight:400; color:var(--color-neutral-500);"><%= num(c.suggestions.length) %> negatives · <%= txt(c.spendText) %> spent on unrelated terms</span>
-          <a href="<%= csv(c.campaignId) %>" download style="font-size:12px; font-weight:400;"><i class="ph ph-download-simple"></i> Download CSV</a>
-        </h3>
-        <div class="li-ota-scroll">
-          <table class="li-ota-table">
-            <thead><tr><th>Negative keyword</th><th>Match</th><th>Spend</th><th>Clicks</th><th>Impr.</th><th>Conv.</th><th>Why</th></tr></thead>
-            <tbody>
-              <% (whole('negatives') ? c.suggestions : c.suggestions.slice(0, PREVIEW)).forEach((x) => { %>
-                <tr>
-                  <td><%= x.match === 'exact' ? '[' + x.keyword + ']' : '"' + x.keyword + '"' %></td>
-                  <td><%= x.match %></td>
-                  <td class="li-num"><%= txt(x.spendText) %></td>
-                  <td class="li-num"><%= num(x.clicks) %></td>
-                  <td class="li-num"><%= num(x.impressions) %></td>
-                  <td class="li-num"><%= num(x.conversions) %></td>
-                  <td><%= x.reason %></td>
-                </tr>
-              <% }); %>
-            </tbody>
-          </table>
-        </div>
+    <div class="li-ota-foot" style="display:flex; flex-wrap:wrap; gap:6px 14px; align-items:center;">
+      <span><strong><%= num(negCount) %></strong> negatives across <%= num(negs.length) %> campaign(s)</span>
+      <span style="display:flex; gap:2px;">
+        <%- pill('By campaign', { negView: null }, view === 'campaign') %>
+        <%- pill('Whole account', { negView: 'account' }, view === 'account') %>
+      </span>
+      <span style="display:flex; gap:2px; align-items:center;">Sort:
+        <%- pill('Spend', { negSort: null }, order === 'spend') %>
+        <%- pill('Clicks', { negSort: 'clicks' }, order === 'clicks') %>
+      </span>
+      <a href="<%= csv(null) %>" download><i class="ph ph-download-simple"></i> Download all (<%= num(negCount) %>)</a>
+    </div>
+
+    <% if (view === 'account') { %>
+      <div class="li-ota-scroll">
+        <table class="li-ota-table">
+          <thead><tr><th>Negative keyword</th><th>Match</th><th>Campaign</th><%- sortHead('spend', 'Spend') %><%- sortHead('clicks', 'Clicks') %><th class="li-num">Impr.</th><th class="li-num">Conv.</th></tr></thead>
+          <tbody>
+            <% (whole('negatives') ? flat : flat.slice(0, 25)).forEach((x) => { %>
+              <tr>
+                <td><%= kw(x) %></td>
+                <td><%= x.match %></td>
+                <td><%= x.campaign %></td>
+                <td class="li-num"><%= txt(x.spendText) %></td>
+                <td class="li-num"><%= num(x.clicks) %></td>
+                <td class="li-num"><%= num(x.impressions) %></td>
+                <td class="li-num"><%= num(x.conversions) %></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
       </div>
-    <% }); %>
-    <% if (!whole('negatives') && (negs.length > 3 || negs.some((c) => c.suggestions.length > PREVIEW))) { %>
-      <p class="li-ota-foot">
-        <a href="<%= link({ table: 'negatives' }) %>#negatives">View all <%= num(negCount) %> negatives across <%= num(negs.length) %> campaign(s)</a> &rarr;
-      </p>
+      <% if (!whole('negatives') && flat.length > 25) { %>
+        <p class="li-ota-foot"><a href="<%= link({ table: 'negatives' }) %>#negatives">View all <%= num(flat.length) %></a> &rarr;</p>
+      <% } %>
+    <% } else { %>
+      <% negs.forEach((c) => { %>
+        <details class="li-fold" open style="border-top:1px solid var(--color-neutral-800);">
+          <summary style="padding:10px 16px; font-size:13px; font-weight:500; display:flex; gap:12px; flex-wrap:wrap; align-items:baseline;">
+            <span><%= c.campaign %></span>
+            <span style="font-size:11.5px; font-weight:400; color:var(--color-neutral-500);"><%= num(c.suggestions.length) %> negatives · <%= txt(c.spendText) %> · <%= num(c.clicks) %> clicks on unrelated terms</span>
+            <a href="<%= csv(c.campaignId) %>" download style="font-size:12px; font-weight:400;"><i class="ph ph-download-simple"></i> Download CSV</a>
+          </summary>
+          <div class="li-ota-scroll">
+            <table class="li-ota-table">
+              <thead><tr><th>Negative keyword</th><th>Match</th><%- sortHead('spend', 'Spend') %><%- sortHead('clicks', 'Clicks') %><th class="li-num">Impr.</th><th class="li-num">Conv.</th><th>Why</th></tr></thead>
+              <tbody>
+                <% (whole('negatives') ? c.suggestions : c.suggestions.slice(0, PREVIEW)).forEach((x) => { %>
+                  <tr>
+                    <td><%= kw(x) %></td>
+                    <td><%= x.match %></td>
+                    <td class="li-num"><%= txt(x.spendText) %></td>
+                    <td class="li-num"><%= num(x.clicks) %></td>
+                    <td class="li-num"><%= num(x.impressions) %></td>
+                    <td class="li-num"><%= num(x.conversions) %></td>
+                    <td><%= x.reason %></td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+          <% if (!whole('negatives') && c.suggestions.length > PREVIEW) { %>
+            <p class="li-ota-foot"><a href="<%= link({ table: 'negatives' }) %>#negatives">View all <%= num(c.suggestions.length) %> for this campaign</a> &rarr;</p>
+          <% } %>
+        </details>
+      <% }); %>
     <% } %>
   <% } %>
 </details>

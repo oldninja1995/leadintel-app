@@ -3505,19 +3505,35 @@ async function googleAdsPayload(req, slug = null) {
      copies every property into the template's locals, which would read them
      all. An unknown slug gets everything, as it always did. */
   const later = (key, compute) => lazy.define(data, key, compute);
-  /* Negative keyword suggestions — see lib/negative-keywords.js. */
+  /* Negative keyword suggestions — see lib/negative-keywords.js.
+   *
+   * The whole account's search-term history, not the selected range: a term
+   * unrelated to a campaign is unrelated whenever it was searched, and a
+   * negative list built from one month misses everything that matched before
+   * it. Grouped by campaign, or flat across the account, and ordered by spend
+   * or clicks — the CSV follows whichever the screen is showing. */
+  const negativeView = req.query.negView === 'account' ? 'account' : 'campaign';
+  const negativeSort = req.query.negSort === 'clicks' ? 'clicks' : 'spend';
   const negativeSuggestions = once(() => {
+    const everything = entitiesFor(req.workspace);
+    const allNames = new Map();
+    for (const day of everything.campaignDays || []) {
+      if (day.platform === 'google_ads' && day.campaignId) allNames.set(String(day.campaignId), day.campaign);
+    }
     const found = negativeKeywords.suggest({
-      rows: entities.googleSearchTerms || [],
+      rows: everything.googleSearchTerms || [],
       keywords: listing,
-      campaignName: (id) => campaignNameById.get(id) || (listing.find((k) => String(k.campaignId) === id) || {}).campaign || null,
+      campaignName: (id) => allNames.get(id) || (listing.find((k) => String(k.campaignId) === id) || {}).campaign || null,
     });
+    const by = (x, y) => (y[negativeSort] || 0) - (x[negativeSort] || 0) || (y.spend || 0) - (x.spend || 0);
     const out = found.map((c) => ({
       ...c,
+      clicks: c.suggestions.reduce((n, x) => n + (x.match === 'exact' ? x.clicks : 0), 0),
       spendText: asMoney(c.spend),
-      suggestions: c.suggestions.map((x) => ({ ...x, spendText: asMoney(x.spend) })),
-    }));
+      suggestions: c.suggestions.map((x) => ({ ...x, spendText: asMoney(x.spend) })).sort(by),
+    })).sort(by);
     out.unjudged = found.unjudged;
+    out.flat = out.flatMap((c) => c.suggestions.map((x) => ({ ...x, campaign: c.campaign, campaignId: c.campaignId }))).sort(by);
     return out;
   });
   /* For the CSV route; kept off the enumerable page data. */
@@ -3561,6 +3577,9 @@ async function googleAdsPayload(req, slug = null) {
     later('words', () => googleAdsRollup.orderRows(keywordTables().words, sorts.sortWords, 'spend'));
     later('negatives', () => negativeSuggestions());
     later('negativesUnjudged', () => negativeSuggestions().unjudged || []);
+    later('negativesFlat', () => negativeSuggestions().flat || []);
+    later('negativeView', () => negativeView);
+    later('negativeSort', () => negativeSort);
   }
 
   return data;
@@ -3614,7 +3633,12 @@ app.get('/google-ads/keywords/negatives.csv', async (req, res, next) => {
   try {
     const data = await googleAdsPayload(req, 'google-ads/keywords');
     const want = req.query.negCampaign ? String(req.query.negCampaign) : null;
-    const campaigns = data.negativeSuggestions().filter((c) => !want || c.campaignId === want);
+    const all = data.negativeSuggestions();
+    /* The order on screen is the order in the file: by campaign, each sorted
+       within itself, or the whole account as one list. */
+    const campaigns = !want && req.query.negView === 'account'
+      ? all.flat.map((x) => ({ campaign: x.campaign, suggestions: [x] }))
+      : all.filter((c) => !want || c.campaignId === want);
     const name = want && campaigns[0] ? campaigns[0].campaign.replace(/[^w-]+/g, '-').slice(0, 60) : 'all-campaigns';
     res.set('Content-Type', 'text/csv; charset=utf-8');
     res.set('Content-Disposition', `attachment; filename="negative-keywords-${name}.csv"`);
