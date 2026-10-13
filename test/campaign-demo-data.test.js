@@ -112,3 +112,30 @@ test('declining does not invent keys the screen never had', () => {
   assert.ok(!('kwRows' in out), 'kwRows was not on this payload and should not appear');
   assert.ok(!('dMkt' in out));
 });
+
+/* The CRM's campaign label drifts from Meta's name; the ad id does not. On
+   2026-10-13 five of eight Meta bookings carried "tofu conv broad", a label
+   Meta never reported, and the screen showed 3. */
+test('a booking is placed by the ad that produced it, not only by the CRM label', () => {
+  const e = {
+    campaignDays: [
+      { campaign: 'tofu conversation', campaignId: 'C1', label: 'Tofu Conversation', platform: 'meta_ads', date: '2026-10-09', spend: 1000, impressions: 5000, clicks: 100, leads: 10 },
+    ],
+    creatives: [{ adId: 'A103', campaignId: 'C1' }],
+    leads: [
+      { id: 'l-1', campaign: 'tofu conv broad', adId: 'A103' },
+      { id: 'l-2', campaign: 'tofu conversation', adId: null },
+      { id: 'l-3', campaign: 'tofu conv broad', adId: 'A999' },
+    ],
+    deals: [
+      { leadId: 'l-1', outcome: 'won', revenue: 1600000 },
+      { leadId: 'l-2', outcome: 'won', revenue: 1000000, campaign: 'tofu conversation' },
+      { leadId: 'l-3', outcome: 'won', revenue: 500000, campaign: 'tofu conv broad' },
+    ],
+    bookings: [],
+    payments: [],
+  };
+  const { campRows } = campaigns(e, {}, authored());
+  assert.equal(campRows.length, 1);
+  assert.equal(campRows[0].bookings, '2', 'the ad join and the label join, each deal once; an unknown ad keeps its own label');
+});
