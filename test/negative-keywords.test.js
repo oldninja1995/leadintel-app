@@ -57,10 +57,11 @@ test('campaigns are judged against their own keywords', () => {
 
 test('the CSV is a Google Ads Editor import of campaign-level negatives', () => {
   const csv = neg.toCsv([{ campaign: 'Resort, Search', suggestions: [
-    { keyword: 'car loan', match: 'exact' }, { keyword: 'bike', match: 'phrase' },
+    { keyword: 'car loan', match: 'exact', spend: 29750, clicks: 3, impressions: 40, conversions: 0 },
+    { keyword: 'bike', match: 'phrase', spend: 9700, clicks: 2, impressions: 16, conversions: 1 },
   ] }]);
   assert.strictEqual(csv,
-    'Campaign,Ad group,Keyword,Criterion Type\r\n'
-    + '"Resort, Search",,car loan,Negative exact\r\n'
-    + '"Resort, Search",,bike,Negative phrase\r\n');
+    'Campaign,Ad group,Keyword,Criterion Type,Spend (INR),Clicks,Impressions,Conversions\r\n'
+    + '"Resort, Search",,car loan,Negative exact,297.50,3,40,0\r\n'
+    + '"Resort, Search",,bike,Negative phrase,97.00,2,16,1\r\n');
 });
