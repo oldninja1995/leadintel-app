@@ -778,3 +778,16 @@ a.li-fa-stage:hover { background: var(--color-neutral-900); }
   .li-fa-map { grid-template-columns: 1fr; }
   .li-fa-rules { border-right: 0; border-bottom: 1px solid var(--color-neutral-800); }
 }
+
+/* Collapsible panels — a section's heading folds it away (Keyword Analytics). */
+.li-fold > summary { display: block; cursor: pointer; list-style: none; position: relative; padding-right: 40px; }
+.li-fold > summary::-webkit-details-marker { display: none; }
+.li-fold > summary::after {
+  content: ''; position: absolute; right: 18px; top: 18px; width: 7px; height: 7px;
+  border-right: 1.5px solid var(--color-neutral-500); border-bottom: 1.5px solid var(--color-neutral-500);
+  transform: rotate(45deg); transition: transform .15s;
+}
+.li-fold:not([open]) > summary::after { transform: rotate(-45deg); }
+.li-fold:not([open]) > summary { border-bottom: 0; }
+.li-fold > summary:hover h2 { color: var(--color-neutral-100); }
+.li-fold > summary:focus-visible { outline: 2px solid var(--color-accent-400); outline-offset: -2px; }

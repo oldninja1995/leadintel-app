@@ -231,13 +231,14 @@ const previewNote = (param, fallback) => {
 <!-- What the range holds ---------------------------------------------------->
 <% if (!only) { %>
 <section class="li-ota-panel">
-  <div class="li-ota-panel-head">
+  <details class="li-fold" open>
+  <summary class="li-ota-panel-head">
     <h2>What this range holds</h2>
     <p>
       Counted from the rows below rather than reported separately, so the summary and the
       tables cannot disagree.
     </p>
-  </div>
+  </summary>
 
   <div class="li-ota-scroll">
     <table class="li-ota-table">
@@ -263,13 +264,15 @@ const previewNote = (param, fallback) => {
       </tbody>
     </table>
   </div>
+</details>
 </section>
 <% } %>
 
 <!-- Wasted spend, as a worklist ---------------------------------------------->
 <% if (shows('wasted')) { %>
 <section class="li-ota-panel" id="wasted-terms">
-  <div class="li-ota-panel-head">
+  <details class="li-fold" open>
+  <summary class="li-ota-panel-head">
     <h2>Spend with nothing to show for it</h2>
     <p>
       Search terms that cost money and converted nobody, dearest first until you sort them
@@ -277,7 +280,7 @@ const previewNote = (param, fallback) => {
       candidate for a negative keyword — this is the one table on the screen that is a list of
       decisions rather than a record.
     </p>
-  </div>
+  </summary>
 
   <% if (!wasted.length) { %>
     <p class="li-ota-foot">
@@ -330,6 +333,7 @@ const previewNote = (param, fallback) => {
     </p>
   <% } %>
   <% } %>
+</details>
 </section>
 <% } %>
 
@@ -345,36 +349,38 @@ const previewNote = (param, fallback) => {
   };
 %>
 <section class="li-ota-panel" id="negatives">
-  <div class="li-ota-panel-head">
+  <details class="li-fold" open>
+  <summary class="li-ota-panel-head">
     <h2>Negative keywords to add</h2>
     <p>
-      Built from this range's search terms, per campaign. <strong>Exact</strong>: a search term
-      that spent and never converted in that campaign. <strong>Phrase</strong>: a word in two or
-      more of those terms that never appears in a converting term or in the campaign's own
-      keywords. Terms already added or excluded are left out. Download as a Google Ads Editor
-      import (campaign-level negatives) — review it before you post.
+      Search terms <strong>unrelated</strong> to the campaign that matched them — judged against
+      that campaign's own keywords, nothing else. <strong>Exact</strong>: a term sharing no word
+      with any of its keywords. <strong>Phrase</strong>: a word found in two or more of those terms
+      and in none of the related ones. Terms already added or excluded are left out. Spend is shown
+      to rank the list, not to choose it. Download as a Google Ads Editor import (campaign-level
+      negatives) — review it before you post.
     </p>
-  </div>
+  </summary>
 
-  <form method="get" action="#negatives" class="li-ota-foot" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
-    <% params.filter((k) => k.name !== 'negMin').forEach((k) => { %>
-      <input type="hidden" name="<%= k.name %>" value="<%= k.value %>">
-    <% }); %>
-    <label>Only where wasted spend is at least ₹
-      <input type="number" name="negMin" min="0" step="50" value="<%= d.negativeMinRupees || 0 %>" style="width:90px;">
-    </label>
-    <button type="submit">Apply</button>
-    <% if (negCount) { %>
-      <a href="<%= csv(null) %>" download><i class="ph ph-download-simple"></i> Download all (<%= num(negCount) %>)</a>
-    <% } %>
-  </form>
+  <% if (negCount) { %>
+    <p class="li-ota-foot">
+      <strong><%= num(negCount) %></strong> negatives across <%= num(negs.length) %> campaign(s).
+      <a href="<%= csv(null) %>" download><i class="ph ph-download-simple"></i> Download all</a>
+    </p>
+  <% } %>
+  <% if ((d.negativesUnjudged || []).length) { %>
+    <p class="li-ota-foot">
+      Not judged — no keywords in the account list to compare against:
+      <%= d.negativesUnjudged.map((c) => c.campaign).join(", ") %>.
+    </p>
+  <% } %>
 
   <% if (!negCount) { %>
     <p class="li-ota-foot">
       <% if (!terms.length) { %>
         No search term rows in this range — the search terms report is what carries them.
       <% } else { %>
-        Nothing to suggest at this threshold: every search term that spent either converted or is already handled.
+        Every search term in this range shares a word with its campaign's keywords, or is already handled.
       <% } %>
     </p>
   <% } else { %>
@@ -382,12 +388,12 @@ const previewNote = (param, fallback) => {
       <div style="margin-top:14px;">
         <h3 style="font-size:13px; margin:0 0 6px; display:flex; gap:10px; flex-wrap:wrap; align-items:baseline;">
           <span><%= c.campaign %></span>
-          <span class="li-ota-foot" style="margin:0;"><%= num(c.suggestions.length) %> negatives · <%= txt(c.spendText) %> wasted</span>
+          <span class="li-ota-foot" style="margin:0;"><%= num(c.suggestions.length) %> negatives · <%= txt(c.spendText) %> spent on unrelated terms</span>
           <a href="<%= csv(c.campaignId) %>" download style="font-weight:normal;">Download CSV</a>
         </h3>
         <div class="li-ota-scroll">
           <table class="li-ota-table">
-            <thead><tr><th>Negative keyword</th><th>Match</th><th>Wasted spend</th><th>Clicks</th><th>Impr.</th><th>Why</th></tr></thead>
+            <thead><tr><th>Negative keyword</th><th>Match</th><th>Spend</th><th>Clicks</th><th>Impr.</th><th>Conv.</th><th>Why</th></tr></thead>
             <tbody>
               <% (whole('negatives') ? c.suggestions : c.suggestions.slice(0, PREVIEW)).forEach((x) => { %>
                 <tr>
@@ -396,6 +402,7 @@ const previewNote = (param, fallback) => {
                   <td class="li-num"><%= txt(x.spendText) %></td>
                   <td class="li-num"><%= num(x.clicks) %></td>
                   <td class="li-num"><%= num(x.impressions) %></td>
+                  <td class="li-num"><%= num(x.conversions) %></td>
                   <td><%= x.reason %></td>
                 </tr>
               <% }); %>
@@ -410,13 +417,15 @@ const previewNote = (param, fallback) => {
       </p>
     <% } %>
   <% } %>
+</details>
 </section>
 <% } %>
 
 <!-- Words, not phrases ------------------------------------------------------->
 <% if (shows('words')) { %>
 <section class="li-ota-panel" id="by-word">
-  <div class="li-ota-panel-head">
+  <details class="li-fold" open>
+  <summary class="li-ota-panel-head">
     <h2>Where the money goes, by word</h2>
     <p>
       A search term report is mostly one-off phrases: the same waste appears as fifty
@@ -424,7 +433,7 @@ const previewNote = (param, fallback) => {
       negative keyword obvious — one token across a dozen non-converting terms is the thing
       worth excluding, and no per-row view surfaces it.
     </p>
-  </div>
+  </summary>
 
   <% if (!words.length) { %>
     <p class="li-ota-foot">No word appears in more than one search term in this range.</p>
@@ -472,13 +481,15 @@ const previewNote = (param, fallback) => {
     comparison is between words, not against a total.
   </p>
   <% } %>
+</details>
 </section>
 <% } %>
 
 <!-- Current keywords, by campaign ---------------------------------------------->
 <% if (shows('current') && live.length) { %>
 <section class="li-ota-panel" id="account-keywords">
-  <div class="li-ota-panel-head">
+  <details class="li-fold" open>
+  <summary class="li-ota-panel-head">
     <h2>Keywords in the account</h2>
     <p>
       What each <strong>live Search campaign</strong> is bidding on <strong>right now</strong> — the
@@ -495,7 +506,7 @@ const previewNote = (param, fallback) => {
       That is the difference between this table and the measured one below it, which can only
       ever show keywords that ran.
     </p>
-  </div>
+  </summary>
 
   <%# A GET form, so the picker works with JavaScript switched off and the chosen
       campaign lives in the URL — which makes it linkable and survives a reload. %>
@@ -579,13 +590,15 @@ const previewNote = (param, fallback) => {
       </p>
     <% } %>
   <% } %>
+</details>
 </section>
 <% } %>
 
 <!-- Keywords by campaign, as measured ------------------------------------------>
 <% if (shows('by-campaign') && byCampaign.length) { %>
 <section class="li-ota-panel" id="by-campaign">
-  <div class="li-ota-panel-head">
+  <details class="li-fold" open>
+  <summary class="li-ota-panel-head">
     <h2>Keywords by campaign</h2>
     <p>
       What each campaign is actually bidding on, and on what terms. Match type is the setting
@@ -596,7 +609,7 @@ const previewNote = (param, fallback) => {
       bidding entirely exact are two different accounts, and the mix beside each name says which
       one this is.
     </p>
-  </div>
+  </summary>
 
   <% byCampaign.forEach((c) => { %>
     <div class="li-ota-panel-head" style="margin-top:14px;">
@@ -658,20 +671,22 @@ const previewNote = (param, fallback) => {
     Collapsing them into one row would hide which of the two is the expensive one, which is the
     question this table is opened to answer.
   </p>
+</details>
 </section>
 <% } %>
 
 <!-- Keywords ----------------------------------------------------------------->
 <% if (shows('keywords')) { %>
 <section class="li-ota-panel" id="measured-keywords">
-  <div class="li-ota-panel-head">
+  <details class="li-fold" open>
+  <summary class="li-ota-panel-head">
     <h2>Keywords</h2>
     <p>
       Shown verbatim — a keyword is the literal string that was bid on, and match type is what
       decides how far Google may stray from it. What people actually typed is the search terms
       report; these two answer different questions and are the whole reason both exist.
     </p>
-  </div>
+  </summary>
 
   <% if (d.keywordsNotApplicable) { %>
     <p class="li-ota-foot li-ota-foot--warn">
@@ -730,13 +745,15 @@ const previewNote = (param, fallback) => {
     as the lead action, this is not a cost per lead.
   </p>
   <% } %>
+</details>
 </section>
 <% } %>
 
 <!-- Every search term -------------------------------------------------------->
 <% if (shows('terms')) { %>
 <section class="li-ota-panel" id="search-terms">
-  <div class="li-ota-panel-head">
+  <details class="li-fold" open>
+  <summary class="li-ota-panel-head">
     <h2>Search terms</h2>
     <p>
       What people actually typed, as opposed to what was bid on. Every column sorts; spend is
@@ -745,7 +762,7 @@ const previewNote = (param, fallback) => {
       report this long puts the one-impression rows on top: they are real, and they are not
       evidence of anything.
     </p>
-  </div>
+  </summary>
 
   <% if (!terms.length) { %>
     <p class="li-ota-foot">No search term rows in this range.</p>
@@ -793,5 +810,6 @@ const previewNote = (param, fallback) => {
     </p>
   <% } %>
   <% } %>
+</details>
 </section>
 <% } %>

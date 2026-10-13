@@ -156,10 +156,7 @@ test('the picker keeps the order and the range when the campaign changes', () =>
   /* A GET form replaces the whole query string; the hidden fields are what stop
      that from resetting everything else the reader has chosen. */
   const html = render({ qs: '?range=this-month&sort=spend&campaign=111', sort: 'spend' });
-  /* The picker form only — the negative keyword threshold form carries the
-     campaign on purpose, so applying a threshold keeps it. */
-  const picker = html.slice(html.indexOf('action="/google-ads/keywords#account-keywords"'));
-  const hidden = [...picker.slice(0, picker.indexOf('</form>')).matchAll(/<input type="hidden" name="([^"]*)" value="([^"]*)">/g)].map((m) => [m[1], m[2]]);
+  const hidden = [...html.matchAll(/<input type="hidden" name="([^"]*)" value="([^"]*)">/g)].map((m) => [m[1], m[2]]);
 
   assert.deepEqual(hidden.find(([n]) => n === 'sort'), ['sort', 'spend']);
   assert.deepEqual(hidden.find(([n]) => n === 'range'), ['range', 'this-month']);

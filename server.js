@@ -3505,19 +3505,21 @@ async function googleAdsPayload(req, slug = null) {
      copies every property into the template's locals, which would read them
      all. An unknown slug gets everything, as it always did. */
   const later = (key, compute) => lazy.define(data, key, compute);
-  /* Negative keyword suggestions — see lib/negative-keywords.js. The threshold
-     is in rupees on the form and paise in the data. */
-  const negativeMinRupees = Math.max(0, Number(req.query.negMin) || 0);
-  const negativeSuggestions = once(() => negativeKeywords.suggest({
-    rows: entities.googleSearchTerms || [],
-    keywords: listing,
-    campaignName: (id) => campaignNameById.get(id) || (listing.find((k) => String(k.campaignId) === id) || {}).campaign || null,
-    minSpend: negativeMinRupees * 100,
-  }).map((c) => ({
-    ...c,
-    spendText: asMoney(c.spend),
-    suggestions: c.suggestions.map((x) => ({ ...x, spendText: asMoney(x.spend) })),
-  })));
+  /* Negative keyword suggestions — see lib/negative-keywords.js. */
+  const negativeSuggestions = once(() => {
+    const found = negativeKeywords.suggest({
+      rows: entities.googleSearchTerms || [],
+      keywords: listing,
+      campaignName: (id) => campaignNameById.get(id) || (listing.find((k) => String(k.campaignId) === id) || {}).campaign || null,
+    });
+    const out = found.map((c) => ({
+      ...c,
+      spendText: asMoney(c.spend),
+      suggestions: c.suggestions.map((x) => ({ ...x, spendText: asMoney(x.spend) })),
+    }));
+    out.unjudged = found.unjudged;
+    return out;
+  });
   /* For the CSV route; kept off the enumerable page data. */
   Object.defineProperty(data, 'negativeSuggestions', { value: negativeSuggestions, enumerable: false });
   const draws = (screen) => slug === null || !GOOGLE_ADS_SLUGS.has(slug) || slug === screen;
@@ -3558,7 +3560,7 @@ async function googleAdsPayload(req, slug = null) {
     later('termSummary', () => keywordTables().termSummary);
     later('words', () => googleAdsRollup.orderRows(keywordTables().words, sorts.sortWords, 'spend'));
     later('negatives', () => negativeSuggestions());
-    later('negativeMinRupees', () => negativeMinRupees);
+    later('negativesUnjudged', () => negativeSuggestions().unjudged || []);
   }
 
   return data;
