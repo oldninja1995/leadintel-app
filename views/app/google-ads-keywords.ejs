@@ -62,7 +62,7 @@ const PREVIEW = 10;
 /* Which table, if any, the reader asked to see whole. An unknown value shows
    the overview rather than an error — a mistyped query string is not a fault
    worth a page. */
-const TABLES = ['wasted', 'words', 'current', 'keywords', 'by-campaign', 'terms'];
+const TABLES = ['wasted', 'negatives', 'words', 'current', 'keywords', 'by-campaign', 'terms'];
 const only = TABLES.indexOf(String(d.table || '')) > -1 ? String(d.table) : null;
 const shows = (name) => !only || only === name;
 const whole = (name) => only === name;
@@ -329,6 +329,86 @@ const previewNote = (param, fallback) => {
       </a> &rarr;
     </p>
   <% } %>
+  <% } %>
+</section>
+<% } %>
+
+<!-- Negative keywords, ready to exclude ---------------------------------------->
+<% if (shows('negatives')) {
+  const negs = d.negatives || [];
+  const negCount = negs.reduce((n, c) => n + c.suggestions.length, 0);
+  const csv = (campaignId) => {
+    const q = params.filter((k) => k.name !== 'table' && !/^sort/.test(k.name))
+      .map((k) => encodeURIComponent(k.name) + '=' + encodeURIComponent(k.value));
+    if (campaignId) q.push('negCampaign=' + encodeURIComponent(campaignId));
+    return '/google-ads/keywords/negatives.csv' + (q.length ? '?' + q.join('&') : '');
+  };
+%>
+<section class="li-ota-panel" id="negatives">
+  <div class="li-ota-panel-head">
+    <h2>Negative keywords to add</h2>
+    <p>
+      Built from this range's search terms, per campaign. <strong>Exact</strong>: a search term
+      that spent and never converted in that campaign. <strong>Phrase</strong>: a word in two or
+      more of those terms that never appears in a converting term or in the campaign's own
+      keywords. Terms already added or excluded are left out. Download as a Google Ads Editor
+      import (campaign-level negatives) — review it before you post.
+    </p>
+  </div>
+
+  <form method="get" action="#negatives" class="li-ota-foot" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+    <% params.filter((k) => k.name !== 'negMin').forEach((k) => { %>
+      <input type="hidden" name="<%= k.name %>" value="<%= k.value %>">
+    <% }); %>
+    <label>Only where wasted spend is at least ₹
+      <input type="number" name="negMin" min="0" step="50" value="<%= d.negativeMinRupees || 0 %>" style="width:90px;">
+    </label>
+    <button type="submit">Apply</button>
+    <% if (negCount) { %>
+      <a href="<%= csv(null) %>" download><i class="ph ph-download-simple"></i> Download all (<%= num(negCount) %>)</a>
+    <% } %>
+  </form>
+
+  <% if (!negCount) { %>
+    <p class="li-ota-foot">
+      <% if (!terms.length) { %>
+        No search term rows in this range — the search terms report is what carries them.
+      <% } else { %>
+        Nothing to suggest at this threshold: every search term that spent either converted or is already handled.
+      <% } %>
+    </p>
+  <% } else { %>
+    <% (whole('negatives') ? negs : negs.slice(0, 3)).forEach((c) => { %>
+      <div style="margin-top:14px;">
+        <h3 style="font-size:13px; margin:0 0 6px; display:flex; gap:10px; flex-wrap:wrap; align-items:baseline;">
+          <span><%= c.campaign %></span>
+          <span class="li-ota-foot" style="margin:0;"><%= num(c.suggestions.length) %> negatives · <%= txt(c.spendText) %> wasted</span>
+          <a href="<%= csv(c.campaignId) %>" download style="font-weight:normal;">Download CSV</a>
+        </h3>
+        <div class="li-ota-scroll">
+          <table class="li-ota-table">
+            <thead><tr><th>Negative keyword</th><th>Match</th><th>Wasted spend</th><th>Clicks</th><th>Impr.</th><th>Why</th></tr></thead>
+            <tbody>
+              <% (whole('negatives') ? c.suggestions : c.suggestions.slice(0, PREVIEW)).forEach((x) => { %>
+                <tr>
+                  <td><%= x.match === 'exact' ? '[' + x.keyword + ']' : '"' + x.keyword + '"' %></td>
+                  <td><%= x.match %></td>
+                  <td class="li-num"><%= txt(x.spendText) %></td>
+                  <td class="li-num"><%= num(x.clicks) %></td>
+                  <td class="li-num"><%= num(x.impressions) %></td>
+                  <td><%= x.reason %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% }); %>
+    <% if (!whole('negatives') && (negs.length > 3 || negs.some((c) => c.suggestions.length > PREVIEW))) { %>
+      <p class="li-ota-foot">
+        <a href="<%= link({ table: 'negatives' }) %>#negatives">View all <%= num(negCount) %> negatives across <%= num(negs.length) %> campaign(s)</a> &rarr;
+      </p>
+    <% } %>
   <% } %>
 </section>
 <% } %>

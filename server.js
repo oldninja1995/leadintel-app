@@ -54,6 +54,7 @@ const authSessions = require('./lib/auth/sessions');
 const { Connections, stateOf, REQUIREMENTS } = require('./lib/connections');
 const ota = require('./lib/ota');
 const funnelAnalytics = require('./lib/funnel-analytics');
+const negativeKeywords = require('./lib/negative-keywords');
 const hardening = require('./lib/http/hardening');
 const observability = require('./lib/http/observability');
 const store = require('./lib/store');
@@ -3504,6 +3505,21 @@ async function googleAdsPayload(req, slug = null) {
      copies every property into the template's locals, which would read them
      all. An unknown slug gets everything, as it always did. */
   const later = (key, compute) => lazy.define(data, key, compute);
+  /* Negative keyword suggestions — see lib/negative-keywords.js. The threshold
+     is in rupees on the form and paise in the data. */
+  const negativeMinRupees = Math.max(0, Number(req.query.negMin) || 0);
+  const negativeSuggestions = once(() => negativeKeywords.suggest({
+    rows: entities.googleSearchTerms || [],
+    keywords: listing,
+    campaignName: (id) => campaignNameById.get(id) || (listing.find((k) => String(k.campaignId) === id) || {}).campaign || null,
+    minSpend: negativeMinRupees * 100,
+  }).map((c) => ({
+    ...c,
+    spendText: asMoney(c.spend),
+    suggestions: c.suggestions.map((x) => ({ ...x, spendText: asMoney(x.spend) })),
+  })));
+  /* For the CSV route; kept off the enumerable page data. */
+  Object.defineProperty(data, 'negativeSuggestions', { value: negativeSuggestions, enumerable: false });
   const draws = (screen) => slug === null || !GOOGLE_ADS_SLUGS.has(slug) || slug === screen;
 
   /* Ad Analytics. */
@@ -3541,6 +3557,8 @@ async function googleAdsPayload(req, slug = null) {
     later('wastedTerms', () => googleAdsRollup.orderRows(keywordTables().wastedTerms, sorts.sortWasted, 'spend'));
     later('termSummary', () => keywordTables().termSummary);
     later('words', () => googleAdsRollup.orderRows(keywordTables().words, sorts.sortWords, 'spend'));
+    later('negatives', () => negativeSuggestions());
+    later('negativeMinRupees', () => negativeMinRupees);
   }
 
   return data;
@@ -3588,6 +3606,19 @@ app.get('/google-ads', (req, res, next) => { renderGoogleAds(req, res, 'google-a
    and would give this slug the generic design-screen route — a route that
    reads a data module and audits a schema neither of which this screen has. */
 app.get('/google-ads/keywords', (req, res, next) => { renderGoogleAds(req, res, 'google-ads/keywords').catch(next); });
+/* The negative keyword list as a Google Ads Editor import — the whole account,
+   or one campaign with ?negCampaign=<id>. Same range and threshold as the screen. */
+app.get('/google-ads/keywords/negatives.csv', async (req, res, next) => {
+  try {
+    const data = await googleAdsPayload(req, 'google-ads/keywords');
+    const want = req.query.negCampaign ? String(req.query.negCampaign) : null;
+    const campaigns = data.negativeSuggestions().filter((c) => !want || c.campaignId === want);
+    const name = want && campaigns[0] ? campaigns[0].campaign.replace(/[^w-]+/g, '-').slice(0, 60) : 'all-campaigns';
+    res.set('Content-Type', 'text/csv; charset=utf-8');
+    res.set('Content-Disposition', `attachment; filename="negative-keywords-${name}.csv"`);
+    return res.send(negativeKeywords.toCsv(campaigns));
+  } catch (err) { return next(err); }
+});
 /* The third face of the same payload: campaigns and ad groups on the first,
    keywords and terms on the second, the ads themselves here. */
 app.get('/google-ads/ads', (req, res, next) => { renderGoogleAds(req, res, 'google-ads/ads').catch(next); });
