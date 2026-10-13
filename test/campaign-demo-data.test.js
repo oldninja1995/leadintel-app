@@ -120,8 +120,13 @@ test('a booking is placed by the ad that produced it, not only by the CRM label'
   const e = {
     campaignDays: [
       { campaign: 'tofu conversation', campaignId: 'C1', label: 'Tofu Conversation', platform: 'meta_ads', date: '2026-10-09', spend: 1000, impressions: 5000, clicks: 100, leads: 10 },
+      { campaign: 'mofu conversion', campaignId: 'C2', label: 'Mofu Conversion', platform: 'meta_ads', date: '2026-10-09', spend: 500, impressions: 2000, clicks: 40, leads: 4 },
     ],
-    creatives: [{ adId: 'A103', campaignId: 'C1' }],
+    creatives: [
+      { adId: 'A103', title: 'Ad 103', campaignId: 'C1' },
+      { adId: 'A7', title: 'Shared name', campaignId: 'C1' },
+      { adId: 'A8', title: 'Shared name', campaignId: 'C2' },
+    ],
     adsetDays: [{ adsetId: 'S7', campaignId: 'C1', date: '2026-10-09' }],
     leads: [
       { id: 'l-1', campaign: 'tofu conv broad', adId: 'A103' },
@@ -129,17 +134,22 @@ test('a booking is placed by the ad that produced it, not only by the CRM label'
       { id: 'l-3', campaign: 'tofu conv broad', adId: 'A999' },
       /* What this CRM actually sends: the ad set id, no ad id. */
       { id: 'l-4', campaign: 'tofu conv broad', adId: null, adsetId: 'S7' },
+      /* A landing-page lead: the UTM ad name and no id. */
+      { id: 'l-5', campaign: 'tofu conv broad', adName: 'Ad 103' },
+      { id: 'l-6', campaign: 'tofu conv broad', adName: 'Shared name' },
     ],
     deals: [
       { leadId: 'l-1', outcome: 'won', revenue: 1600000 },
       { leadId: 'l-2', outcome: 'won', revenue: 1000000, campaign: 'tofu conversation' },
       { leadId: 'l-3', outcome: 'won', revenue: 500000, campaign: 'tofu conv broad' },
       { leadId: 'l-4', outcome: 'won', revenue: 1300000, campaign: 'tofu conv broad' },
+      { leadId: 'l-5', outcome: 'won', revenue: 1000000, campaign: 'tofu conv broad' },
+      { leadId: 'l-6', outcome: 'won', revenue: 1000000, campaign: 'tofu conv broad' },
     ],
     bookings: [],
     payments: [],
   };
   const { campRows } = campaigns(e, {}, authored());
-  assert.equal(campRows.length, 1);
-  assert.equal(campRows[0].bookings, '3', 'by ad, by ad set, and by label — each deal once; an unknown ad keeps its own label');
+  const tofu = campRows.find((r) => r.name === 'Tofu Conversation');
+  assert.equal(tofu.bookings, '4', 'by ad, ad set, unique ad name and label — each deal once; an ambiguous name and an unknown ad keep their own label');
 });
