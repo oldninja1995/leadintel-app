@@ -137,3 +137,13 @@ test('a period with no spend has no cost per lead, rather than a free one', () =
   assert.strictEqual(out.summary.cpl, null);
   assert.strictEqual(out.summary.roas, null);
 });
+
+test('the shared INTERESTED rule every screen reads does not count a no as a yes', () => {
+  const { INTERESTED } = require('../lib/metrics/registry');
+  for (const no of ['Not interested', 'Not Interested', 'not-interested', 'Uninterested', 'No interest']) {
+    assert.strictEqual(INTERESTED.test(no), false, no);
+  }
+  for (const yes of ['Interested', 'Hot', 'Won/Converted', 'Qualified', 'Booked']) {
+    assert.strictEqual(INTERESTED.test(yes), true, yes);
+  }
+});
