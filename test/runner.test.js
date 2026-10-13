@@ -489,3 +489,15 @@ test('a slow schedule does not stop a source being due', async () => {
   assert.ok(runner.due().some((s) => s.id === 'meta_ads'), 'the schedule suppressed due-ness');
   assert.equal(runner.health('meta_ads'), 'ok', 'being due was confused with being unhealthy');
 });
+
+test('flush waits for every run logged side by side, not only the last', async () => {
+  const settled = [];
+  const backend = {
+    append: (run) => new Promise((resolve) => setTimeout(() => { settled.push(run.source); resolve(); }, run.source === 'meta_ads' ? 30 : 5)),
+  };
+  const log = new RunLog(null, { backend });
+  log.append({ source: 'meta_ads', ok: true });
+  log.append({ source: 'telecrm', ok: true });
+  await log.flush();
+  assert.deepStrictEqual(settled.sort(), ['meta_ads', 'telecrm']);
+});

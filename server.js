@@ -2012,59 +2012,60 @@ app.get('/connections/:source/oauth/callback',
  * knowing which source to expand first. "Sync all" belongs where the tally is:
  * at the top, visible before anything is opened.
  *
- * Most-stale-first and bounded by wall clock, the same shape /cron/sync uses
- * and for the same reason — twelve sources do not fit in one function
- * invocation, and a press that dies at the ceiling would report nothing having
- * done real work. What did not fit is named in the message rather than left
- * for somebody to notice was missing.
+ * Side by side, not one after another. Run in turn, Meta alone (~45–60s)
+ * spent the whole press and TeleCRM was "did not fit — press again" every
+ * time, so the button never reached the CRM. Each source is a wait on its own
+ * vendor and writes its own rows, so they overlap safely; a press now costs
+ * the slowest source rather than the sum.
  *
- * Only configured sources: an unconnected one would fail on every press and
- * bury the sources that actually ran under eight identical credential
- * errors. */
+ * The answer goes out before the platform's 60s ceiling whatever is still
+ * running, because a press killed at the ceiling reports nothing — not even
+ * the sources that finished. A source still going is named as such.
+ *
+ * Only sources with a credential stored. `liveSources` answers every source
+ * when production forces http, which queued eight never-connected OTAs and
+ * PMS first (never-synced sorts most stale) and buried the real result under
+ * eight identical "no credential stored" errors. */
+const SYNC_ALL_ANSWER_MS = 52_000;
 app.post('/connections/sync',
   express.urlencoded({ extended: false }), express.json(),
   gatekeeper.gate('connection.manage', () => ({ source: 'all', action: 'sync' })),
   async (req, res) => {
     const live = ingest.liveSources({ connections, workspace: req.workspace, httpConnectors });
-    /* Most starved first, so a press that runs out of time has spent it on the
-       sources furthest behind. */
-    const wanted = runner.due().filter((s) => live.has(s.id));
-    const rest = ingest.sources.list().filter((s) => live.has(s.id) && !wanted.some((w) => w.id === s.id));
-    const queue = [...wanted, ...rest];
+    const configured = connections.configured(req.workspace);
+    const queue = ingest.sources.list().filter((s) => live.has(s.id) && configured.has(s.id));
 
     if (!queue.length) {
       return res.redirect(303, `/connections?saved=${encodeURIComponent('No source has a credential stored, so there is nothing to sync.')}`);
     }
 
-    const startedAt = Date.now();
-    const BUDGET_MS = 40_000;
+    const outcome = new Map();
+    const runs = queue.map((source) => runner.runOne(source.id)
+      .then((result) => outcome.set(source.id, result))
+      .catch((err) => outcome.set(source.id, { ok: false, error: err.message })));
+
+    let timer;
+    await Promise.race([
+      Promise.all(runs),
+      new Promise((resolve) => { timer = setTimeout(resolve, SYNC_ALL_ANSWER_MS); }),
+    ]);
+    clearTimeout(timer);
+    try { await runner.log.flush(); } catch (err) { console.warn('sync all: run log flush failed —', err.message); }
+
     const ran = [];
     const failed = [];
-    let slowest = 0;
-
+    const running = [];
     for (const source of queue) {
-      /* Room for ANOTHER, not merely time left — a run started at 39s against a
-         40s budget is killed at 60s by the platform, mid-write. The longest run
-         so far is the estimate; the first is always attempted. */
-      const elapsed = Date.now() - startedAt;
-      if (ran.length && elapsed + slowest * 1.25 > BUDGET_MS) break;
-
-      const at = Date.now();
-      try {
-        const result = await runner.runOne(source.id);
-        if (result.ok === false) failed.push(`${source.name}: ${result.error || 'failed'}`);
-        else ran.push(`${source.name} ${result.written || 0}`);
-      } catch (err) {
-        failed.push(`${source.name}: ${err.message}`);
-      }
-      slowest = Math.max(slowest, Date.now() - at);
+      const result = outcome.get(source.id);
+      if (!result) running.push(source.name);
+      else if (result.ok === false) failed.push(`${source.name}: ${result.error || 'failed'}`);
+      else ran.push(`${source.name} ${result.written || 0}`);
     }
 
-    const skipped = queue.length - ran.length - failed.length;
     const note = [
       ran.length ? `${ran.length} source(s) synced — ${ran.join(', ')} row(s) written` : 'nothing synced',
       failed.length ? `${failed.length} failed: ${failed.join('; ')}` : null,
-      skipped > 0 ? `${skipped} did not fit this press — press again to continue` : null,
+      running.length ? `${running.join(', ')} did not finish in time — use its own Sync button` : null,
     ].filter(Boolean).join(' · ');
 
     const key = failed.length && !ran.length ? 'error' : 'saved';
