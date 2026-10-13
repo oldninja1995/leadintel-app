@@ -69,6 +69,10 @@ const { SiteConfig } = require('./lib/site-config');
 const { Tenants } = require('./lib/auth/tenants');
 
 const app = express();
+/* When the request reached us, before any middleware. A route that has to answer
+   inside the platform ceiling measures against this, not against when its own
+   handler began — session and hydration can spend several seconds first. */
+app.use((req, res, next) => { req.arrivedAt = Date.now(); next(); });
 const PORT = process.env.PORT || 3000;
 
 /* Vercel sets VERCEL=1 on every runtime. It decides two things: nothing listens
@@ -2026,7 +2030,7 @@ app.get('/connections/:source/oauth/callback',
  * when production forces http, which queued eight never-connected OTAs and
  * PMS first (never-synced sorts most stale) and buried the real result under
  * eight identical "no credential stored" errors. */
-const SYNC_ALL_ANSWER_MS = 52_000;
+const SYNC_ALL_ANSWER_MS = 50_000;
 app.post('/connections/sync',
   express.urlencoded({ extended: false }), express.json(),
   gatekeeper.gate('connection.manage', () => ({ source: 'all', action: 'sync' })),
@@ -2047,7 +2051,7 @@ app.post('/connections/sync',
     let timer;
     await Promise.race([
       Promise.all(runs),
-      new Promise((resolve) => { timer = setTimeout(resolve, SYNC_ALL_ANSWER_MS); }),
+      new Promise((resolve) => { timer = setTimeout(resolve, Math.max(0, (req.arrivedAt || Date.now()) + SYNC_ALL_ANSWER_MS - Date.now())); }),
     ]);
     clearTimeout(timer);
     try { await runner.log.flush(); } catch (err) { console.warn('sync all: run log flush failed —', err.message); }
