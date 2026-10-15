@@ -173,7 +173,10 @@ const dash = function (v) { return (v === null || v === undefined || v === '') ?
       <p>Spend comes from the ad platforms and leads from TeleCRM, joined on the campaign name the CRM recorded
         (its UTM). Each side is totalled first and only then put side by side, so spend is never repeated once per lead.
         <% if (unmatchedLeads) { %><strong><%= unmatchedLeads %> leads</strong> name a campaign no ad platform reported in this range —
-        a renamed campaign, a UTM typo, or spend outside the window — and are listed with N/A spend rather than dropped.<% } %></p>
+        a renamed campaign, a UTM typo, or spend outside the window — and are listed with N/A spend rather than dropped.<% } %>
+        <% if (uncampaignedLeads) { %><strong><%= uncampaignedLeads %> paid leads</strong> reached TeleCRM with no campaign recorded at all
+        (the lead carries only its source, e.g. “Google Ads”), so they cannot be joined to a campaign and the campaigns above show 0 CRM leads.
+        Passing the campaign (utm_campaign or the gclid) from the enquiry form into TeleCRM would close this.<% } %></p>
     </div>
     <% if (!campaigns.length) { %>
       <p class="li-fa-empty">No campaigns in this range.</p>

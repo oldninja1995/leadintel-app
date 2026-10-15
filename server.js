@@ -1021,6 +1021,10 @@ app.use('/assets', express.static(ASSETS, {
   maxAge: '30d',
 }));
 
+/* Browsers ask for /favicon.ico regardless of the <link rel="icon"> every page
+   declares, and the request 404'd in the logs on every first visit. */
+app.get('/favicon.ico', (req, res) => res.redirect(301, app.locals.asset('favicon.svg')));
+
 /* Phase 9. Everything past this line needs a session, and `req.workspace` comes
    from that session rather than from the request — a caller cannot reach
    another tenant's data by changing a parameter, because there is no parameter.
@@ -2782,6 +2786,7 @@ async function renderFunnel(req, res) {
       periods: result.periods.map((p) => ({ label: periodLabel(p.key), bar: Math.round((p.leads / maxPeriodLeads) * 100), ...funnelFigures(p) })).reverse(),
       campaigns: result.campaigns.map((c) => ({ key: c.key, label: c.label, platforms: c.platforms, matched: c.matched, f: funnelFigures(c) })),
       unmatchedLeads: result.unmatchedLeads ? funnelCount(result.unmatchedLeads) : null,
+      uncampaignedLeads: result.uncampaignedLeads ? funnelCount(result.uncampaignedLeads) : null,
       stageMap: result.stageMap.map((s) => ({ ...s, nText: funnelCount(s.n) })),
       stageRules: funnelAnalytics.STAGE_RULES,
       drill: result.drill && {

@@ -115,6 +115,12 @@ test('a CRM campaign no ad platform reported is kept and flagged', () => {
   assert.strictEqual(out.unmatchedLeads, 1);
 });
 
+test('a paid lead with no campaign is counted apart from a mismatch', () => {
+  const out = funnel.analyse({ leads: [lead('l1', { campaign: null }), lead('l2', { campaign: 'old-name' })], deals: [], campaignDays: [day()] }, { channel: 'meta' });
+  assert.strictEqual(out.uncampaignedLeads, 1);
+  assert.strictEqual(out.unmatchedLeads, 1);
+});
+
 test('drill-down returns the leads at a stage', () => {
   const out = funnel.analyse({ leads: [lead('l1', { stage: 'Qualified' }), lead('l2')], deals: [], campaignDays: [] }, { channel: 'meta', stage: 'qualified' });
   assert.strictEqual(out.drill.total, 1);
