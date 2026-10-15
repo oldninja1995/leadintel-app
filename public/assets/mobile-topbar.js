@@ -85,6 +85,19 @@
     const spacer = kids.find((el) => /flex:\s*1/.test(el.getAttribute('style') || '') && !el.textContent.trim());
 
     if (rangeGroup) rangeGroup.setAttribute('data-li-m', 'range');
+
+    /* The date picker is one button now (topbar.ejs), not a row of chips, so
+       it stays in the bar and opens its own popover — no panel needed. It is
+       the one control here allowed to shrink: before this it kept its full
+       239px, sat on top of the bell and the avatar, and pushed Filters off
+       the right edge of every phone. */
+    const rangeButton = header.querySelector('[data-li-range]');
+    if (rangeButton) rangeButton.setAttribute('data-li-m', 'rangebtn');
+    /* The right-hand cluster keeps only the bell and the avatar once search,
+       theme and Ask AI move to the drawer; it must not shrink below them. */
+    const bell = byAction('toggleNotif');
+    const tail = bell && bell.parentElement !== header ? bell.parentElement : null;
+    if (tail) tail.setAttribute('data-li-m', 'tail');
     if (note) note.setAttribute('data-li-m', 'quiet');
     if (spacer) spacer.setAttribute('data-li-m', 'spacer');
 
@@ -121,7 +134,7 @@
          control the screen is actually read with. */
       header.insertBefore(
         panelButton(app, 'li-filters-open', 'Filters', 'ph-funnel-simple', count),
-        rangeGroup || null
+        rangeButton ? rangeButton.nextSibling : (rangeGroup || null)
       );
     }
 
@@ -168,6 +181,7 @@
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'li-m-btn';
+    button.setAttribute('data-li-m-btn', openClass);
     button.setAttribute('aria-expanded', 'false');
     button.innerHTML = '<i class="ph ' + icon + '" aria-hidden="true"></i><span>' + escape(label) + '</span>'
       + (count ? '<em class="li-m-count">' + count + '</em>' : '')
