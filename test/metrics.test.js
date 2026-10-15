@@ -357,3 +357,11 @@ test('a repeated format call does not drift from the first', () => {
   const first = metrics.format(spend, 987654321);
   for (let i = 0; i < 1000; i++) assert.equal(metrics.format(spend, 987654321), first);
 });
+
+/* This TeleCRM writes "Won/Converted" and "Not interested"; the old exact list
+   matched neither, so resolved leads were counted as open. */
+test('leads.open excludes resolved leads under this CRM\'s own stage names', () => {
+  const stages = ['Fresh', 'Ringing no answer', 'Interested', 'Hot', 'Won/Converted', 'Not interested', 'Lost', 'Booked', null];
+  const leads = stages.map((stage, i) => ({ id: String(i), stage }));
+  assert.equal(registry.get('leads.open').source({ leads }), 5);
+});
