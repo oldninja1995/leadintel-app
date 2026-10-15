@@ -413,7 +413,9 @@
   }
 
   function enhanceChips() {
-    const funnel = document.querySelector('.ph-funnel-simple');
+    /* Scoped to the main column: the sidebar's Full Funnel Analytics item
+       carries the same icon and comes first, which bound every chip to the nav. */
+    const funnel = document.querySelector('.main-col .ph-funnel-simple');
     const bar = funnel && funnel.parentElement;
     if (!bar) return;
 
