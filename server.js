@@ -864,7 +864,14 @@ function notifications(workspaceId) {
   } catch (err) {
     console.warn('rules: could not read the fire log —', err.message);
   }
-  return alerts.build({ status: runner.status(), problems, match, unattributed, restatements: restatements(workspaceId), fired });
+  /* A source nobody has connected has not "never synced" — it was never asked
+     to. Eight of these (the OTAs, the PMS, Razorpay) filled the panel beside
+     the one real alert. Same rule as Sync all: no credential, no claim. A
+     connected source that has stopped is still reported. */
+  let configured = null;
+  try { configured = connections.configured(workspaceId); } catch (err) { configured = null; }
+  const status = runner.status().filter((s) => s.health !== 'never-synced' || !configured || configured.has(s.source));
+  return alerts.build({ status, problems, match, unattributed, restatements: restatements(workspaceId), fired });
 }
 
 /* Registry values are only substituted under the ingested driver, where the
@@ -1419,10 +1426,16 @@ app.use((req, res, next) => {
    per-request hydration below — so a page of thirty cards no longer means
    thirty snapshot reads against the pooler. See lib/http/thumb-sign.js. An
    unsigned or mis-signed link falls through to the lookup route further down. */
-app.get('/creatives/:adId/thumbnail', (req, res, next) => {
+app.get('/creatives/:adId/thumbnail', async (req, res, next) => {
   const address = thumbSign.verify(req.params.adId, req.query.u, req.query.s);
   if (!address) return next();
-  return proxyThumbnail(res, address);
+  const image = await fetchThumbnail(address);
+  if (image) return sendThumbnail(res, image);
+  /* The signed address has expired — Meta's video stills are signed for about
+     a day and the sync is daily. The lookup route below asks Meta for a fresh
+     one; it needs the hydrated stores, which this route deliberately skips. */
+  req.thumbnailFailed = true;
+  return next();
 });
 
 /* Pull this request's state out of Postgres before anything reads it.
@@ -3694,10 +3707,65 @@ app.get('/creatives/:adId/thumbnail', async (req, res) => {
   }
 
   if (!creative || !creative.thumbnailUrl) return res.status(404).end();
-  return proxyThumbnail(res, creative.thumbnailUrl);
+  const stored = req.thumbnailFailed ? null : await fetchThumbnail(creative.thumbnailUrl);
+  if (stored) return sendThumbnail(res, stored);
+
+  const fresh = await freshThumbnailUrl(req.workspace, creative.adId);
+  const image = fresh ? await fetchThumbnail(fresh) : null;
+  if (image) return sendThumbnail(res, image);
+  /* An expired signature or a CDN hiccup renders as a missing image, which
+     the card already handles by falling back to its gradient. */
+  return res.status(502).end();
 });
 
-async function proxyThumbnail(res, address) {
+/* A current address for an ad's still, from Meta, when the stored one has
+ * expired.
+ *
+ * Video ads carry `thumbnail_url` on an fbcdn host with an `oe=` expiry about
+ * a day out, and Meta syncs once a day — so by the next morning every video
+ * card on Creative Intelligence was a 502 and a grey gradient (9 of 70 on
+ * 15 Oct). Image ads use a permanent facebook.com address and never get here.
+ *
+ * Same token, same host and same server-side-only rule as the preview route.
+ * Kept per instance for six hours so a page of cards costs one Graph call per
+ * expired card per instance, not one per view. */
+const freshThumbs = new Map();
+const FRESH_THUMB_MS = 6 * 3600_000;
+async function freshThumbnailUrl(workspaceId, adId) {
+  const key = `${workspaceId}:${adId}`;
+  const hit = freshThumbs.get(key);
+  if (hit && Date.now() - hit.at < FRESH_THUMB_MS) return hit.url;
+
+  const credentials = connections.secretsFor(workspaceId, 'meta_ads');
+  if (!credentials || !credentials.accessToken) return null;
+  try {
+    const url = new URL(`https://graph.facebook.com/v25.0/${encodeURIComponent(adId)}`);
+    url.searchParams.set('fields', 'creative{thumbnail_url,image_url}');
+    url.searchParams.set('access_token', String(credentials.accessToken).trim());
+    const upstream = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!upstream.ok) return null;
+    const body = await upstream.json();
+    const c = (body && body.creative) || {};
+    const fresh = c.image_url || c.thumbnail_url || null;
+    if (fresh) freshThumbs.set(key, { url: fresh, at: Date.now() });
+    return fresh;
+  } catch (err) {
+    return null;
+  }
+}
+
+function sendThumbnail(res, image) {
+  res.setHeader('content-type', image.type);
+  /* Cached hard: a creative's thumbnail does not change, and every card on
+     the screen is one of these. `private` because it is behind a session. */
+  res.setHeader('cache-control', 'private, max-age=86400');
+  return res.end(image.body);
+}
+
+/* The image at `address`, or null when it cannot be had — a bad address, a
+   host Meta does not serve images from, an expired signature, or anything
+   that is not an image. */
+async function fetchThumbnail(address) {
   /* Belt and braces: the address came from our own store, but it came
      originally from a third party, so it is still checked against the hosts
      Meta serves images from before anything is fetched. */
@@ -3705,30 +3773,20 @@ async function proxyThumbnail(res, address) {
   try {
     target = new URL(address);
   } catch (err) {
-    return res.status(404).end();
+    return null;
   }
-  if (target.protocol !== 'https:' || !THUMBNAIL_HOSTS.test(target.hostname)) {
-    return res.status(404).end();
-  }
+  if (target.protocol !== 'https:' || !THUMBNAIL_HOSTS.test(target.hostname)) return null;
 
   try {
-    const upstream = await fetch(target, { redirect: 'follow' });
-    if (!upstream.ok) return res.status(502).end();
-
+    const upstream = await fetch(target, { redirect: 'follow', signal: AbortSignal.timeout(10000) });
+    if (!upstream.ok) return null;
     const type = upstream.headers.get('content-type') || '';
     /* Only images. Whatever else the far end might serve, this route will not
        hand it to a browser under this app's own origin. */
-    if (!type.startsWith('image/')) return res.status(502).end();
-
-    res.setHeader('content-type', type);
-    /* Cached hard: a creative's thumbnail does not change, and every card on
-       the screen is one of these. `private` because it is behind a session. */
-    res.setHeader('cache-control', 'private, max-age=86400');
-    return res.end(Buffer.from(await upstream.arrayBuffer()));
+    if (!type.startsWith('image/')) return null;
+    return { type, body: Buffer.from(await upstream.arrayBuffer()) };
   } catch (err) {
-    /* An expired signature or a CDN hiccup renders as a missing image, which
-       the card already handles by falling back to its gradient. */
-    return res.status(502).end();
+    return null;
   }
 }
 

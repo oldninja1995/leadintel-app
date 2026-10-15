@@ -287,10 +287,12 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
             <%
             /* Left fractional on purpose: Google splits conversion credit across
                touches, so rounding 4.166666 to 4 would discard the fraction on
-               every row and quietly understate the total. */
+               every row and quietly understate the total. Shown to two places
+               with grouping, though: "27589.895595" was printed raw. */
+            const frac = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v)) ? txt(v) : Number(v).toLocaleString('en-IN', { maximumFractionDigits: 2 }));
             %>
-            <td class="li-num" title="Everything this action recorded, primary or not."><%= txt(c.allConversions) %></td>
-            <td class="li-num" title="What Google counts toward the Conversions column and bids on. Zero for a secondary action by construction, not because nothing happened."><%= txt(c.conversions) %></td>
+            <td class="li-num" title="Everything this action recorded, primary or not."><%= frac(c.allConversions) %></td>
+            <td class="li-num" title="What Google counts toward the Conversions column and bids on. Zero for a secondary action by construction, not because nothing happened."><%= frac(c.conversions) %></td>
             <td class="li-num" title="<%= c.allValueText && c.allValueText !== c.valueText ? 'All-conversions value: ' + c.allValueText : 'Conversion value as Google Ads recorded it. ₹0 means no value is assigned to this action in the account — the booking engine’s revenue is on Website Analytics, from GA4.' %>"><%= txt(c.valueText) %></td>
           </tr>
         <% }); %>

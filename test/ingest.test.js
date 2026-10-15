@@ -196,7 +196,13 @@ test('phone: the four shapes an Indian CRM accumulates', () => {
   assert.equal(n.phone('098470-11223').value, '+919847011223', 'trunk zero');
   assert.equal(n.phone('0091 8547 663311').value, '+918547663311', '0091 prefix');
   assert.equal(n.phone('12345').value, null);
-  assert.match(n.phone('1234567890').problem, /not an Indian mobile/, 'Indian mobiles start 6–9');
+  assert.equal(n.phone('1234567890').value, null, 'ten digits starting 1–5 with no code: country unknown');
+  assert.equal(n.phone('966565959088').value, '+966565959088', 'Gulf number stored without +');
+  assert.equal(n.phone('+971 50 123 4567').value, '+971501234567', 'stated country code');
+  assert.equal(n.phone('00971501234567').value, '+971501234567', '00 international prefix');
+  assert.equal(n.phone('911146121263').value, '+911146121263', 'Indian landline with 91');
+  assert.equal(n.phone('04842345678').value, '+914842345678', 'Indian landline with trunk zero');
+  assert.match(n.phone('9199443888989').problem, /not a valid Indian number/, '91 plus eleven digits is a typo');
 });
 
 test('campaign cleanup: three spellings of one campaign produce one key', () => {

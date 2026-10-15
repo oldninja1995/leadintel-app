@@ -43,6 +43,16 @@ test('a chip narrows the rows that carry its field', () => {
   assert.equal(result.dropped, 1);
 });
 
+test('the channel chip matches a row however it spells the platform', () => {
+  /* The selection is the token; the Leads table writes the label. */
+  const google = filters.applyFilters(payload(), { f_channel: 'google' });
+  assert.deepEqual(google.payload.leadRows.map((r) => r.name), ['Meera']);
+  const meta = filters.applyFilters(payload(), { f_channel: 'Meta Ads' });
+  assert.deepEqual(meta.payload.leadRows.map((r) => r.name), ['Ananya', 'Karthik']);
+  assert.equal(filters.channelKey('—'), 'non-ad');
+  assert.equal(filters.channelKey('Leads'), 'leads', 'only a separate word ads is dropped');
+});
+
 test('rows that do not carry the field are left alone, not emptied', () => {
   const result = filters.applyFilters(payload(), { f_property: 'Munnar Hillside' });
   assert.equal(result.payload.ownerRows.length, 2, 'a table without the field was filtered anyway');
