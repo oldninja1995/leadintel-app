@@ -56,6 +56,7 @@ const ota = require('./lib/ota');
 const funnelAnalytics = require('./lib/funnel-analytics');
 const negativeKeywords = require('./lib/negative-keywords');
 const hardening = require('./lib/http/hardening');
+const thumbSign = require('./lib/http/thumb-sign');
 const observability = require('./lib/http/observability');
 const store = require('./lib/store');
 const snapshot = require('./lib/store/snapshot');
@@ -1406,6 +1407,16 @@ if (!AUTH_OFF) {
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'private, no-cache');
   next();
+});
+
+/* A signed thumbnail is served here, past the session gate and BEFORE the
+   per-request hydration below — so a page of thirty cards no longer means
+   thirty snapshot reads against the pooler. See lib/http/thumb-sign.js. An
+   unsigned or mis-signed link falls through to the lookup route further down. */
+app.get('/creatives/:adId/thumbnail', (req, res, next) => {
+  const address = thumbSign.verify(req.params.adId, req.query.u, req.query.s);
+  if (!address) return next();
+  return proxyThumbnail(res, address);
 });
 
 /* Pull this request's state out of Postgres before anything reads it.
@@ -3676,13 +3687,16 @@ app.get('/creatives/:adId/thumbnail', async (req, res) => {
   }
 
   if (!creative || !creative.thumbnailUrl) return res.status(404).end();
+  return proxyThumbnail(res, creative.thumbnailUrl);
+});
 
+async function proxyThumbnail(res, address) {
   /* Belt and braces: the address came from our own store, but it came
      originally from a third party, so it is still checked against the hosts
      Meta serves images from before anything is fetched. */
   let target;
   try {
-    target = new URL(creative.thumbnailUrl);
+    target = new URL(address);
   } catch (err) {
     return res.status(404).end();
   }
@@ -3709,7 +3723,7 @@ app.get('/creatives/:adId/thumbnail', async (req, res) => {
        the card already handles by falling back to its gradient. */
     return res.status(502).end();
   }
-});
+}
 
 /* The creative itself, playing.
  *
