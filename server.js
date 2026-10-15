@@ -3639,7 +3639,7 @@ app.get('/google-ads/keywords/negatives.csv', async (req, res, next) => {
     const campaigns = !want && req.query.negView === 'account'
       ? all.flat.map((x) => ({ campaign: x.campaign, suggestions: [x] }))
       : all.filter((c) => !want || c.campaignId === want);
-    const name = want && campaigns[0] ? campaigns[0].campaign.replace(/[^w-]+/g, '-').slice(0, 60) : 'all-campaigns';
+    const name = want && campaigns[0] ? campaigns[0].campaign.replace(/[^\w-]+/g, '-').slice(0, 60) : 'all-campaigns';
     res.set('Content-Type', 'text/csv; charset=utf-8');
     res.set('Content-Disposition', `attachment; filename="negative-keywords-${name}.csv"`);
     return res.send(negativeKeywords.toCsv(campaigns));
@@ -3728,7 +3728,7 @@ app.get('/creatives/:adId/thumbnail', async (req, res) => {
  * been the easier route and it carries an access token in its src, which is
  * precisely why it is not used.
  */
-const VIDEO_HOSTS = /(^|.)(fbcdn.net|facebook.com)$/i;
+const VIDEO_HOSTS = /(^|\.)(fbcdn\.net|facebook\.com)$/i;
 
 /* The ad as a guest saw it — video playing, copy, call to action, the lot.
  *
