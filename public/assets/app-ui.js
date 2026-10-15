@@ -338,15 +338,14 @@
 
   /* ── The date range ───────────────────────────────────────────────────── */
 
-  /* The topbar draws a calendar icon and a range — "12 Jul – 11 Aug" — beside
-   * the four preset chips. The design gives it no `onClick`, so there is no
-   * `data-action` for the converter to preserve, and it has always been a
-   * read-only label wearing the icon of a control. Clicking it did nothing,
-   * which is indistinguishable from the app being broken, and the four chips
-   * were the only ranges the product could express.
+  /* The topbar's one date control, laid out like Shopify's: presets on the
+   * left, the two days as text on top, a two-month calendar beneath, Cancel and
+   * Apply at the foot. It replaced a row of seven chips plus a separate
+   * From/To menu — two controls answering one question.
    *
-   * Found by its calendar icon, the same way presentation mode finds its three
-   * controls, so the generated markup is left alone.
+   * The presets are the server's chips (`li-range-data`), so applying "Last 30
+   * days" still sends `period=30d` and the link stays rolling. Yesterday and
+   * the two quarters have no chip and are sent as a plain `from`/`to`.
    *
    * `to` is the last day the reader means. The server advances it by one,
    * because windows there are half-open — picking "1 Jul – 31 Jul" and silently
@@ -354,61 +353,217 @@
    * to solve.
    */
   function enhanceRange() {
-    const icon = document.querySelector('.ph-calendar-blank');
-    const control = icon && icon.parentElement;
-    if (!control) return;
+    const control = document.querySelector('[data-li-range]');
+    const data = json('li-range-data', null);
+    if (!control || !data || !data.picker) return;
 
-    control.style.cursor = 'pointer';
-    control.setAttribute('role', 'button');
-    control.setAttribute('aria-haspopup', 'dialog');
-    control.title = 'Choose a date range';
+    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
+      'August', 'September', 'October', 'November', 'December'];
+    const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    const now = new URLSearchParams(window.location.search);
+    /* Days are `YYYY-MM-DD` strings and UTC dates throughout — the same day
+       keys the server parses — so a reader east of UTC never picks the 1st and
+       sends the 30th. */
+    const iso = (d) => d.toISOString().slice(0, 10);
+    const parse = (s) => new Date(s + 'T00:00:00Z');
+    const addDays = (s, n) => { const d = parse(s); d.setUTCDate(d.getUTCDate() + n); return iso(d); };
+    const local = new Date();
+    const today = iso(new Date(Date.UTC(local.getFullYear(), local.getMonth(), local.getDate())));
+    const pretty = (s) => { const d = parse(s); return MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate() + ', ' + d.getUTCFullYear(); };
+    const ymd = (yy, mm, dd) => iso(new Date(Date.UTC(yy, mm, dd)));
+
+    const t = parse(today);
+    const y = t.getUTCFullYear();
+    const m = t.getUTCMonth();
+    const q = Math.floor(m / 3) * 3;
+
+    /* Presets the server has no chip for, as plain ranges. */
+    const extra = {
+      yesterday: { name: 'Yesterday', from: addDays(today, -1), to: addDays(today, -1) },
+      'this-quarter': { name: 'Quarter to date', from: ymd(y, q, 1), to: today },
+      'last-quarter': { name: 'Last quarter', from: ymd(y, q - 3, 1), to: ymd(y, q, 0) },
+    };
+    /* What each chip covers, so picking one shows its days before Apply. */
+    const span = {
+      today: [today, today],
+      '7d': [addDays(today, -7), today],
+      '30d': [addDays(today, -30), today],
+      '90d': [addDays(today, -90), today],
+      'this-month': [ymd(y, m, 1), today],
+      'last-month': [ymd(y, m - 1, 1), ymd(y, m, 0)],
+      'this-year': [ymd(y, 0, 1), today],
+    };
+    const server = {};
+    for (const p of data.presets || []) server[p.id] = p;
+    const groups = [
+      ['today', 'yesterday'],
+      ['7d', '30d', '90d'],
+      ['this-month', 'last-month', 'this-quarter', 'last-quarter', 'this-year'],
+    ];
+    const presetOf = (id) => {
+      if (server[id] && span[id]) return { id, name: server[id].name, from: span[id][0], to: span[id][1], go: server[id].go };
+      if (extra[id]) return Object.assign({ id }, extra[id]);
+      return null;
+    };
+    /* A custom range that equals Yesterday or a quarter is named as that. */
+    const matchExtra = (from, to) => Object.keys(extra).find((k) => extra[k].from === from && extra[k].to === to) || null;
 
     control.addEventListener('click', (ev) => {
       ev.stopPropagation();
       ev.preventDefault();
-      if (menu) { closeMenu(); return; }
-
+      if (menu && menu.classList.contains('li-dp')) { closeMenu(); return; }
       closeMenu();
+
+      const start = data.picker;
+      const state = {
+        preset: start.active === 'custom' ? (matchExtra(start.from, start.to) || 'custom') : start.active,
+        from: start.from || today,
+        to: start.to || today,
+        picking: false,
+      };
+      const initial = state.preset + '|' + state.from + '|' + state.to;
+      /* The month holding the range's end sits on the right, as in the design. */
+      const viewFor = (day) => { const d = parse(day); return { y: d.getUTCFullYear(), m: d.getUTCMonth() - 1 }; };
+      let view = viewFor(state.to);
+
       menu = document.createElement('div');
-      menu.className = 'li-menu li-range';
+      menu.className = 'li-menu li-dp';
       menu.setAttribute('role', 'dialog');
       menu.setAttribute('aria-label', 'Date range');
-      menu.innerHTML =
-        '<label>From<input type="date" data-range="from" value="' + (now.get('from') || '') + '"></label>' +
-        '<label>To<input type="date" data-range="to" value="' + (now.get('to') || '') + '"></label>' +
-        '<p data-range="error" hidden></p>' +
-        '<button type="button" data-range="apply">Apply</button>';
+      control.setAttribute('aria-expanded', 'true');
 
-      const box = control.getBoundingClientRect();
-      menu.style.top = (box.bottom + 6) + 'px';
-      menu.style.left = Math.max(8, Math.min(box.left, window.innerWidth - 230)) + 'px';
-      document.body.appendChild(menu);
-
-      const field = (name) => menu.querySelector('[data-range="' + name + '"]');
-      const error = field('error');
-
-      const apply = () => {
-        const from = field('from').value;
-        const to = field('to').value;
-        /* Said rather than silently corrected: swapping the two for the reader
-           would answer a question they did not ask. */
-        if (!from || !to) { error.textContent = 'Pick both dates.'; error.hidden = false; return; }
-        if (from > to) { error.textContent = 'The first date must come first.'; error.hidden = false; return; }
-
-        const params = new URLSearchParams(window.location.search);
-        /* A custom range replaces the chip selection rather than sitting beside
-           it, or the URL would carry two answers to the same question. */
-        params.delete('period');
-        params.set('from', from);
-        params.set('to', to);
-        window.location.href = window.location.pathname + '?' + params.toString();
+      const month = (yy, mm) => {
+        const first = new Date(Date.UTC(yy, mm, 1));
+        const days = new Date(Date.UTC(yy, mm + 1, 0)).getUTCDate();
+        const lo = state.from;
+        const hi = state.to || state.from;
+        let cells = '';
+        for (let i = 0; i < first.getUTCDay(); i++) cells += '<span></span>';
+        for (let d = 1; d <= days; d++) {
+          const key = ymd(yy, mm, d);
+          const cls = ['li-dp-day'];
+          if (lo && key >= lo && key <= hi) cls.push('in');
+          if (key === lo) cls.push('start');
+          if (key === hi) cls.push('end');
+          if (key === today) cls.push('today');
+          cells += '<button type="button" class="' + cls.join(' ') + '" data-day="' + key + '"' +
+            (key > today ? ' disabled' : '') + '>' + d + '</button>';
+        }
+        return '<div class="li-dp-month"><div class="li-dp-title">' + MONTHS[mm] + ' ' + yy + '</div>' +
+          '<div class="li-dp-grid">' + DOW.map((w) => '<span class="li-dp-dow">' + w + '</span>').join('') + cells + '</div></div>';
       };
 
-      field('apply').addEventListener('click', apply);
-      menu.addEventListener('keydown', (e) => { if (e.key === 'Enter') apply(); });
-      field('from').focus();
+      const render = () => {
+        const left = new Date(Date.UTC(view.y, view.m, 1));
+        const right = new Date(Date.UTC(view.y, view.m + 1, 1));
+        const changed = (state.preset + '|' + state.from + '|' + state.to) !== initial;
+        const complete = Boolean(state.from && state.to && !state.picking);
+        const presetButton = (id) => {
+          const p = presetOf(id);
+          if (!p) return '';
+          return '<button type="button" data-preset="' + id + '" aria-checked="' + (state.preset === id) + '">' + p.name + '</button>';
+        };
+        menu.innerHTML =
+          '<div class="li-dp-side">' +
+            groups.map((g) => '<div class="li-dp-group">' + g.map(presetButton).join('') + '</div>').join('') +
+            '<div class="li-dp-group"><button type="button" data-preset="custom" aria-checked="' + (state.preset === 'custom') + '">Custom range</button></div>' +
+          '</div>' +
+          '<div class="li-dp-main">' +
+            '<div class="li-dp-fields">' +
+              '<input type="text" data-field="from" aria-label="Start date" value="' + (state.from ? pretty(state.from) : '') + '">' +
+              '<i class="ph ph-arrow-right" aria-hidden="true"></i>' +
+              '<input type="text" data-field="to" aria-label="End date" placeholder="End date" value="' + (state.to ? pretty(state.to) : '') + '">' +
+            '</div>' +
+            '<div class="li-dp-cals">' +
+              '<button type="button" class="li-dp-nav prev" data-nav="-1" aria-label="Previous month"><i class="ph ph-caret-left"></i></button>' +
+              month(left.getUTCFullYear(), left.getUTCMonth()) +
+              month(right.getUTCFullYear(), right.getUTCMonth()) +
+              '<button type="button" class="li-dp-nav next" data-nav="1" aria-label="Next month"><i class="ph ph-caret-right"></i></button>' +
+            '</div>' +
+            '<p class="li-dp-error" hidden></p>' +
+            '<div class="li-dp-foot">' +
+              '<button type="button" data-cancel>Cancel</button>' +
+              '<button type="button" data-apply class="primary"' + (changed && complete ? '' : ' disabled') + '>Apply</button>' +
+            '</div>' +
+          '</div>';
+      };
+
+      const error = (text) => {
+        const el = menu.querySelector('.li-dp-error');
+        el.textContent = text;
+        el.hidden = !text;
+      };
+
+      const apply = () => {
+        if (!state.from || !state.to || state.picking) return;
+        const p = presetOf(state.preset);
+        if (p && p.go) { window.location.href = p.go; return; }
+        const [path, query] = start.base.split('?');
+        const params = new URLSearchParams(query || '');
+        params.set('from', state.from);
+        params.set('to', state.to);
+        window.location.href = path + '?' + params.toString();
+      };
+
+      /* Typed dates: anything Date can read — "Oct 3, 2026", "2026-10-03". */
+      const typed = (input) => {
+        const raw = input.value.trim();
+        const ms = Date.parse(/^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw + 'T00:00:00Z' : raw + ' UTC');
+        if (!raw || !Number.isFinite(ms)) { render(); error('Type a date such as ' + pretty(today) + '.'); return; }
+        const day = iso(new Date(ms));
+        if (day > today) { render(); error('That day has not happened yet.'); return; }
+        if (input.getAttribute('data-field') === 'from') state.from = day; else state.to = day;
+        if (state.from && state.to && state.from > state.to) { const s = state.from; state.from = state.to; state.to = s; }
+        state.picking = false;
+        state.preset = matchExtra(state.from, state.to) || 'custom';
+        view = viewFor(state.to);
+        render();
+      };
+
+      /* Clicks inside re-render the menu, which detaches the clicked node — the
+         document-level "click outside closes" check would then find the target
+         in no menu at all and close this one. */
+      menu.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const day = e.target.closest('[data-day]');
+        const preset = e.target.closest('[data-preset]');
+        const nav = e.target.closest('[data-nav]');
+        if (day && !day.disabled) {
+          const key = day.getAttribute('data-day');
+          if (!state.picking) { state.from = key; state.to = null; state.picking = true; }
+          else if (key < state.from) { state.from = key; }
+          else { state.to = key; state.picking = false; }
+          state.preset = state.picking ? 'custom' : (matchExtra(state.from, state.to) || 'custom');
+          render();
+        } else if (preset) {
+          const id = preset.getAttribute('data-preset');
+          const p = presetOf(id);
+          state.preset = id;
+          state.picking = false;
+          if (p) { state.from = p.from; state.to = p.to; view = viewFor(p.to); }
+          render();
+          if (id === 'custom') menu.querySelector('[data-field="from"]').focus();
+        } else if (nav) {
+          view.m += Number(nav.getAttribute('data-nav'));
+          render();
+        } else if (e.target.closest('[data-cancel]')) {
+          closeMenu();
+        } else if (e.target.closest('[data-apply]')) {
+          apply();
+        }
+      });
+      menu.addEventListener('change', (e) => { if (e.target.matches('[data-field]')) typed(e.target); });
+      menu.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && e.target.matches('[data-field]')) { e.preventDefault(); typed(e.target); }
+      });
+
+      render();
+      document.body.appendChild(menu);
+      const box = control.getBoundingClientRect();
+      menu.style.top = (box.bottom + 6) + 'px';
+      menu.style.left = Math.max(8, Math.min(box.left, window.innerWidth - menu.offsetWidth - 8)) + 'px';
+      const on = menu.querySelector('[aria-checked="true"]');
+      if (on) on.focus();
     });
   }
 

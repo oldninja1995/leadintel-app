@@ -183,29 +183,76 @@
 .li-profile-acts button i { font-size: 13px; opacity: .8; margin-left: 0; }
 
 /* — the date range picker —
-   The topbar's calendar control had no menu of its own: the design draws it as
-   a label, so the four preset chips were the only ranges the product could
-   express. This is the popover the enhancement attaches to it. */
-.li-range { min-width: 214px; padding: 10px; display: grid; gap: 8px; }
-.li-range label {
-  display: grid; gap: 4px; font-size: 11px; color: var(--color-neutral-500);
+   One popover for the window, laid out like Shopify's: presets down the left,
+   the two days as text, a two-month calendar, Cancel and Apply. */
+.li-dp {
+  display: flex; padding: 0; max-height: none; overflow: visible;
+  min-width: 0; max-width: calc(100vw - 16px);
 }
-.li-range input[type="date"] {
-  font: inherit; font-size: 12px; color: var(--color-neutral-200);
-  background: var(--color-neutral-900); border: 1px solid var(--color-neutral-800);
-  border-radius: 6px; padding: 6px 8px;
-  /* The native picker indicator is near-black on a dark surface. */
-  color-scheme: dark;
+.li-dp-side {
+  flex: none; width: 170px; padding: 8px; display: grid; align-content: start; gap: 6px;
+  background: var(--color-neutral-950, var(--color-bg)); border-right: 1px solid var(--color-neutral-900);
+  border-radius: 9px 0 0 9px;
 }
-.li-range input[type="date"]:focus-visible { outline: 2px solid var(--color-accent-600); outline-offset: 1px; }
-.li-range button {
-  justify-content: center; background: var(--color-accent-900);
-  color: var(--color-accent-300); border: 1px solid var(--color-accent-800);
+.li-dp-group { display: grid; gap: 1px; padding-bottom: 6px; border-bottom: 1px solid var(--color-neutral-900); }
+.li-dp-group:last-child { border-bottom: 0; padding-bottom: 0; }
+.li-dp .li-dp-side button { font-size: 12.5px; padding: 6px 9px; color: var(--color-neutral-300); }
+.li-dp .li-dp-side button[aria-checked="true"] {
+  background: var(--color-neutral-900); color: var(--color-neutral-100); font-weight: 500;
 }
-.li-range button:hover { background: var(--color-accent-800); }
-/* Named rather than silently corrected — swapping the dates for the reader
-   would answer a question they did not ask. */
-.li-range p { margin: 0; font-size: 11px; color: var(--c-down); }
+.li-dp-main { padding: 14px 16px 12px; display: grid; gap: 12px; }
+.li-dp-fields { display: flex; align-items: center; gap: 10px; }
+.li-dp-fields i { color: var(--color-neutral-500); font-size: 14px; }
+.li-dp-fields input {
+  flex: 1; min-width: 0; font: inherit; font-size: 13px; color: var(--color-neutral-200);
+  background: transparent; border: 1px solid var(--color-neutral-800); border-radius: 8px; padding: 8px 12px;
+}
+.li-dp-fields input:focus-visible { outline: 2px solid var(--color-accent-600); outline-offset: 1px; }
+.li-dp-cals { position: relative; display: flex; gap: 22px; }
+.li-dp-month { width: 238px; }
+.li-dp-title { text-align: center; font-size: 13px; font-weight: 600; color: var(--color-neutral-200); height: 28px; line-height: 28px; }
+.li-dp-grid { display: grid; grid-template-columns: repeat(7, 34px); grid-auto-rows: 32px; }
+.li-dp-dow { display: grid; place-items: center; font-size: 11px; color: var(--color-neutral-500); }
+.li-dp .li-dp-day {
+  justify-content: center; padding: 0; width: 34px; height: 32px; border-radius: 0;
+  font-size: 12.5px; color: var(--color-neutral-300); font-variant-numeric: tabular-nums;
+}
+.li-dp .li-dp-day:hover:not(:disabled) { background: var(--color-neutral-900); border-radius: 8px; }
+.li-dp .li-dp-day:disabled { color: var(--color-neutral-700); cursor: default; }
+.li-dp .li-dp-day.in { background: var(--color-neutral-900); color: var(--color-neutral-100); border-radius: 0; }
+.li-dp .li-dp-day.start, .li-dp .li-dp-day.end {
+  background: var(--color-neutral-100); color: var(--color-bg); font-weight: 600; border-radius: 8px;
+}
+.li-dp .li-dp-day.today:not(.start):not(.end) { text-decoration: underline; text-underline-offset: 3px; }
+.li-dp .li-dp-nav {
+  position: absolute; top: 0; width: 28px; height: 28px; padding: 0; justify-content: center;
+  color: var(--color-neutral-400);
+}
+.li-dp .li-dp-nav.prev { left: 0; }
+.li-dp .li-dp-nav.next { right: 0; }
+.li-dp .li-dp-nav i { margin: 0; opacity: 1; font-size: 14px; }
+.li-dp-error { margin: 0; font-size: 11.5px; color: var(--c-down); }
+.li-dp-foot {
+  display: flex; justify-content: flex-end; gap: 8px; padding-top: 12px;
+  border-top: 1px solid var(--color-neutral-900);
+}
+.li-dp .li-dp-foot button {
+  width: auto; justify-content: center; padding: 7px 16px; border-radius: 8px; font-size: 12.5px; font-weight: 500;
+  background: var(--color-neutral-900); color: var(--color-neutral-200);
+}
+.li-dp .li-dp-foot button.primary { background: var(--color-neutral-100); color: var(--color-bg); }
+.li-dp .li-dp-foot button.primary:disabled { opacity: .4; cursor: default; }
+/* Narrow screens: presets become a scrolling row above one month. */
+@media (max-width: 720px) {
+  .li-dp { flex-direction: column; left: 8px !important; right: 8px; }
+  .li-dp-side { width: auto; display: flex; overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--color-neutral-900); border-radius: 9px 9px 0 0; }
+  .li-dp-group { display: flex; border-bottom: 0; padding-bottom: 0; }
+  .li-dp .li-dp-side button { white-space: nowrap; width: auto; }
+  .li-dp-month:first-of-type { display: none; }
+  .li-dp-month { width: 100%; }
+  .li-dp-grid { grid-template-columns: repeat(7, 1fr); }
+  .li-dp .li-dp-day { width: 100%; }
+}
 
 /* An active chip is marked in the design's own chip markup, which this file
    cannot edit — so the state is carried by a class the enhancement adds. */

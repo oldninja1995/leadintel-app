@@ -587,15 +587,15 @@ function fireDueRules({ at = new Date().toISOString(), workspace: workspaceId = 
  */
 const PERIOD_CHIPS = [
   { id: 'today', label: 'Today' },
-  { id: '7d', label: '7d' },
-  { id: '30d', label: '30d' },
-  { id: '90d', label: '90d' },
+  { id: '7d', label: '7d', name: 'Last 7 days' },
+  { id: '30d', label: '30d', name: 'Last 30 days' },
+  { id: '90d', label: '90d', name: 'Last 90 days' },
   /* Calendar windows beside the rolling ones. A month-on-month comparison is
      the question every operator actually asks, and a rolling 30 days cannot
      answer it — it straddles two months for all but one day of the year. */
-  { id: 'this-month', label: 'This month' },
+  { id: 'this-month', label: 'This month', name: 'Month to date' },
   { id: 'last-month', label: 'Last month' },
-  { id: 'this-year', label: 'This year' },
+  { id: 'this-year', label: 'This year', name: 'Year to date' },
 ];
 
 /* Matches the chip the design draws as selected. Stated once: the default and
@@ -4309,8 +4309,30 @@ function periodChips(query, path) {
       params.set(key, String(value));
     }
     params.set('period', chip.id);
-    return { label: chip.label, go: `${path}?${params.toString()}`, ...tokens.seg(chip.id === active) };
+    return { id: chip.id, label: chip.label, name: chip.name || chip.label, go: `${path}?${params.toString()}`, ...tokens.seg(chip.id === active) };
   });
+}
+
+/* What the date picker opens on: the preset that is on (or "custom"), the
+   window as the two inclusive days a reader would type, and the URL a custom
+   range is applied to — the current query minus the three keys a range
+   replaces, so a filter or a sub-view tab survives the change. */
+function rangePicker(query, path) {
+  const { id, over } = periodFor(query);
+  const day = (ms) => new Date(ms).toISOString().slice(0, 10);
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query || {})) {
+    if (key === 'period' || key === 'from' || key === 'to' || value === undefined) continue;
+    params.set(key, String(value));
+  }
+  const chip = PERIOD_CHIPS.find((c) => c.id === id);
+  return {
+    active: id,
+    name: chip ? (chip.name || chip.label) : 'Custom range',
+    from: over && over.from ? day(Date.parse(over.from)) : null,
+    to: over && over.to ? day(Date.parse(over.to) - 1) : null,
+    base: `${path}?${params.toString()}`,
+  };
 }
 
 /* The window in words. It was hardcoded as "Jul 1 – Jul 30" — a date range
@@ -4437,6 +4459,7 @@ async function shellData(activeSlug, query, path = '/', workspaceId = null, user
        silently undo the other choices on screen. */
     ranges: periodChips(query, path),
     rangeLabel: rangeLabel(periodFor(query).over),
+    rangePicker: rangePicker(query, path),
     navGroups: filterNavGroups(await repo.navigation(activeSlug), siteConfig.get().modules),
     expanded: true,
     sidebarWidth: '214px',
