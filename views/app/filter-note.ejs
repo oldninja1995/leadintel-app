@@ -29,6 +29,8 @@
       %>
       <% if (filterNote.totalsFiltered) { %>
         Totals on this screen are recomputed from the narrowed rows, so they match.
+      <% } else if (filterNote.metricsScoped) { %>
+        The metric cards are recalculated for this filter. Tables, charts and estimated cards are <strong>not</strong> — they still cover everything.
       <% } else { %>
         Totals and charts are <strong>not</strong> filtered — that needs a second data snapshot per screen, which does not exist yet.
       <% } %>

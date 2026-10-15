@@ -934,7 +934,9 @@ function periodValues(workspaceId, label, at = null) {
 /* What the chips offer. Derived from the payload *before* filtering, so
    choosing "Munnar Hillside" does not leave the dropdown holding only Munnar
    Hillside — a filter you cannot change is a filter you cannot undo. */
-function filterData(unfiltered, active = {}, seed = {}) {
+/* `inert` adds screen-specific reasons a chip does not apply — read in the menu
+   instead of a control that silently does nothing. */
+function filterData(unfiltered, active = {}, seed = {}, inert = {}) {
   const options = unfiltered ? filters.optionsFor(unfiltered, seed) : {};
   return {
     dimensions: filters.DIMENSIONS.map((d) => ({
@@ -945,7 +947,7 @@ function filterData(unfiltered, active = {}, seed = {}) {
          it is spelled in the menu. */
       labels: filters.labelsFor(d.key),
     })),
-    inert: filters.INERT,
+    inert: { ...filters.INERT, ...inert },
     active,
   };
 }
@@ -2798,7 +2800,7 @@ async function renderFunnel(req, res) {
     drawer: null,
     palette: await palette(),
     notifications: notifications(req.workspace),
-    filterData: filterData(null),
+    filterData: filterData(null, {}, {}, { Channel: 'this screen picks its channel with the Paid / Meta / Google / Organic switch below' }),
     filterNote: null,
     attrPreview: null,
   });
@@ -3622,7 +3624,7 @@ async function renderGoogleAds(req, res, slug) {
     drawer: null,
     palette: await palette(),
     notifications: notifications(req.workspace),
-    filterData: filterData(null),
+    filterData: filterData(null, {}, {}, { Channel: 'every figure on this screen is Google Ads' }),
     filterNote: null,
     attrPreview: null,
   }, (err, html) => {
@@ -4505,6 +4507,7 @@ function screenRoute(screen) {
        * meaningful at that grain reports itself as not measured there rather
        * than quietly reusing the workspace figure. A screen that names its own
        * scope keeps it: a drill-down is already about one campaign. */
+      let scopedByFilter = false;
       if (!payload.metricScope) {
         /* Read through `filters.selected` rather than off `req.query` directly,
            because the chips are named `f_channel`, not `channel` — a detail
@@ -4513,7 +4516,10 @@ function screenRoute(screen) {
            stops those two drifting apart again. */
         const active = filters.selected(req.query);
         const chosen = metrics.scope.DIMENSIONS.find((dimension) => active[dimension]);
-        if (chosen) payload.metricScope = { dimension: chosen, value: String(active[chosen]).toLowerCase() };
+        if (chosen) {
+          payload.metricScope = { dimension: chosen, value: String(active[chosen]).toLowerCase() };
+          scopedByFilter = true;
+        }
       }
 
       mark(res, 'payload', since());
@@ -4574,7 +4580,7 @@ function screenRoute(screen) {
             .map((d) => metrics.scope.CHANNEL[d.platform])
             .filter(Boolean))],
         }),
-        filterNote: note && { ...note, clearUrl: clearUrl(req.originalUrl, result.active) },
+        filterNote: note && { ...note, metricsScoped: scopedByFilter, clearUrl: clearUrl(req.originalUrl, result.active) },
         attrPreview,
       }, (err, html) => {
         if (err) return next(err);
