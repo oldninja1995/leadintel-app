@@ -203,16 +203,18 @@ main { flex: 1; overflow-y: auto; padding: 18px; }
      is one baseline-aligned row. On a phone that puts a 19px heading and an
      11.5px caption in the same 390px and both lose: the title wraps to two
      lines and the caption is squeezed into a four-line column beside it.
-     Stacked, each gets the width it needs. */
-  main > div > div[style*="align-items:baseline"] {
+     Stacked, each gets the width it needs. Matched by the h1 it holds rather
+     than by its alignment: Attribution, AI, Leads and Pipeline centre theirs,
+     and a baseline-only selector left all four squeezed. */
+  main > div > div:has(> h1) {
     flex-wrap: wrap !important;
     align-items: flex-start !important;
     gap: 6px 10px !important;
   }
-  main > div > div[style*="align-items:baseline"] > h1 { flex: 1 0 100%; }
+  main > div > div:has(> h1) > h1 { flex: 1 0 100%; }
   /* The spacer that pushes the actions right is meaningless once the row
      wraps, and an empty flex:1 child forces a line break of its own. */
-  main > div > div[style*="align-items:baseline"] > div[style*="flex:1"] { display: none !important; }
+  main > div > div:has(> h1) > div[style*="flex:1"] { display: none !important; }
   main table + *, main div:has(> table) { max-width: 100%; overflow-x: auto; }
 }
 
@@ -352,7 +354,10 @@ main { flex: 1; overflow-y: auto; padding: 18px; }
   main [data-action], main a[href], main button, main select {
     min-height: 32px;
   }
-  main [data-action]:not(tr):not(td), main button, main select {
+  /* Not a target that holds blocks of its own: a whole card is clickable too,
+     and laid out as an inline row its thumbnail and its body sat side by side —
+     Creative Intelligence's 132px-tall still was crushed into a 38px strip. */
+  main [data-action]:not(tr):not(td):not(:has(> div)), main button, main select {
     display: inline-flex;
     align-items: center;
   }

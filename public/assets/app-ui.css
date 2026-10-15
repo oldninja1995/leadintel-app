@@ -200,11 +200,11 @@
 .li-dp .li-dp-side button[aria-checked="true"] {
   background: var(--color-neutral-900); color: var(--color-neutral-100); font-weight: 500;
 }
-.li-dp-main { padding: 14px 16px 12px; display: grid; gap: 12px; }
+.li-dp-main { padding: 14px 16px 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; }
 .li-dp-fields { display: flex; align-items: center; gap: 10px; }
 .li-dp-fields i { color: var(--color-neutral-500); font-size: 14px; }
 .li-dp-fields input {
-  flex: 1; min-width: 0; font: inherit; font-size: 13px; color: var(--color-neutral-200);
+  flex: 1; width: 0; min-width: 0; font: inherit; font-size: 13px; color: var(--color-neutral-200);
   background: transparent; border: 1px solid var(--color-neutral-800); border-radius: 8px; padding: 8px 12px;
 }
 .li-dp-fields input:focus-visible { outline: 2px solid var(--color-accent-600); outline-offset: 1px; }
@@ -252,7 +252,12 @@
   .li-dp-month { width: 100%; }
   .li-dp-grid { grid-template-columns: repeat(7, 1fr); }
   .li-dp .li-dp-day { width: 100%; }
+  .li-dp-main { padding: 12px 12px 10px; }
+  .li-dp-fields { gap: 6px; }
+  .li-dp-fields input { font-size: 12px; padding: 8px 8px; }
 }
+/* 320px: the arrow between the two days is the width of the year's last digit. */
+@media (max-width: 379px) { .li-dp-fields i { display: none; } }
 
 /* An active chip is marked in the design's own chip markup, which this file
    cannot edit — so the state is carried by a class the enhancement adds. */
@@ -318,11 +323,17 @@
 .li-conn-tally-n em { font-style: normal; font-size: 15px; color: var(--color-neutral-700); }
 .li-conn-tally-l { font-size: 10.5px; color: var(--color-neutral-600); letter-spacing: .07em; text-transform: uppercase; }
 
+/* Block for the same reason as .li-ota-foot: the Connections link inside it
+   became a column of its own. */
 .li-conn-notice {
-  display: flex; align-items: flex-start; gap: 9px; font-size: 12px; line-height: 1.6;
+  display: flow-root; font-size: 12px; line-height: 1.6;
   border: 1px solid var(--color-neutral-800); border-radius: 9px;
   padding: 11px 13px; margin: 0 0 12px; color: var(--color-neutral-400);
 }
+.li-conn-notice > i:first-child { float: left; margin-right: 9px; }
+/* Where the text is wrapped in one span, it keeps the hanging indent it had. */
+.li-conn-notice > i:first-child + span:last-child,
+.li-ota-foot > i:first-child + span:last-child { display: block; overflow: hidden; }
 .li-conn-notice i { font-size: 15px; flex: none; margin-top: 1px; }
 .li-conn-notice strong { font-weight: 500; }
 .li-conn-notice code { font-family: ui-monospace, monospace; font-size: 10.5px; border: 1px solid currentColor; border-radius: 4px; padding: 0 4px; opacity: .8; }
@@ -714,11 +725,15 @@ body.li-tv main { padding: 0 !important; }
 .li-ota-status { font-size: 10px; letter-spacing: .04em; text-transform: uppercase; color: var(--c-up); }
 .li-ota-status--off { color: var(--color-neutral-600); }
 
+/* Block, so a <strong> or a link inside the sentence stays inline: as a flex
+   row every one of them became its own column, and on a phone the note read as
+   four narrow strips. A leading icon floats instead of taking a flex column. */
 .li-ota-foot {
-  display: flex; align-items: flex-start; gap: 8px; margin: 0;
+  display: block; margin: 0;
   padding: 10px 16px; border-top: 1px solid var(--color-neutral-800);
   font-size: 11px; color: var(--color-neutral-600); line-height: 1.55;
 }
+.li-ota-foot > i:first-child { float: left; margin-right: 8px; }
 .li-ota-foot i { font-size: 13px; flex: none; margin-top: 1px; }
 .li-ota-foot--warn { color: var(--c-warn); }
 

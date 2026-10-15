@@ -577,6 +577,17 @@ const LITERAL_BINDINGS = [
     layout: true,
     why: 'eleven columns became twelve; the table scrolls rather than crushing them',
   },
+  /* The bulk-action bar is the design's picture of a selection: "2 selected"
+     beside Assign, Stage, WhatsApp template and Export. Nothing here selects a
+     lead and none of the four does anything, so it announced two leads picked
+     on every visit — and on a phone it took a row of its own to say so. */
+  {
+    screen: 'leads',
+    find: "              <div style=\"display:flex; align-items:center; gap:8px; border:1px solid var(--color-accent-800); background:var(--color-accent-900); border-radius:7px; padding:5px 11px; font-size:11px; color:var(--color-accent-200);\">\n                2 selected\n                <span style=\"cursor:pointer; color:var(--color-accent-300);\">Assign ▾</span><span style=\"cursor:pointer; color:var(--color-accent-300);\">Stage ▾</span><span style=\"cursor:pointer; color:var(--color-accent-300);\">WhatsApp template</span><span style=\"cursor:pointer; color:var(--color-accent-300);\">Export</span>\n              </div>\n",
+    replace: '',
+    removes: true,
+    why: 'it claimed two leads were selected when nothing can select one',
+  },
 ];
 
 function bindLiterals(html, screen, { onBind } = {}) {

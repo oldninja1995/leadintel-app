@@ -2776,8 +2776,10 @@ async function renderFunnel(req, res) {
       channel: result.channel,
       grain: result.grain,
       adSide: result.adSide,
-      from: req.query.from || '',
-      to: req.query.to || '',
+      /* The window the page is showing, not only one typed into the URL: under a
+         preset these were blank (dd-mm-yyyy) beside a heading naming the dates. */
+      from: req.query.from || rangePicker(req.query, req.path).from || '',
+      to: req.query.to || rangePicker(req.query, req.path).to || '',
       channels: funnelAnalytics.CHANNELS.map((c) => ({ ...c, go: linkWith({ channel: c.id, stage: null }), on: c.id === result.channel.id })),
       grains: funnelAnalytics.GRAINS.map((g) => ({ ...g, go: linkWith({ grain: g.id }), on: g.id === result.grain.id })),
       /* Carried through the custom-range form so picking dates keeps the
