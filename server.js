@@ -2693,7 +2693,7 @@ async function renderFunnel(req, res) {
 
   const inWindow = (window) => {
     const narrowed = metrics.period.within(all, window);
-    return { leads: narrowed.leads || [], deals: all.deals || [], campaignDays: narrowed.campaignDays || [] };
+    return { leads: narrowed.leads || [], deals: all.deals || [], campaignDays: narrowed.campaignDays || [], googleConversions: narrowed.googleConversions || [] };
   };
   const result = funnelAnalytics.analyse(inWindow(over), opts);
   const before = metrics.period.previous(over);
@@ -2791,6 +2791,9 @@ async function renderFunnel(req, res) {
       })),
       revenueText: f.revenue,
       revenueNote: [f.bookings && `${f.bookings} bookings`, f.roas && `${f.roas} ROAS`].filter(Boolean).join(' · '),
+      googlePurchases: result.googlePurchases && (result.googlePurchases.actions.length
+        ? { tracked: true, n: funnelCount(result.googlePurchases.count), value: funnelMoney(result.googlePurchases.value), actions: result.googlePurchases.actions.join(', ') }
+        : { tracked: false }),
       periods: result.periods.map((p) => ({ label: periodLabel(p.key), bar: Math.round((p.leads / maxPeriodLeads) * 100), ...funnelFigures(p) })).reverse(),
       campaigns: result.campaigns.map((c) => ({ key: c.key, label: c.label, platforms: c.platforms, matched: c.matched, f: funnelFigures(c) })),
       unmatchedLeads: result.unmatchedLeads ? funnelCount(result.unmatchedLeads) : null,

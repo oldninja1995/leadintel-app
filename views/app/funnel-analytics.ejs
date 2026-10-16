@@ -84,6 +84,15 @@ const dash = function (v) { return (v === null || v === undefined || v === '') ?
         <span class="li-fa-stage-r"><%= revenueNote %></span>
         <span class="li-fa-stage-d"></span>
       </div>
+      <% if (googlePurchases) { %>
+        <div class="li-fa-stage li-fa-stage--gpurchase <%= googlePurchases.tracked ? '' : 'li-fa-stage--na' %>">
+          <span class="li-fa-stage-l">Google Ads purchases<em>as Google Ads records them — not added to CRM bookings</em></span>
+          <span class="li-fa-stage-bar"></span>
+          <span class="li-fa-stage-n"><%= googlePurchases.tracked ? googlePurchases.n : 'not tracked' %></span>
+          <span class="li-fa-stage-r"><% if (googlePurchases.tracked) { %><%= googlePurchases.value %> value · <%= googlePurchases.actions %><% } else { %>no Google Ads conversion action has the Purchase category — set one up in Google Ads › Goals › Conversions<% } %></span>
+          <span class="li-fa-stage-d"></span>
+        </div>
+      <% } %>
     </div>
   </section>
 

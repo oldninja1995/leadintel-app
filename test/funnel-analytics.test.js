@@ -153,3 +153,18 @@ test('the shared INTERESTED rule every screen reads does not count a no as a yes
     assert.strictEqual(INTERESTED.test(yes), true, yes);
   }
 });
+
+test('Google Ads purchases are read from Purchase-category actions only, kept apart from CRM bookings', () => {
+  const conv = (action, category, over = {}) => ({ entity: 'googleConversion', date: '2026-09-01', action, category, conversions: 0, conversionValue: 0, allConversions: 0, allConversionValue: 0, ...over });
+  const googleConversions = [
+    conv('Booking complete', 'PURCHASE', { allConversions: 3, allConversionValue: 45000 }),
+    conv('Confirm Booking', 'BEGIN_CHECKOUT', { allConversions: 9, allConversionValue: 0 }),
+  ];
+  const out = funnel.analyse({ leads: [], deals: [], campaignDays: [], googleConversions }, { channel: 'google' });
+  assert.deepStrictEqual(out.googlePurchases, { count: 3, value: R(45000), actions: ['Booking complete'] });
+  assert.strictEqual(out.summary.bookings, 0, 'never folded into CRM bookings');
+
+  const none = funnel.analyse({ googleConversions: [googleConversions[1]] }, { channel: 'google' });
+  assert.deepStrictEqual(none.googlePurchases.actions, [], 'no purchase action reads as untracked, not zero sales');
+  assert.strictEqual(funnel.analyse({ googleConversions }, { channel: 'meta' }).googlePurchases, null);
+});
