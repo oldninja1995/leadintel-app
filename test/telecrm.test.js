@@ -428,3 +428,21 @@ test('an untagged lead is null, never organic', () => {
 test('a source that is neither is "other" rather than forced into one', () => {
   assert.equal(telecrm.leadBody({ id: 'l1', fields: { phone: '91', source: 'Walk-in' } }).channel, 'other');
 });
+
+test('a booked lead that passed through Re-enquiry, or was captured twice, is marked from its history', async () => {
+  telecrm.clearPipelineCache();
+  const pipeline = { statuses: [{ id: 5, label: 'Won/Converted', stage: 'WON' }, { id: 19, label: 'Re-enquiry', stage: 'ACTIVE' }, { id: 7, label: 'Ringing no answer', stage: 'ACTIVE' }] };
+  const histories = {
+    a: [{ type: 'STATUS_CHANGE', fromStatusid: 7, toStatusid: 19 }, { type: 'FACEBOOK', isLeadCaptureAction: true }],
+    b: [{ type: 'FACEBOOK', isLeadCaptureAction: true }, { type: 'FACEBOOK', isLeadCaptureAction: true }],
+    c: [{ type: 'STATUS_CHANGE', fromStatusid: 7, toStatusid: 5 }, { type: 'FACEBOOK', isLeadCaptureAction: true }],
+  };
+  const fetchImpl = async (url) => {
+    const m = /\/lead\/([^/]+)\/action\/search/.exec(url);
+    return json(m ? { data: histories[m[1]] } : pipeline);
+  };
+  await telecrm.request({ kind: 'deal', window: WINDOW, credentials: CREDS, fetchImpl });
+  const rows = [{ lead_id: 'a', outcome: 'won' }, { lead_id: 'b', outcome: 'won' }, { lead_id: 'c', outcome: 'won' }, { lead_id: 'd', outcome: 'lost' }];
+  await telecrm.enrich(rows, { kind: 'deal', credentials: CREDS, fetchImpl });
+  assert.deepStrictEqual(rows.map((r) => r.re_enquiry), [true, true, false, undefined]);
+});
