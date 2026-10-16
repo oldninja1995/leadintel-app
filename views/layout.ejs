@@ -56,7 +56,7 @@
       <% if (screen.app) { %>
         <%- include('app/' + screen.app, data || {}) %>
       <% } else if (hasView) { %>
-        <%- include('screens/' + screen.view, data || {}) %>
+        <%- include('screens/' + screen.view, Object.assign({ rangeLabel: shell.rangeLabel }, data || {})) %>
       <% } else { %>
         <div style="max-width:620px; margin:64px auto; text-align:center;">
           <i class="<%= screen.icon %>" style="font-size:30px; color:var(--color-neutral-700);"></i>
