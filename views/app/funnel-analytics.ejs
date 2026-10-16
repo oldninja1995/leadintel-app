@@ -39,12 +39,6 @@ const dash = function (v) { return (v === null || v === undefined || v === '') ?
         <a href="<%= g.go %>" class="<%= g.on ? 'is-on' : '' %>"><%= g.label %></a>
       <% }); %>
     </div>
-    <form class="li-fa-range" method="get" action="/funnel-analytics">
-      <% keep.forEach(function (h) { %><input type="hidden" name="<%= h.k %>" value="<%= h.v %>"><% }); %>
-      <label>From <input type="date" name="from" value="<%= from %>" required></label>
-      <label>To <input type="date" name="to" value="<%= to %>" required></label>
-      <button type="submit">Apply</button>
-    </form>
   </div>
 
   <section class="li-ota-kpis li-fa-kpis" aria-label="Headline figures">
