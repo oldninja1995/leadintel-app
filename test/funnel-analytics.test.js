@@ -181,3 +181,11 @@ test('Google Ads purchases are read from Purchase-category actions only, kept ap
   assert.deepStrictEqual(none.googlePurchases.actions, [], 'no purchase action reads as untracked, not zero sales');
   assert.strictEqual(funnel.analyse({ googleConversions }, { channel: 'meta' }).googlePurchases, null);
 });
+
+test('a booking is dated by when it was first won, not the lead’s last edit', () => {
+  const [b] = funnel.bookingsByLead([deal('d1', 'l1', { updatedAt: '2026-10-09T00:00:00Z', closedAt: '2026-03-20T00:00:00Z' })]).get('l1');
+  assert.strictEqual(b.at, '2026-03-20T00:00:00Z');
+  const canonical = require('../lib/ingest/canonical');
+  const { deals } = canonical.build([{ source: 'telecrm', kind: 'deal', externalId: 'x', body: { deal_id: 'x', lead_id: 'x', outcome: 'won', updated_at: '2026-10-09T00:00:00Z', first_won_at: '2026-03-20T00:00:00Z', value: 100, currency: 'INR' } }]);
+  assert.strictEqual(deals[0].closedAt, '2026-03-20T00:00:00.000Z');
+});
