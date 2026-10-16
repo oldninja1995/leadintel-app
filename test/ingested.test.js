@@ -613,9 +613,9 @@ const platformEntities = () => ({
     { id: 'l4', channel: null, stage: 'Fresh' },
   ],
   deals: [
-    { id: 'd1', channel: 'meta', outcome: 'won', revenue: 900000, bookingStatus: 'Confirmed' },
-    { id: 'd2', channel: 'meta', outcome: 'won', revenue: 500000, bookingStatus: 'Cancelled' },
-    { id: 'd3', channel: 'google', outcome: 'lost', revenue: 0, bookingStatus: null },
+    { id: 'd1', leadId: 'l1', channel: 'meta', outcome: 'won', revenue: 900000, bookingStatus: 'Confirmed' },
+    { id: 'd2', leadId: 'l2', channel: 'meta', outcome: 'won', revenue: 500000, bookingStatus: 'Cancelled' },
+    { id: 'd3', leadId: 'l3', channel: 'google', outcome: 'lost', revenue: 0, bookingStatus: null },
   ],
   bookings: [], payments: [], inventoryDays: [], leadEvents: [], problems: [],
 });
@@ -630,6 +630,25 @@ test('the platform table is derived from the rows, not authored', () => {
   assert.equal(meta.leads, '2', 'leads come from the CRM, keyed by channel');
   assert.equal(meta.bookings, '1', 'the cancelled deal was counted as a reservation');
   assert.equal(meta.rev, '₹9,000', 'the cancelled deal’s money was counted');
+});
+
+test('the platform table counts what the range’s leads booked, as Full Funnel Analytics does', () => {
+  /* It counted deals closed in the range plus GA4 paid search, so Marketing
+     read Google ₹7.40L where Funnel Analytics read ₹6.00L on the same range. */
+  const entities = platformEntities();
+  const later = { id: 'd4', leadId: 'l3', channel: 'google', outcome: 'won', revenue: 300000, bookingStatus: 'Confirmed' };
+  const stranger = { id: 'd5', leadId: 'old', channel: 'google', outcome: 'won', revenue: 700000, bookingStatus: 'Confirmed' };
+  entities.deals.push(stranger);
+  entities.webChannelRevenueDays = [{ channelGroup: 'Paid Search', revenue: 5000000, date: '2026-08-01' }];
+  const whole = { deals: [...entities.deals, later] };
+  const { platforms } = PROJECTIONS.marketing(entities, { whole });
+  const google = platforms.find((p) => p.name === 'Google Ads');
+
+  assert.equal(google.rev, '₹3,000', 'a booking closed after the range, by a lead from it, was dropped — or another lead’s, or GA4’s, was added');
+  assert.equal(google.bookings, '1');
+
+  const funnel = require('../lib/funnel-analytics').analyse({ leads: entities.leads, deals: whole.deals, campaignDays: [] }, { channel: 'google' }).summary;
+  assert.equal(money(funnel.revenue), google.rev, 'Marketing and Full Funnel Analytics disagree about Google');
 });
 
 test('a platform with spend and no tagged leads says so instead of scoring itself', () => {

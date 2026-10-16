@@ -105,19 +105,19 @@ test("GA4's paid search is not lent to Meta", () => {
   assert.equal(rows['Google Ads'].rev, '₹50,000');
 });
 
-test('the panel and the marketing screen agree about a channel', () => {
+test('the marketing screen and Full Funnel Analytics agree about a channel', () => {
   /* Two implementations of "revenue by channel" is the drift this codebase
-     spends its comments on. If platformRows and channelTotals ever disagree,
-     one screen tells a manager something the other denies. */
-  const marketing = PROJECTIONS.marketing(ENTITIES, {});
-  const platformRows = marketing.platformRows || marketing.platforms || [];
-
-  if (!platformRows.length) return; /* the marketing payload names it otherwise */
-  const audiences = byType(project(ENTITIES));
-  for (const row of platformRows) {
-    const mine = audiences[row.name];
-    if (!mine) continue;
-    assert.equal(mine.rev, row.rev, `${row.name} reads ${mine.rev} here and ${row.rev} on Marketing`);
+     spends its comments on. channelTotals is off every screen; the pair a
+     manager actually compares is Marketing's platform table and the funnel. */
+  const entities = {
+    ...ENTITIES,
+    leads: [{ id: 'g', channel: 'google' }, { id: 'm', channel: 'meta' }],
+    deals: [deal('google', 12000000, { id: 'x', leadId: 'g' }), deal('meta', 900000, { id: 'y', leadId: 'm' })],
+  };
+  const { analyse } = require('../lib/funnel-analytics');
+  for (const row of PROJECTIONS.marketing(entities, {}).platforms) {
+    const funnel = analyse(entities, { channel: row.channel }).summary;
+    assert.equal(money(funnel.revenue), row.rev, `${row.name} reads ${row.rev} on Marketing and ${money(funnel.revenue)} on the funnel`);
   }
 });
 
