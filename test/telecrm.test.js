@@ -434,7 +434,7 @@ test('a booked lead that passed through Re-enquiry, or was captured twice, is ma
   const pipeline = { statuses: [{ id: 5, label: 'Won/Converted', stage: 'WON' }, { id: 19, label: 'Re-enquiry', stage: 'ACTIVE' }, { id: 7, label: 'Ringing no answer', stage: 'ACTIVE' }] };
   const histories = {
     a: [{ type: 'STATUS_CHANGE', fromStatusid: 7, toStatusid: 19 }, { type: 'FACEBOOK', isLeadCaptureAction: true }],
-    b: [{ type: 'FACEBOOK', isLeadCaptureAction: true }, { type: 'FACEBOOK', isLeadCaptureAction: true }],
+    b: [{ type: 'FACEBOOK', isLeadCaptureAction: false }, { type: 'FACEBOOK', isLeadCaptureAction: true }],
     c: [{ type: 'STATUS_CHANGE', fromStatusid: 7, toStatusid: 5 }, { type: 'FACEBOOK', isLeadCaptureAction: true }],
   };
   const fetchImpl = async (url) => {
