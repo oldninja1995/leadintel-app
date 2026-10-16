@@ -60,6 +60,18 @@ test('the window is sent as epoch milliseconds, not a formatted date', async () 
   assert.equal(body.fields.created_on.from, Date.parse(WINDOW.from));
 });
 
+test('deals are windowed by when the lead last changed, leads by when it arrived', async () => {
+  /* A July lead converted in October is October's booking; searching deals by
+     created_on never re-read it. */
+  telecrm.clearPipelineCache();
+  const fetchImpl = async () => json({ leadStages: [{ stageid: 's2', stageType: 'WON', activeStatuses: [{ statusid: 2, label: 'Booked' }] }] });
+  const deal = JSON.parse((await telecrm.request({ kind: 'deal', window: WINDOW, credentials: CREDS, fetchImpl })).body);
+  assert.equal(deal.fields.modified_on.from, Date.parse(WINDOW.from));
+  assert.equal(deal.fields.created_on, undefined);
+  const lead = JSON.parse((await telecrm.request({ kind: 'lead', window: WINDOW, credentials: CREDS })).body);
+  assert.equal(lead.fields.created_on.from, Date.parse(WINDOW.from));
+});
+
 test('the half-open window loses a millisecond, not a day', () => {
   /* Meta and Google need `to` stepped back a whole day because they take dates.
      These are timestamps: stepping back a day would drop the last day of every
