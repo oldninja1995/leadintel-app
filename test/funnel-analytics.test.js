@@ -189,3 +189,11 @@ test('a booking is dated by when it was first won, not the lead’s last edit', 
   const { deals } = canonical.build([{ source: 'telecrm', kind: 'deal', externalId: 'x', body: { deal_id: 'x', lead_id: 'x', outcome: 'won', updated_at: '2026-10-09T00:00:00Z', first_won_at: '2026-03-20T00:00:00Z', value: 100, currency: 'INR' } }]);
   assert.strictEqual(deals[0].closedAt, '2026-03-20T00:00:00.000Z');
 });
+
+test('RC: a booking is returning when TeleCRM marked its lead Re-enquiry, or the phone enquired before', () => {
+  const rc = funnel.analyse({ deals: [deal('d1', 'a', { reEnquiry: true }), deal('d2', 'b', { repeat: true }), deal('d3', 'c', { revenue: R(2000) })] }, { channel: 'meta' }).summary;
+  assert.deepStrictEqual([rc.bookings, rc.rcBookings, rc.rcRevenue, rc.newRevenue], [3, 2, R(10000), R(2000)]);
+  const { isReturningCustomer, isNewCustomer } = require('../lib/metrics/registry');
+  assert.strictEqual(isReturningCustomer({ repeat: false, reEnquiry: true }), true);
+  assert.strictEqual(isNewCustomer({ repeat: false, reEnquiry: true }), false);
+});
