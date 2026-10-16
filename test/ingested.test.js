@@ -632,22 +632,21 @@ test('the platform table is derived from the rows, not authored', () => {
   assert.equal(meta.rev, '₹9,000', 'the cancelled deal’s money was counted');
 });
 
-test('the platform table counts what the range’s leads booked, as Full Funnel Analytics does', () => {
-  /* It counted deals closed in the range plus GA4 paid search, so Marketing
-     read Google ₹7.40L where Funnel Analytics read ₹6.00L on the same range. */
+test('the platform table counts bookings closed in the range, as Full Funnel Analytics does', () => {
+  /* A booking counts when it closed, whenever its lead arrived: `entities.deals`
+     is the range's deals, so a lead from an earlier month that booked in this
+     range is this range's revenue. GA4 paid search is never added. */
   const entities = platformEntities();
-  const later = { id: 'd4', leadId: 'l3', channel: 'google', outcome: 'won', revenue: 300000, bookingStatus: 'Confirmed' };
-  const stranger = { id: 'd5', leadId: 'old', channel: 'google', outcome: 'won', revenue: 700000, bookingStatus: 'Confirmed' };
-  entities.deals.push(stranger);
+  const earlier = { id: 'd5', leadId: 'old', channel: 'google', outcome: 'won', revenue: 700000, bookingStatus: 'Confirmed' };
+  entities.deals.push(earlier);
   entities.webChannelRevenueDays = [{ channelGroup: 'Paid Search', revenue: 5000000, date: '2026-08-01' }];
-  const whole = { deals: [...entities.deals, later] };
-  const { platforms } = PROJECTIONS.marketing(entities, { whole });
+  const { platforms } = PROJECTIONS.marketing(entities);
   const google = platforms.find((p) => p.name === 'Google Ads');
 
-  assert.equal(google.rev, '₹3,000', 'a booking closed after the range, by a lead from it, was dropped — or another lead’s, or GA4’s, was added');
+  assert.equal(google.rev, '₹7,000', 'a booking closed in the range by an earlier lead was dropped — or GA4’s was added');
   assert.equal(google.bookings, '1');
 
-  const funnel = require('../lib/funnel-analytics').analyse({ leads: entities.leads, deals: whole.deals, campaignDays: [] }, { channel: 'google' }).summary;
+  const funnel = require('../lib/funnel-analytics').analyse({ leads: entities.leads, deals: entities.deals, campaignDays: [] }, { channel: 'google' }).summary;
   assert.equal(money(funnel.revenue), google.rev, 'Marketing and Full Funnel Analytics disagree about Google');
 });
 

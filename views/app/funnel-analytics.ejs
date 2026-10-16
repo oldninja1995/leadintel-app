@@ -16,8 +16,9 @@ const dash = function (v) { return (v === null || v === undefined || v === '') ?
     <div class="li-ota-title">
       <h1>Full Funnel Analytics</h1>
       <p>
-        <strong><%= channel.label %></strong> leads that arrived in <strong><%= rangeLabel %></strong>, followed from
-        the ad through TeleCRM to the revenue they booked — whenever that booking closed. Spend, impressions and
+        <strong><%= channel.label %></strong> in <strong><%= rangeLabel %></strong>, each figure counted when it
+        happened: leads on the day they arrived, bookings and revenue on the day the booking closed — whenever that
+        lead first enquired. Spend, impressions and
         clicks are the platforms' own figures for the same window.
       </p>
     </div>
@@ -135,8 +136,8 @@ const dash = function (v) { return (v === null || v === undefined || v === '') ?
   <section class="li-ota-panel">
     <div class="li-ota-panel-head">
       <h2><%= grain.label %> report</h2>
-      <p>Leads, bookings and revenue are bucketed by the <strong>day the lead arrived</strong>, so a lead's booking
-        stays in the <%= grain.id === 'day' ? 'day' : grain.id %> its enquiry came in. Spend is bucketed by the day it was delivered.
+      <p>Leads are bucketed by the <strong>day they arrived</strong>, bookings and revenue by the <strong>day the
+        booking closed</strong>, and spend by the day it was delivered — each in the <%= grain.id === 'day' ? 'day' : grain.id %> it happened.
         Newest first.</p>
     </div>
     <% if (!periods.length) { %>

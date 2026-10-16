@@ -19,7 +19,7 @@ const lead = (id, over = {}) => ({
   campaign: 'summer', stage: 'Fresh', repeat: false, customer: `phone:${id}#0`, ...over,
 });
 const deal = (id, leadId, over = {}) => ({
-  entity: 'deal', id, leadId, outcome: 'won', bookingStatus: 'confirmed',
+  entity: 'deal', id, leadId, outcome: 'won', bookingStatus: 'confirmed', channel: 'meta', repeat: false,
   revenue: R(5000), bookingRef: null, updatedAt: '2026-09-20T00:00:00Z', ...over,
 });
 
@@ -56,7 +56,7 @@ test('cancelled and lost deals are not bookings', () => {
 
 test('organic has no ad side: null, not zero, and no ROAS', () => {
   const leads = [lead('o1', { channel: 'website', campaign: null }), lead('o2', { channel: null, campaign: null })];
-  const out = funnel.analyse({ leads, deals: [deal('d1', 'o1')], campaignDays: [day()] }, { channel: 'organic' });
+  const out = funnel.analyse({ leads, deals: [deal('d1', 'o1', { channel: 'website' })], campaignDays: [day()] }, { channel: 'organic' });
   assert.strictEqual(out.summary.spend, null);
   assert.strictEqual(out.summary.impressions, null);
   assert.strictEqual(out.summary.roas, null);
@@ -92,19 +92,32 @@ test('stages are cumulative, so the funnel never widens', () => {
 
 test('NC ROAS counts only first-time customers', () => {
   const leads = [lead('n1', { stage: 'Won' }), lead('r1', { stage: 'Won', repeat: true })];
-  const out = funnel.analyse({ leads, deals: [deal('d1', 'n1'), deal('d2', 'r1')], campaignDays: [day()] }, { channel: 'meta' });
+  const out = funnel.analyse({ leads, deals: [deal('d1', 'n1'), deal('d2', 'r1', { repeat: true })], campaignDays: [day()] }, { channel: 'meta' });
   assert.strictEqual(out.summary.roas, 10);
   assert.strictEqual(out.summary.ncRoas, 5);
 });
 
-test('periods bucket by the lead, weeks start on Monday', () => {
+test('leads bucket by arrival, bookings by when they closed; weeks start on Monday', () => {
   assert.strictEqual(funnel.bucketOf('2026-09-06T23:00:00Z', 'week'), '2026-08-31');
   assert.strictEqual(funnel.bucketOf('2026-09-07', 'week'), '2026-09-07');
   assert.strictEqual(funnel.bucketOf('2026-09-07', 'month'), '2026-09');
   const leads = [lead('a', { createdAt: '2026-09-01T00:00:00Z' }), lead('b', { createdAt: '2026-10-02T00:00:00Z' })];
-  /* The deal closed in October; it belongs to the lead's September bucket. */
+  /* The September lead's deal closed in October: it is October's booking. */
   const out = funnel.analyse({ leads, deals: [deal('d1', 'a', { updatedAt: '2026-10-05T00:00:00Z' })], campaignDays: [] }, { channel: 'meta', grain: 'month' });
-  assert.deepStrictEqual(out.periods.map((p) => [p.key, p.leads, p.bookings]), [['2026-09', 1, 1], ['2026-10', 1, 0]]);
+  assert.deepStrictEqual(out.periods.map((p) => [p.key, p.leads, p.bookings]), [['2026-09', 1, 0], ['2026-10', 1, 1]]);
+});
+
+test('a booking from a lead that arrived before the range still counts in it', () => {
+  /* Only the range's leads are passed; the deal closed in the range belongs to
+     a July lead. It is this range's booking and revenue, and the drill-down
+     still names the lead. */
+  const july = lead('j1', { createdAt: '2026-07-04T00:00:00Z', name: 'Jampani' });
+  const out = funnel.analyse({ leads: [lead('l1')], deals: [deal('d1', 'j1', { revenue: R(45000) })], allLeads: [july, lead('l1')], campaignDays: [] }, { channel: 'meta', stage: 'booked' });
+  assert.strictEqual(out.summary.leads, 1);
+  assert.strictEqual(out.summary.bookings, 1);
+  assert.strictEqual(out.summary.revenue, R(45000));
+  assert.strictEqual(out.drill.rows[0].name, 'Jampani');
+  assert.strictEqual(funnel.analyse({ deals: [deal('d1', 'j1')] }, { channel: 'google' }).summary.bookings, 0, 'placed on its lead’s channel');
 });
 
 test('a CRM campaign no ad platform reported is kept and flagged', () => {

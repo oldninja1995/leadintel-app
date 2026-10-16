@@ -2693,7 +2693,7 @@ async function renderFunnel(req, res) {
 
   const inWindow = (window) => {
     const narrowed = metrics.period.within(all, window);
-    return { leads: narrowed.leads || [], deals: all.deals || [], campaignDays: narrowed.campaignDays || [], googleConversions: narrowed.googleConversions || [] };
+    return { leads: narrowed.leads || [], deals: narrowed.deals || [], allLeads: all.leads || [], campaignDays: narrowed.campaignDays || [], googleConversions: narrowed.googleConversions || [] };
   };
   const result = funnelAnalytics.analyse(inWindow(over), opts);
   const before = metrics.period.previous(over);
