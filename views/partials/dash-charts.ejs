@@ -1,0 +1,207 @@
+<%# The dashboards' infographics, drawn from lib/dashboard-charts.js.
+    `set` is 'exec' or 'mkt'; `charts` is that set's projection. Every chart
+    is inline SVG on theme tokens, so it reads in both themes, and every bar or
+    point carries a <title> with its exact figures. %>
+<%
+var panel = 'background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px; min-width:0;';
+var head = 'display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;';
+var title = 'font-size:13px; font-weight:500;';
+var sub = 'font-size:10.5px; color:var(--color-neutral-600);';
+var key = 'display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);';
+var emptyBox = 'height:180px; display:grid; place-items:center; font-size:11.5px; color:var(--color-neutral-600); text-align:center; padding:0 24px;';
+var c = charts || {};
+%>
+
+<% if (set === 'exec') { %>
+  <% var lb = c.leadsVsBookings || { empty: true }; var bc = c.bookingsByChannel || { empty: true }; %>
+  <div style="display:grid; grid-template-columns:1.8fr 1fr; gap:12px; margin-bottom:12px;">
+    <div style="<%= panel %>">
+      <div style="<%= head %>">
+        <div style="<%= title %>">Leads vs bookings</div>
+        <span style="<%= sub %>"><%= c.grain %> · all channels</span>
+        <div style="flex:1;"></div>
+        <span style="<%= key %>"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-800);"></span>Leads</span>
+        <span style="<%= key %>"><span style="width:12px;height:2px;background:var(--color-accent-300);"></span>Bookings</span>
+      </div>
+      <% if (lb.empty) { %><div style="<%= emptyBox %>"><%= lb.reason %></div><% } else { %>
+        <div style="display:flex; gap:18px; margin-bottom:6px; font-size:11.5px; color:var(--color-neutral-500);">
+          <span><strong style="color:var(--color-neutral-200); font-weight:500;"><%= lb.totals.leads %></strong> leads</span>
+          <span><strong style="color:var(--color-neutral-200); font-weight:500;"><%= lb.totals.bookings %></strong> bookings</span>
+          <span><strong style="color:var(--color-neutral-200); font-weight:500;"><%= lb.totals.conversion %></strong> bookings per lead</span>
+        </div>
+        <svg viewBox="0 0 640 200" style="width:100%; height:200px;" preserveAspectRatio="none">
+          <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="30" x2="640" y2="30"></line><line x1="0" y1="105" x2="640" y2="105"></line><line x1="0" y1="180" x2="640" y2="180"></line></g>
+          <% lb.bars.forEach(function (b) { %>
+            <rect x="<%= b.x.toFixed(1) %>" y="<%= b.y.toFixed(1) %>" width="<%= b.w.toFixed(1) %>" height="<%= Math.max(0, b.h).toFixed(1) %>" rx="2" fill="var(--color-accent-800)"><title><%= b.tip %></title></rect>
+          <% }); %>
+          <polyline points="<%= lb.line %>" fill="none" stroke="var(--color-accent-300)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>
+          <% lb.dots.forEach(function (d) { if (!d.show) return; %><circle cx="<%= d.cx.toFixed(1) %>" cy="<%= d.cy.toFixed(1) %>" r="2.6" fill="var(--color-accent-300)"></circle><% }); %>
+        </svg>
+        <div style="position:relative; height:14px; font-size:10px; color:var(--color-neutral-600);">
+          <% lb.axis.forEach(function (a) { %><span style="position:absolute; left:<%= (a.x / 6.4).toFixed(2) %>%; transform:translateX(-50%); white-space:nowrap;"><%= a.text %></span><% }); %>
+        </div>
+        <div style="<%= sub %> margin-top:6px;">Bars: leads by arrival day (scale to <%= lb.leadTop %>). Line: bookings by the day they closed (scale to <%= lb.bookTop %>). Two scales — hover any bar for exact figures.</div>
+      <% } %>
+    </div>
+
+    <div style="<%= panel %>">
+      <div style="<%= head %>"><div style="<%= title %>">Bookings by channel</div><span style="<%= sub %>">count · won, not cancelled</span></div>
+      <% if (bc.empty) { %><div style="<%= emptyBox %>"><%= bc.reason %></div><% } else { %>
+        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+          <svg viewBox="0 0 140 140" style="width:124px; height:124px; flex:none;">
+            <circle cx="70" cy="70" r="54" fill="none" stroke="var(--color-neutral-900)" stroke-width="16"></circle>
+            <% bc.slices.forEach(function (s) { %>
+              <circle cx="70" cy="70" r="54" fill="none" stroke="<%= s.colour %>" stroke-width="16" stroke-dasharray="<%= s.dash %>" stroke-dashoffset="<%= s.offset %>" transform="rotate(-90 70 70)"><title><%= s.label %> · <%= s.countText %> bookings · <%= s.revenueText %></title></circle>
+            <% }); %>
+            <text x="70" y="68" text-anchor="middle" fill="var(--color-neutral-200)" font-size="20" font-weight="500" font-family="Inter"><%= bc.total %></text>
+            <text x="70" y="84" text-anchor="middle" fill="var(--color-neutral-600)" font-size="9" font-family="Inter">bookings</text>
+          </svg>
+          <div style="flex:1; min-width:150px; display:flex; flex-direction:column; gap:9px; font-size:11.5px;">
+            <% bc.slices.forEach(function (s) { %>
+              <div>
+                <div style="display:flex; align-items:center; gap:7px;"><span style="width:8px;height:8px;border-radius:2px;background:<%= s.colour %>;"></span><span style="flex:1; color:var(--color-neutral-400);"><%= s.label %></span><span style="font-variant-numeric:tabular-nums;"><%= s.countText %></span><span style="width:34px; text-align:right; color:var(--color-neutral-500);"><%= s.pct %></span></div>
+                <div style="<%= sub %> padding-left:15px;"><%= s.revenueText %> revenue</div>
+              </div>
+            <% }); %>
+          </div>
+        </div>
+        <div style="<%= sub %> margin-top:10px; line-height:1.5;">Total <%= bc.revenue %>. A booking's channel is the one TeleCRM recorded on its lead; no tag counts as organic.</div>
+      <% } %>
+    </div>
+  </div>
+
+  <% var ls = c.leadStatus || { empty: true }; var hm = c.arrivals || { empty: true }; %>
+  <div style="display:grid; grid-template-columns:1fr 1.4fr; gap:12px; margin-bottom:12px;">
+    <div style="<%= panel %>">
+      <div style="<%= head %>"><div style="<%= title %>">Lead status</div><span style="<%= sub %>"><%= ls.empty ? '' : ls.total + ' leads that arrived in range, by current TeleCRM status' %></span></div>
+      <% if (ls.empty) { %><div style="<%= emptyBox %>"><%= ls.reason %></div><% } else { %>
+        <div style="display:flex; flex-direction:column; gap:7px;">
+          <% ls.rows.forEach(function (r) { %>
+            <div title="<%= r.status %> · <%= r.n %> leads (<%= r.share %>)">
+              <div style="display:flex; font-size:11.5px; margin-bottom:3px;"><span style="flex:1; color:var(--color-neutral-400); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><%= r.status %></span><span style="font-variant-numeric:tabular-nums;"><%= r.n %></span><span style="width:40px; text-align:right; color:var(--color-neutral-500);"><%= r.share %></span></div>
+              <div style="height:6px; border-radius:3px; background:var(--color-neutral-900);"><div style="height:6px; border-radius:3px; width:<%= r.w %>; background:<%= r.colour %>;"></div></div>
+            </div>
+          <% }); %>
+        </div>
+      <% } %>
+    </div>
+
+    <div style="<%= panel %>">
+      <div style="<%= head %>">
+        <div style="<%= title %>">When enquiries arrive</div>
+        <span style="<%= sub %>"><%= hm.empty ? '' : hm.total + ' leads · India time' %></span>
+        <div style="flex:1;"></div>
+        <% if (!hm.empty) { %><span style="font-size:11px; color:var(--color-neutral-400);">Busiest: <strong style="font-weight:500; color:var(--color-accent-300);"><%= hm.peak %></strong></span><% } %>
+      </div>
+      <% if (hm.empty) { %><div style="<%= emptyBox %>"><%= hm.reason %></div><% } else { %>
+        <div style="overflow-x:auto;">
+          <div style="min-width:420px;">
+            <% hm.rows.forEach(function (row) { %>
+              <div style="display:flex; align-items:center; gap:2px; margin-bottom:2px;">
+                <span style="width:30px; flex:none; font-size:10px; color:var(--color-neutral-500);"><%= row.day %></span>
+                <% row.cells.forEach(function (cell) { %><span title="<%= cell.tip %>" style="flex:1; height:16px; border-radius:2px; background:var(--color-neutral-900); position:relative;"><span style="position:absolute; inset:0; border-radius:2px; background:var(--color-accent-500); opacity:<%= cell.op %>;"></span></span><% }); %>
+              </div>
+            <% }); %>
+            <div style="position:relative; height:14px; margin-left:32px; font-size:10px; color:var(--color-neutral-600);">
+              <% hm.hours.forEach(function (h) { %><span style="position:absolute; left:<%= (h.h / 24 * 100).toFixed(2) %>%;"><%= h.text %></span><% }); %>
+            </div>
+          </div>
+        </div>
+        <div style="<%= sub %> margin-top:6px;">Darker = more leads in that hour. Useful for staffing calls when enquiries peak.</div>
+      <% } %>
+    </div>
+  </div>
+<% } %>
+
+<% if (set === 'mkt') { %>
+  <% var cp = c.cplTrend || { empty: true }; var pf = c.platformFunnel || { empty: true }; %>
+  <div style="display:grid; grid-template-columns:1.8fr 1fr; gap:12px; margin-bottom:12px;">
+    <div style="<%= panel %>">
+      <div style="<%= head %>">
+        <div style="<%= title %>">Cost per lead</div>
+        <span style="<%= sub %>"><%= c.grain %> · spend ÷ CRM leads</span>
+        <div style="flex:1;"></div>
+        <% (cp.series || []).forEach(function (s) { %><span style="<%= key %>"><span style="width:12px;height:2px;background:<%= s.colour %>;"></span><%= s.label %> <strong style="font-weight:500; color:var(--color-neutral-200);"><%= s.overallText %></strong></span><% }); %>
+      </div>
+      <% if (cp.empty) { %><div style="<%= emptyBox %>"><%= cp.reason %></div><% } else { %>
+        <svg viewBox="0 0 640 200" style="width:100%; height:200px;" preserveAspectRatio="none">
+          <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="30" x2="640" y2="30"></line><line x1="0" y1="105" x2="640" y2="105"></line><line x1="0" y1="180" x2="640" y2="180"></line></g>
+          <% cp.series.forEach(function (s) { %>
+            <% s.paths.forEach(function (p) { %><polyline points="<%= p %>" fill="none" stroke="<%= s.colour %>" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline><% }); %>
+            <% s.dots.forEach(function (d) { %><circle cx="<%= d.cx.toFixed(1) %>" cy="<%= d.cy.toFixed(1) %>" r="<%= d.capped ? 3.4 : 2.4 %>" fill="<%= d.capped ? 'var(--color-surface)' : s.colour %>" stroke="<%= s.colour %>" stroke-width="1.4"><title><%= d.tip %><%= d.capped ? ' (above the chart top)' : '' %></title></circle><% }); %>
+          <% }); %>
+        </svg>
+        <div style="position:relative; height:14px; font-size:10px; color:var(--color-neutral-600);">
+          <% cp.axis.forEach(function (a) { %><span style="position:absolute; left:<%= (a.x / 6.4).toFixed(2) %>%; transform:translateX(-50%); white-space:nowrap;"><%= a.text %></span><% }); %>
+        </div>
+        <div style="<%= sub %> margin-top:6px;">Top line = <%= cp.topText %>. Hollow points sit above it (a period with high spend and few leads). Lower is better.</div>
+      <% } %>
+    </div>
+
+    <div style="<%= panel %>">
+      <div style="<%= head %>"><div style="<%= title %>">Platform funnel</div><span style="<%= sub %>">log-scaled bars · % = from the stage above</span></div>
+      <% if (pf.empty) { %><div style="<%= emptyBox %>"><%= pf.reason %></div><% } else { %>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+          <% pf.cols.forEach(function (col) { %>
+            <div style="min-width:0;">
+              <div style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:500; margin-bottom:2px;"><span style="width:8px;height:8px;border-radius:2px;background:<%= col.colour %>;"></span><%= col.label %></div>
+              <div style="<%= sub %> margin-bottom:8px;"><%= col.spend %> spend · ROAS <%= col.roas %></div>
+              <% col.stages.forEach(function (s) { %>
+                <div style="margin-bottom:7px;">
+                  <div style="display:flex; font-size:10.5px; margin-bottom:2px;"><span style="flex:1; color:var(--color-neutral-500);"><%= s.label %></span><span style="font-variant-numeric:tabular-nums;"><%= s.n %></span></div>
+                  <div style="display:flex; align-items:center; gap:5px;">
+                    <div style="flex:1; height:7px; border-radius:3px; background:var(--color-neutral-900);"><div style="height:7px; border-radius:3px; width:<%= s.w %>; background:<%= col.colour %>;"></div></div>
+                    <span style="width:34px; text-align:right; font-size:10px; color:var(--color-neutral-500);"><%= s.step || '' %></span>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          <% }); %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+
+  <% var rc = c.roasByCampaign || { empty: true }; var lm = c.leadMix || { empty: true }; %>
+  <div style="display:grid; grid-template-columns:1fr 1.4fr; gap:12px; margin-bottom:12px;">
+    <div style="<%= panel %>">
+      <div style="<%= head %>"><div style="<%= title %>">ROAS by campaign</div><span style="<%= sub %>">CRM revenue ÷ spend · campaigns with ≥2% of paid spend</span></div>
+      <% if (rc.empty) { %><div style="<%= emptyBox %>"><%= rc.reason %></div><% } else { %>
+        <div style="display:flex; flex-direction:column; gap:7px;">
+          <% rc.rows.forEach(function (r) { %>
+            <div title="<%= r.tip %>">
+              <div style="display:flex; gap:8px; font-size:11.5px; margin-bottom:3px;"><span style="flex:1; color:var(--color-neutral-400); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><%= r.label %></span><span style="font-variant-numeric:tabular-nums; color:<%= r.zero ? 'var(--color-neutral-600)' : 'var(--color-neutral-200)' %>;"><%= r.roas %></span></div>
+              <div style="height:6px; border-radius:3px; background:var(--color-neutral-900);"><div style="height:6px; border-radius:3px; width:<%= r.w %>; background:<%= r.colour %>;"></div></div>
+            </div>
+          <% }); %>
+        </div>
+        <div style="<%= sub %> margin-top:9px;">Best first. Colour = platform.<%= rc.hidden ? ' ' + rc.hidden + ' mid-table campaign(s) not shown — the top 5 and bottom 5 are.' : '' %></div>
+      <% } %>
+    </div>
+
+    <div style="<%= panel %>">
+      <div style="<%= head %>">
+        <div style="<%= title %>">Lead mix over time</div>
+        <span style="<%= sub %>"><%= c.grain %> · CRM leads by channel</span>
+      </div>
+      <% if (lm.empty) { %><div style="<%= emptyBox %>"><%= lm.reason %></div><% } else { %>
+        <div style="display:flex; gap:14px; flex-wrap:wrap; margin-bottom:6px;">
+          <% lm.legend.forEach(function (l) { %><span style="<%= key %>"><span style="width:8px;height:8px;border-radius:2px;background:<%= l.colour %>;"></span><%= l.label %> <strong style="font-weight:500; color:var(--color-neutral-200);"><%= l.n %></strong> <span style="color:var(--color-neutral-600);"><%= l.share %></span></span><% }); %>
+        </div>
+        <svg viewBox="0 0 640 200" style="width:100%; height:200px;" preserveAspectRatio="none">
+          <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="30" x2="640" y2="30"></line><line x1="0" y1="105" x2="640" y2="105"></line><line x1="0" y1="180" x2="640" y2="180"></line></g>
+          <% lm.bars.forEach(function (b) { %>
+            <g><title><%= b.tip %></title>
+              <rect x="<%= b.x.toFixed(1) %>" y="30" width="<%= b.w.toFixed(1) %>" height="150" fill="transparent"></rect>
+              <% b.segs.forEach(function (s) { %><rect x="<%= b.x.toFixed(1) %>" y="<%= s.y.toFixed(1) %>" width="<%= b.w.toFixed(1) %>" height="<%= s.h.toFixed(1) %>" fill="<%= s.colour %>"></rect><% }); %>
+            </g>
+          <% }); %>
+        </svg>
+        <div style="position:relative; height:14px; font-size:10px; color:var(--color-neutral-600);">
+          <% lm.axis.forEach(function (a) { %><span style="position:absolute; left:<%= (a.x / 6.4).toFixed(2) %>%; transform:translateX(-50%); white-space:nowrap;"><%= a.text %></span><% }); %>
+        </div>
+        <div style="<%= sub %> margin-top:6px;">Top line = <%= lm.topText %> leads. Hover a bar for the split.</div>
+      <% } %>
+    </div>
+  </div>
+<% } %>

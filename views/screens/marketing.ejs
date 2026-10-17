@@ -92,6 +92,7 @@
               </div>
             </div>
           </div>
+          <%- include('../partials/dash-charts', { set: 'mkt', charts: locals.mktCharts }) %>
           <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
             <div style="display:flex; align-items:center; margin-bottom:8px;"><div style="font-size:13px; font-weight:500;">Platform comparison</div><span style="font-size:10.5px; color:var(--color-neutral-600); margin-left:8px;">CRM-attributed · <%= typeof rangeLabel === "string" ? rangeLabel : "all time" %> · bookings closed in this range, as Funnel Analytics counts them. The tiles above also add GA4 website revenue.</span><div style="flex:1;"></div><a href="#" style="font-size:11px;">Attribution →</a></div>
             <table style="width:100%; border-collapse:collapse; font-size:12px;">
