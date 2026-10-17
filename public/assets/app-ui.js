@@ -874,7 +874,79 @@
       });
     }
   }
+  /* ── Auto-sync ────────────────────────────────────────────────────────
+   *
+   * The daily cron is the only schedule the hosting plan allows, so an open
+   * app keeps the data fresh itself: it asks the server on load and every five
+   * minutes while visible, and the server syncs only when the data is older
+   * than its own threshold. Tabs share one clock in localStorage so ten open
+   * tabs ask once. Nothing reloads under the reader — a finished sync offers a
+   * Refresh instead. */
+  function autoSync() {
+    const pill = document.querySelector('[data-li-sync]');
+    if (!pill) return;
+    const dot = pill.querySelector('[data-li-sync-dot]');
+    const label = pill.querySelector('[data-li-sync-label]');
+    const KEY = 'li-auto-sync-asked';
+    const ASK_EVERY = 5 * 60 * 1000;
+    let lastAt = null;
+    let pending = false;
+
+    const ago = (iso) => {
+      const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+      if (m < 1) return 'just now';
+      if (m < 60) return m + 'm ago';
+      const h = Math.round(m / 60);
+      return h < 48 ? h + 'h ago' : Math.round(h / 24) + 'd ago';
+    };
+    const show = (text, color, title) => {
+      pill.style.display = 'flex';
+      label.textContent = text;
+      dot.style.background = color;
+      if (title) pill.title = title;
+    };
+    const idle = () => {
+      if (lastAt) show('Synced ' + ago(lastAt), 'var(--color-accent-500)', 'Synced automatically every 15 minutes while the app is open. Click for Connections.');
+    };
+    const read = (k) => { try { return Number(localStorage.getItem(k)) || 0; } catch (e) { return 0; } };
+    const write = (k, v) => { try { localStorage.setItem(k, String(v)); } catch (e) { /* private window */ } };
+
+    async function ask(force) {
+      if (pending || document.hidden) return;
+      if (!force && Date.now() - read(KEY) < ASK_EVERY) { idle(); return; }
+      write(KEY, Date.now());
+      pending = true;
+      const slow = setTimeout(() => show('Syncing…', 'var(--color-neutral-400)', 'Pulling the latest from every connected source'), 600);
+      try {
+        const res = await fetch('/connections/auto-sync', { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: '{}', credentials: 'same-origin' });
+        clearTimeout(slow);
+        if (!res.ok) { pill.style.display = 'none'; return; }
+        const out = await res.json();
+        if (out.lastAt) { lastAt = out.lastAt; write('li-auto-sync-last', new Date(out.lastAt).getTime()); }
+        if (out.state === 'synced') {
+          const issues = (out.failed || []).length + (out.running || []).length;
+          if (out.written > 0) {
+            show('New data · Refresh', 'var(--color-accent-500)', 'Synced ' + out.written + ' new row(s). Click to reload this page.');
+            pill.setAttribute('href', location.pathname + location.search);
+          } else idle();
+          if (issues) show(label.textContent + ' · ' + issues + ' issue(s)', 'var(--color-warning-500, #d9a03f)', [...(out.failed || []), ...(out.running || []).map((n) => n + ' did not finish')].join('\n'));
+        } else idle();
+      } catch (e) {
+        clearTimeout(slow);
+      } finally {
+        pending = false;
+      }
+    }
+
+    const stored = read('li-auto-sync-last');
+    if (stored) { lastAt = new Date(stored).toISOString(); idle(); }
+    ask(false);
+    setInterval(() => { if (!document.hidden) ask(false); else idle(); }, 60 * 1000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) ask(false); });
+  }
+
   syncBadge();
+  autoSync();
   enhanceChips();
   enhanceRange();
   enhanceSort('li-sort-data', 'Sort:');

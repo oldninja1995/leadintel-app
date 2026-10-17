@@ -2062,39 +2062,46 @@ app.get('/connections/:source/oauth/callback',
  * PMS first (never-synced sorts most stale) and buried the real result under
  * eight identical "no credential stored" errors. */
 const SYNC_ALL_ANSWER_MS = 50_000;
+/* Every source with a credential, run concurrently, answered by the deadline.
+   Shared by the Sync all button and the background auto-sync. */
+async function syncConfigured(req) {
+  const live = ingest.liveSources({ connections, workspace: req.workspace, httpConnectors });
+  const configured = connections.configured(req.workspace);
+  const queue = ingest.sources.list().filter((s) => live.has(s.id) && configured.has(s.id));
+  if (!queue.length) return { queue, ran: [], failed: [], running: [] };
+
+  const outcome = new Map();
+  const runs = queue.map((source) => runner.runOne(source.id)
+    .then((result) => outcome.set(source.id, result))
+    .catch((err) => outcome.set(source.id, { ok: false, error: err.message })));
+
+  let timer;
+  await Promise.race([
+    Promise.all(runs),
+    new Promise((resolve) => { timer = setTimeout(resolve, Math.max(0, (req.arrivedAt || Date.now()) + SYNC_ALL_ANSWER_MS - Date.now())); }),
+  ]);
+  clearTimeout(timer);
+  try { await runner.log.flush(); } catch (err) { console.warn('sync all: run log flush failed —', err.message); }
+
+  const ran = [];
+  const failed = [];
+  const running = [];
+  for (const source of queue) {
+    const result = outcome.get(source.id);
+    if (!result) running.push(source.name);
+    else if (result.ok === false) failed.push(`${source.name}: ${result.error || 'failed'}`);
+    else ran.push(`${source.name} ${result.written || 0}`);
+  }
+  return { queue, ran, failed, running, written: [...outcome.values()].reduce((n, r) => n + (r.written || 0), 0) };
+}
+
 app.post('/connections/sync',
   express.urlencoded({ extended: false }), express.json(),
   gatekeeper.gate('connection.manage', () => ({ source: 'all', action: 'sync' })),
   async (req, res) => {
-    const live = ingest.liveSources({ connections, workspace: req.workspace, httpConnectors });
-    const configured = connections.configured(req.workspace);
-    const queue = ingest.sources.list().filter((s) => live.has(s.id) && configured.has(s.id));
-
+    const { queue, ran, failed, running } = await syncConfigured(req);
     if (!queue.length) {
       return res.redirect(303, `/connections?saved=${encodeURIComponent('No source has a credential stored, so there is nothing to sync.')}`);
-    }
-
-    const outcome = new Map();
-    const runs = queue.map((source) => runner.runOne(source.id)
-      .then((result) => outcome.set(source.id, result))
-      .catch((err) => outcome.set(source.id, { ok: false, error: err.message })));
-
-    let timer;
-    await Promise.race([
-      Promise.all(runs),
-      new Promise((resolve) => { timer = setTimeout(resolve, Math.max(0, (req.arrivedAt || Date.now()) + SYNC_ALL_ANSWER_MS - Date.now())); }),
-    ]);
-    clearTimeout(timer);
-    try { await runner.log.flush(); } catch (err) { console.warn('sync all: run log flush failed —', err.message); }
-
-    const ran = [];
-    const failed = [];
-    const running = [];
-    for (const source of queue) {
-      const result = outcome.get(source.id);
-      if (!result) running.push(source.name);
-      else if (result.ok === false) failed.push(`${source.name}: ${result.error || 'failed'}`);
-      else ran.push(`${source.name} ${result.written || 0}`);
     }
 
     const note = [
@@ -2105,6 +2112,47 @@ app.post('/connections/sync',
 
     const key = failed.length && !ran.length ? 'error' : 'saved';
     return res.redirect(303, `/connections?${key}=${encodeURIComponent(note)}`);
+  });
+
+/* Auto-sync. The free plan's cron fires once a day, so an open app keeps
+   itself fresh instead: every page asks here, and this syncs only when the
+   oldest connected source is older than AUTO_SYNC_EVERY_S. Any number of tabs
+   and users can ask; while the data is fresh the answer costs one log read.
+   `inFlight` stops one instance starting a second run over its own. */
+const AUTO_SYNC_EVERY_S = 15 * 60;
+let autoSyncInFlight = null;
+function syncAge(workspace) {
+  const configured = connections.configured(workspace);
+  const ids = ingest.sources.list().map((s) => s.id).filter((id) => configured.has(id) && httpConnectors.has(id));
+  if (!ids.length) return { ids, age: null, lastAt: null };
+  const lags = ids.map((id) => runner.lag(id));
+  const age = lags.some((l) => l === null) ? Infinity : Math.max(...lags);
+  const freshest = Math.min(...lags.map((l) => (l === null ? Infinity : l)));
+  return { ids, age, lastAt: Number.isFinite(age) ? new Date(Date.now() - age * 1000).toISOString() : null, freshestAt: Number.isFinite(freshest) ? new Date(Date.now() - freshest * 1000).toISOString() : null };
+}
+app.post('/connections/auto-sync',
+  express.json(),
+  async (req, res) => {
+    /* Checked rather than gated: `gate` audits every call, and every page view
+       asks. Only a run that actually starts is recorded. */
+    try { gatekeeper.permissions.require(req.user, 'connection.manage'); } catch (err) {
+      return res.status(403).json({ state: 'forbidden' });
+    }
+    const before = syncAge(req.workspace);
+    if (!before.ids.length) return res.json({ state: 'none', every: AUTO_SYNC_EVERY_S });
+    if (before.age < AUTO_SYNC_EVERY_S) return res.json({ state: 'fresh', lastAt: before.lastAt, every: AUTO_SYNC_EVERY_S });
+    if (autoSyncInFlight) return res.json({ state: 'busy', lastAt: before.lastAt, every: AUTO_SYNC_EVERY_S });
+    gatekeeper.audit.record({ user: req.user, action: 'connection.manage', outcome: 'allowed', workspace: req.workspace, detail: { source: 'all', action: 'auto-sync' } });
+    try {
+      autoSyncInFlight = syncConfigured(req);
+      const { ran, failed, running, written } = await autoSyncInFlight;
+      const after = syncAge(req.workspace);
+      return res.json({ state: 'synced', written, ran, failed, running, lastAt: after.lastAt, every: AUTO_SYNC_EVERY_S });
+    } catch (err) {
+      return res.status(500).json({ state: 'error', error: err.message });
+    } finally {
+      autoSyncInFlight = null;
+    }
   });
 
 /* Registered BEFORE `/connections/:source`, and that ordering is the whole of
@@ -4483,6 +4531,7 @@ function me(user) {
     /* Computed from the same table the server enforces, so the menu cannot
        promise something a request would be refused for. */
     can: granted.map((action) => NOTABLE[action]).filter(Boolean),
+    canSync: granted.includes('connection.manage'),
     grants: granted.length,
     grantsTotal: gatekeeper.permissions.ACTIONS.length,
   };

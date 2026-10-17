@@ -427,3 +427,6 @@ main { flex: 1; overflow-y: auto; padding: 18px; }
   .li-m-bar [data-li-m="rangebtn"] { padding: 6px 8px !important; gap: 5px !important; }
   .li-m-bar [data-li-m="tail"] { gap: 4px !important; }
 }
+
+/* Auto-sync pill: the dot alone on a phone. */
+@media (max-width: 520px) { [data-li-sync-label] { display: none; } }
