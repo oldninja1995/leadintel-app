@@ -213,7 +213,7 @@
           <div style="display:grid; grid-template-columns:1fr 1.2fr; gap:12px; margin-bottom:12px;">
             <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
               <div style="font-size:13px; font-weight:500; margin-bottom:10px;">Revenue by source</div>
-              <% var rbs = revenueBySource || { total: '—', slices: [], note: '' }; %>
+              <% var rbs = locals.revenueBySource || { total: '—', slices: [], note: '' }; %>
               <div style="display:flex; align-items:center; gap:14px;">
                 <svg viewBox="0 0 140 140" style="width:124px; height:124px; flex:none;">
                   <circle cx="70" cy="70" r="54" fill="none" stroke="var(--color-neutral-900)" stroke-width="16"></circle>

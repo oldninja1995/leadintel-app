@@ -945,8 +945,79 @@
     document.addEventListener('visibilitychange', () => { if (!document.hidden) ask(false); });
   }
 
+  /* ── Chart click panels ──────────────────────────────────────────────
+   *
+   * Every mark on the dashboard infographics carries `data-li-pop` — a title,
+   * label/value rows and, where a screen can answer the next question, a link
+   * (lib/dashboard-charts.js). A <title> tooltip alone did nothing on click and
+   * nothing at all on a phone. A link with no range of its own is given the
+   * page's, so drilling in keeps the dates being read. */
+  function chartPops() {
+    let open = null;
+    let openFor = null;
+    const close = () => {
+      if (open) open.remove();
+      if (openFor) openFor.classList.remove('li-pop-on');
+      open = null; openFor = null;
+    };
+    const withRange = (href) => {
+      try {
+        const url = new URL(href, location.origin);
+        const here = new URLSearchParams(location.search);
+        if (!url.searchParams.has('from') && !url.searchParams.has('period')) {
+          for (const k of ['period', 'from', 'to']) if (here.get(k)) url.searchParams.set(k, here.get(k));
+        }
+        return url.pathname + url.search;
+      } catch (e) { return href; }
+    };
+    const esc = (t) => String(t == null ? '' : t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const show = (mark, x, y) => {
+      let data;
+      try { data = JSON.parse(mark.getAttribute('data-li-pop')); } catch (e) { return; }
+      if (!data) return;
+      if (openFor === mark) { close(); return; }
+      close();
+      const box = document.createElement('div');
+      box.className = 'li-pop';
+      box.setAttribute('role', 'dialog');
+      box.innerHTML = '<div class="li-pop-h"><span>' + esc(data.title) + '</span><button type="button" class="li-pop-x" aria-label="Close">×</button></div>'
+        + '<div class="li-pop-rows">' + (data.rows || []).map((r) => '<div><span>' + esc(r[0]) + '</span><strong>' + esc(r[1]) + '</strong></div>').join('') + '</div>'
+        + (data.go ? '<a class="li-pop-go" href="' + esc(withRange(data.go)) + '">' + esc(data.goText || 'Open') + ' →</a>' : '');
+      document.body.appendChild(box);
+      const w = box.offsetWidth;
+      const h = box.offsetHeight;
+      const left = Math.min(Math.max(8, x - w / 2), window.innerWidth - w - 8);
+      const top = y - h - 12 > 8 ? y - h - 12 : Math.min(y + 14, window.innerHeight - h - 8);
+      box.style.left = left + 'px';
+      box.style.top = top + 'px';
+      box.querySelector('.li-pop-x').addEventListener('click', close);
+      open = box; openFor = mark;
+      mark.classList.add('li-pop-on');
+      const go = box.querySelector('.li-pop-go');
+      if (go && mark.matches(':focus-visible')) go.focus();
+    };
+    document.addEventListener('click', (e) => {
+      if (open && open.contains(e.target)) return;
+      const mark = e.target.closest && e.target.closest('[data-li-pop]');
+      if (!mark) { close(); return; }
+      e.preventDefault();
+      show(mark, e.clientX, e.clientY);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { close(); return; }
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-li-pop]')) {
+        e.preventDefault();
+        const r = e.target.getBoundingClientRect();
+        show(e.target, r.left + r.width / 2, r.top);
+      }
+    });
+    window.addEventListener('scroll', close, { passive: true });
+    window.addEventListener('resize', close);
+  }
+
   syncBadge();
   autoSync();
+  chartPops();
   enhanceChips();
   enhanceRange();
   enhanceSort('li-sort-data', 'Sort:');

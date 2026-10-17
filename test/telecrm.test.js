@@ -138,8 +138,11 @@ test('seconds and milliseconds are both read as the same instant', () => {
 /* ── paging ─────────────────────────────────────────────────────────────── */
 
 test('paging stops when the count is reached rather than trusting the echo', () => {
-  const first = telecrm.extract({ data: [{ _id: 'a' }, { _id: 'b' }], total_count: 3, skip: 0 }, { kind: 'lead' });
-  assert.deepEqual(first.nextCursor, { skip: 2 });
+  /* The first page knows the total, so it names every remaining page for the
+     transport to fetch concurrently, rather than chaining one cursor. */
+  const first = telecrm.extract({ data: [{ _id: 'a' }, { _id: 'b' }], total_count: 5, skip: 0 }, { kind: 'lead' });
+  assert.deepEqual(first.remaining, [{ skip: 2 }, { skip: 4 }]);
+  assert.equal(first.nextCursor, null);
 
   const second = telecrm.extract({ data: [{ _id: 'c' }], total_count: 3 }, { kind: 'lead', cursor: { skip: 2 } });
   assert.equal(second.nextCursor, null);
@@ -473,4 +476,22 @@ test('a booking already read keeps its stored mark; only new bookings read histo
   await telecrm.enrich(rows, { kind: 'deal', credentials: CREDS, fetchImpl, store });
   assert.deepStrictEqual(read.sort(), ['b', 'c', 'd']);
   assert.deepStrictEqual(rows.map((r) => r.re_enquiry), [false, true, true, true]);
+});
+
+test('a lead pull fetches the remaining pages concurrently and keeps every row in order', async () => {
+  let inFlight = 0;
+  let peak = 0;
+  const all = Array.from({ length: 250 }, (_, i) => ({ id: `l${i}`, fields: { phone: String(i), created_on: 1790000000000 } }));
+  const fetchImpl = async (url) => {
+    inFlight += 1; peak = Math.max(peak, inFlight);
+    await new Promise((r) => setTimeout(r, 5));
+    inFlight -= 1;
+    const skip = Number(/skip=(\d+)/.exec(url)[1]);
+    return { ok: true, status: 200, json: async () => ({ data: all.slice(skip, skip + 100), total_count: all.length }) };
+  };
+  const rows = await httpTransport({ credentials: CREDS, fetchImpl }).fetch({ source: sources.get('telecrm'), kind: 'lead', window: WINDOW });
+  assert.equal(rows.length, 250);
+  assert.deepEqual(rows.map((r) => r.lead_id).slice(0, 3), ['l0', 'l1', 'l2']);
+  assert.equal(rows[249].lead_id, 'l249');
+  assert.ok(peak >= 2, `pages after the first should overlap, peak was ${peak}`);
 });

@@ -32,7 +32,10 @@ var c = charts || {};
         <svg viewBox="0 0 640 200" style="width:100%; height:200px;" preserveAspectRatio="none">
           <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="30" x2="640" y2="30"></line><line x1="0" y1="105" x2="640" y2="105"></line><line x1="0" y1="180" x2="640" y2="180"></line></g>
           <% lb.bars.forEach(function (b) { %>
-            <rect x="<%= b.x.toFixed(1) %>" y="<%= b.y.toFixed(1) %>" width="<%= b.w.toFixed(1) %>" height="<%= Math.max(0, b.h).toFixed(1) %>" rx="2" fill="var(--color-accent-800)"><title><%= b.tip %></title></rect>
+            <g class="li-pop-mark" data-li-pop="<%= JSON.stringify(b.pop) %>" tabindex="0" role="button"><title><%= b.tip %></title>
+              <rect x="<%= b.x.toFixed(1) %>" y="20" width="<%= b.w.toFixed(1) %>" height="160" fill="transparent"></rect>
+              <rect x="<%= b.x.toFixed(1) %>" y="<%= b.y.toFixed(1) %>" width="<%= b.w.toFixed(1) %>" height="<%= Math.max(0, b.h).toFixed(1) %>" rx="2" fill="var(--color-accent-800)"></rect>
+            </g>
           <% }); %>
           <polyline points="<%= lb.line %>" fill="none" stroke="var(--color-accent-300)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>
           <% lb.dots.forEach(function (d) { if (!d.show) return; %><circle cx="<%= d.cx.toFixed(1) %>" cy="<%= d.cy.toFixed(1) %>" r="2.6" fill="var(--color-accent-300)"></circle><% }); %>
@@ -51,14 +54,14 @@ var c = charts || {};
           <svg viewBox="0 0 140 140" style="width:124px; height:124px; flex:none;">
             <circle cx="70" cy="70" r="54" fill="none" stroke="var(--color-neutral-900)" stroke-width="16"></circle>
             <% bc.slices.forEach(function (s) { %>
-              <circle cx="70" cy="70" r="54" fill="none" stroke="<%= s.colour %>" stroke-width="16" stroke-dasharray="<%= s.dash %>" stroke-dashoffset="<%= s.offset %>" transform="rotate(-90 70 70)"><title><%= s.label %> · <%= s.countText %> bookings · <%= s.revenueText %></title></circle>
+              <circle cx="70" cy="70" r="54" fill="none" stroke="<%= s.colour %>" stroke-width="16" stroke-dasharray="<%= s.dash %>" stroke-dashoffset="<%= s.offset %>" transform="rotate(-90 70 70)" class="li-pop-mark" data-li-pop="<%= JSON.stringify(s.pop) %>" tabindex="0" role="button"><title><%= s.label %> · <%= s.countText %> bookings · <%= s.revenueText %></title></circle>
             <% }); %>
             <text x="70" y="68" text-anchor="middle" fill="var(--color-neutral-200)" font-size="20" font-weight="500" font-family="Inter"><%= bc.total %></text>
             <text x="70" y="84" text-anchor="middle" fill="var(--color-neutral-600)" font-size="9" font-family="Inter">bookings</text>
           </svg>
           <div style="flex:1; min-width:150px; display:flex; flex-direction:column; gap:9px; font-size:11.5px;">
             <% bc.slices.forEach(function (s) { %>
-              <div>
+              <div class="li-pop-mark" data-li-pop="<%= JSON.stringify(s.pop) %>" tabindex="0" role="button">
                 <div style="display:flex; align-items:center; gap:7px;"><span style="width:8px;height:8px;border-radius:2px;background:<%= s.colour %>;"></span><span style="flex:1; color:var(--color-neutral-400);"><%= s.label %></span><span style="font-variant-numeric:tabular-nums;"><%= s.countText %></span><span style="width:34px; text-align:right; color:var(--color-neutral-500);"><%= s.pct %></span></div>
                 <div style="<%= sub %> padding-left:15px;"><%= s.revenueText %> revenue</div>
               </div>
@@ -77,7 +80,7 @@ var c = charts || {};
       <% if (ls.empty) { %><div style="<%= emptyBox %>"><%= ls.reason %></div><% } else { %>
         <div style="display:flex; flex-direction:column; gap:7px;">
           <% ls.rows.forEach(function (r) { %>
-            <div title="<%= r.status %> · <%= r.n %> leads (<%= r.share %>)">
+            <div class="li-pop-mark" title="<%= r.status %> · <%= r.n %> leads (<%= r.share %>)" data-li-pop="<%= JSON.stringify(r.pop) %>" tabindex="0" role="button">
               <div style="display:flex; font-size:11.5px; margin-bottom:3px;"><span style="flex:1; color:var(--color-neutral-400); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><%= r.status %></span><span style="font-variant-numeric:tabular-nums;"><%= r.n %></span><span style="width:40px; text-align:right; color:var(--color-neutral-500);"><%= r.share %></span></div>
               <div style="height:6px; border-radius:3px; background:var(--color-neutral-900);"><div style="height:6px; border-radius:3px; width:<%= r.w %>; background:<%= r.colour %>;"></div></div>
             </div>
@@ -99,7 +102,7 @@ var c = charts || {};
             <% hm.rows.forEach(function (row) { %>
               <div style="display:flex; align-items:center; gap:2px; margin-bottom:2px;">
                 <span style="width:30px; flex:none; font-size:10px; color:var(--color-neutral-500);"><%= row.day %></span>
-                <% row.cells.forEach(function (cell) { %><span title="<%= cell.tip %>" style="flex:1; height:16px; border-radius:2px; background:var(--color-neutral-900); position:relative;"><span style="position:absolute; inset:0; border-radius:2px; background:var(--color-accent-500); opacity:<%= cell.op %>;"></span></span><% }); %>
+                <% row.cells.forEach(function (cell) { %><span class="li-pop-mark" title="<%= cell.tip %>" data-li-pop="<%= JSON.stringify(cell.pop) %>" tabindex="0" role="button" style="flex:1; height:16px; border-radius:2px; background:var(--color-neutral-900); position:relative;"><span style="position:absolute; inset:0; border-radius:2px; background:var(--color-accent-500); opacity:<%= cell.op %>;"></span></span><% }); %>
               </div>
             <% }); %>
             <div style="position:relative; height:14px; margin-left:32px; font-size:10px; color:var(--color-neutral-600);">
@@ -128,7 +131,7 @@ var c = charts || {};
           <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="30" x2="640" y2="30"></line><line x1="0" y1="105" x2="640" y2="105"></line><line x1="0" y1="180" x2="640" y2="180"></line></g>
           <% cp.series.forEach(function (s) { %>
             <% s.paths.forEach(function (p) { %><polyline points="<%= p %>" fill="none" stroke="<%= s.colour %>" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline><% }); %>
-            <% s.dots.forEach(function (d) { %><circle cx="<%= d.cx.toFixed(1) %>" cy="<%= d.cy.toFixed(1) %>" r="<%= d.capped ? 3.4 : 2.4 %>" fill="<%= d.capped ? 'var(--color-surface)' : s.colour %>" stroke="<%= s.colour %>" stroke-width="1.4"><title><%= d.tip %><%= d.capped ? ' (above the chart top)' : '' %></title></circle><% }); %>
+            <% s.dots.forEach(function (d) { %><circle cx="<%= d.cx.toFixed(1) %>" cy="<%= d.cy.toFixed(1) %>" r="12" fill="transparent" class="li-pop-mark" data-li-pop="<%= JSON.stringify(d.pop) %>"></circle><circle class="li-pop-mark" data-li-pop="<%= JSON.stringify(d.pop) %>" tabindex="0" role="button" cx="<%= d.cx.toFixed(1) %>" cy="<%= d.cy.toFixed(1) %>" r="<%= d.capped ? 4 : 3.4 %>" fill="<%= d.capped ? 'var(--color-surface)' : s.colour %>" stroke="<%= s.colour %>" stroke-width="1.4"><title><%= d.tip %><%= d.capped ? ' (above the chart top)' : '' %></title></circle><% }); %>
           <% }); %>
         </svg>
         <div style="position:relative; height:14px; font-size:10px; color:var(--color-neutral-600);">
@@ -147,7 +150,7 @@ var c = charts || {};
               <div style="display:flex; align-items:center; gap:6px; font-size:12px; font-weight:500; margin-bottom:2px;"><span style="width:8px;height:8px;border-radius:2px;background:<%= col.colour %>;"></span><%= col.label %></div>
               <div style="<%= sub %> margin-bottom:8px;"><%= col.spend %> spend · ROAS <%= col.roas %></div>
               <% col.stages.forEach(function (s) { %>
-                <div style="margin-bottom:7px;">
+                <div class="li-pop-mark" data-li-pop="<%= JSON.stringify(s.pop) %>" tabindex="0" role="button" style="margin-bottom:7px;">
                   <div style="display:flex; font-size:10.5px; margin-bottom:2px;"><span style="flex:1; color:var(--color-neutral-500);"><%= s.label %></span><span style="font-variant-numeric:tabular-nums;"><%= s.n %></span></div>
                   <div style="display:flex; align-items:center; gap:5px;">
                     <div style="flex:1; height:7px; border-radius:3px; background:var(--color-neutral-900);"><div style="height:7px; border-radius:3px; width:<%= s.w %>; background:<%= col.colour %>;"></div></div>
@@ -169,14 +172,14 @@ var c = charts || {};
       <% if (rc.empty) { %><div style="<%= emptyBox %>"><%= rc.reason %></div><% } else { %>
         <div style="display:flex; flex-direction:column; gap:7px;">
           <% rc.rows.forEach(function (r) { %>
-            <div title="<%= r.tip %>">
+            <div class="li-pop-mark" title="<%= r.tip %>" data-li-pop="<%= JSON.stringify(r.pop) %>" tabindex="0" role="button">
               <div style="display:flex; gap:8px; font-size:11.5px; margin-bottom:3px;"><span style="flex:1; color:var(--color-neutral-400); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><%= r.label %></span><span style="font-variant-numeric:tabular-nums; color:<%= r.zero ? 'var(--color-neutral-600)' : 'var(--color-neutral-200)' %>;"><%= r.roas %></span></div>
-              <div style="height:6px; border-radius:3px; background:var(--color-neutral-900);"><div style="height:6px; border-radius:3px; width:<%= r.w %>; background:<%= r.colour %>;"></div></div>
+              <div style="height:6px; border-radius:3px; background:var(--color-neutral-900);"><div style="height:6px; border-radius:3px; width:<%= r.w %>; background:<%= r.colour %>;<%= r.estimated ? ' opacity:.55; background-image:repeating-linear-gradient(45deg, transparent 0 3px, rgba(255,255,255,.35) 3px 5px);' : '' %>"></div></div>
             </div>
           <% }); %>
         </div>
-        <div style="<%= sub %> margin-top:9px;">Best first. Colour = platform.<%= rc.hidden ? ' ' + rc.hidden + ' mid-table campaign(s) not shown — the top 5 and bottom 5 are.' : '' %></div>
-        <% (rc.orphans || []).forEach(function (o) { %><div style="<%= sub %> margin-top:4px; color:var(--c-warn);"><%= o %></div><% }); %>
+        <div style="<%= sub %> margin-top:9px;">Best first. Hatched bars include an estimated share. Colour = platform.<%= rc.hidden ? ' ' + rc.hidden + ' mid-table campaign(s) not shown — the top 5 and bottom 5 are.' : '' %></div>
+        <% (rc.orphans || []).forEach(function (o) { %><div style="<%= sub %> margin-top:4px; color:var(--c-warn); line-height:1.5;"><%= o %></div><% }); %>
       <% } %>
     </div>
 
@@ -192,7 +195,7 @@ var c = charts || {};
         <svg viewBox="0 0 640 200" style="width:100%; height:200px;" preserveAspectRatio="none">
           <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="30" x2="640" y2="30"></line><line x1="0" y1="105" x2="640" y2="105"></line><line x1="0" y1="180" x2="640" y2="180"></line></g>
           <% lm.bars.forEach(function (b) { %>
-            <g><title><%= b.tip %></title>
+            <g class="li-pop-mark" data-li-pop="<%= JSON.stringify(b.pop) %>" tabindex="0" role="button"><title><%= b.tip %></title>
               <rect x="<%= b.x.toFixed(1) %>" y="30" width="<%= b.w.toFixed(1) %>" height="150" fill="transparent"></rect>
               <% b.segs.forEach(function (s) { %><rect x="<%= b.x.toFixed(1) %>" y="<%= s.y.toFixed(1) %>" width="<%= b.w.toFixed(1) %>" height="<%= s.h.toFixed(1) %>" fill="<%= s.colour %>"></rect><% }); %>
             </g>
