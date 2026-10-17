@@ -446,3 +446,31 @@ test('a booked lead that passed through Re-enquiry, or was captured twice, is ma
   await telecrm.enrich(rows, { kind: 'deal', credentials: CREDS, fetchImpl });
   assert.deepStrictEqual(rows.map((r) => r.re_enquiry), [true, true, false, undefined]);
 });
+
+test('a booking already read keeps its stored mark; only new bookings read history', async () => {
+  telecrm.clearPipelineCache();
+  const pipeline = { statuses: [{ id: 5, label: 'Won/Converted', stage: 'WON' }, { id: 19, label: 'Re-enquiry', stage: 'ACTIVE' }] };
+  const read = [];
+  const fetchImpl = async (url) => {
+    const m = /\/lead\/([^/]+)\/action\/search/.exec(url);
+    if (m) read.push(m[1]);
+    return json(m ? { data: [{ type: 'STATUS_CHANGE', toStatusid: 19 }] } : pipeline);
+  };
+  await telecrm.request({ kind: 'deal', window: WINDOW, credentials: CREDS, fetchImpl });
+  const store = {
+    currentBodies: async () => new Map([
+      ['a', { re_enquiry: false, booking_ref: 'R1' }],
+      ['b', { re_enquiry: false, booking_ref: 'OLD' }],
+      ['c', { booking_ref: 'R3' }],
+    ]),
+  };
+  const rows = [
+    { lead_id: 'a', outcome: 'won', booking_ref: 'R1' },
+    { lead_id: 'b', outcome: 'won', booking_ref: 'NEW' },
+    { lead_id: 'c', outcome: 'won', booking_ref: 'R3' },
+    { lead_id: 'd', outcome: 'won' },
+  ];
+  await telecrm.enrich(rows, { kind: 'deal', credentials: CREDS, fetchImpl, store });
+  assert.deepStrictEqual(read.sort(), ['b', 'c', 'd']);
+  assert.deepStrictEqual(rows.map((r) => r.re_enquiry), [false, true, true, true]);
+});
