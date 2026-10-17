@@ -151,7 +151,7 @@ var c = charts || {};
                   <div style="display:flex; font-size:10.5px; margin-bottom:2px;"><span style="flex:1; color:var(--color-neutral-500);"><%= s.label %></span><span style="font-variant-numeric:tabular-nums;"><%= s.n %></span></div>
                   <div style="display:flex; align-items:center; gap:5px;">
                     <div style="flex:1; height:7px; border-radius:3px; background:var(--color-neutral-900);"><div style="height:7px; border-radius:3px; width:<%= s.w %>; background:<%= col.colour %>;"></div></div>
-                    <span style="width:34px; text-align:right; font-size:10px; color:var(--color-neutral-500);"><%= s.step || '' %></span>
+                    <span style="min-width:34px; text-align:right; font-size:10px; color:var(--color-neutral-500); white-space:nowrap;"><%= s.step || '' %></span>
                   </div>
                 </div>
               <% }); %>

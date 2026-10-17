@@ -41,6 +41,9 @@ table thead th { position: sticky; top: 0; background: var(--color-surface); z-i
   --c-down: oklch(0.7 0.14 25);
   --c-warn: oklch(0.8 0.12 85);
   --c-code-bg: #14161f;
+  /* Google beside Meta's accent purple in the dashboard charts. A hue of its
+     own, not --c-up: green would read as "good" on a cost line. */
+  --c-google: oklch(0.76 0.11 210);
 }
 
 :root[data-theme='light'] {
@@ -48,6 +51,7 @@ table thead th { position: sticky; top: 0; background: var(--color-surface); z-i
   --c-down: #c02020;
   --c-warn: #866212;
   --c-code-bg: #e6e9f2;
+  --c-google: #0e7490;
 }
 
 @media (prefers-color-scheme: light) {
@@ -56,6 +60,7 @@ table thead th { position: sticky; top: 0; background: var(--color-surface); z-i
     --c-down: #c02020;
     --c-warn: #866212;
     --c-code-bg: #e6e9f2;
+    --c-google: #0e7490;
   }
 }
 
