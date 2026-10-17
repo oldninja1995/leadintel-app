@@ -176,6 +176,7 @@ var c = charts || {};
           <% }); %>
         </div>
         <div style="<%= sub %> margin-top:9px;">Best first. Colour = platform.<%= rc.hidden ? ' ' + rc.hidden + ' mid-table campaign(s) not shown — the top 5 and bottom 5 are.' : '' %></div>
+        <% (rc.orphans || []).forEach(function (o) { %><div style="<%= sub %> margin-top:4px; color:var(--c-warn);"><%= o %></div><% }); %>
       <% } %>
     </div>
 
