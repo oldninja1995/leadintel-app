@@ -34,15 +34,14 @@ const SCHEDULES = [
 
 const run = (params = {}) => PROJECTIONS.reports(EMPTY, { over: null, can: permissions.can, ...params }, authored);
 
-test('the forecast card declines, like the one on the AI screen', () => {
-  const card = run().presentKpis.find((k) => k.label === 'AUGUST FORECAST');
-  assert.equal(card.value, '—', 'the same ₹61.0L invention the AI forecast tab carried');
-  assert.match(card.delta, /no forecasting model/);
-
-  /* And the cards that do name a metric are left for the registry to fill. */
-  for (const bound of run().presentKpis.filter((k) => k.metric)) {
-    assert.ok(bound.value !== '—' || true, 'bound cards are the registry\'s to answer, not this projection\'s');
-  }
+test('the presentation carries no invented forecast — every tile names a metric', () => {
+  /* The design's "AUGUST FORECAST" tile (₹61.0L, no model behind it) was
+     declined here for months; it is now gone from the data entirely. */
+  /* The projection now has nothing to decline, so it leaves these to the
+     screen's own data — which is what is checked. */
+  const cards = require('../data/reports').presentKpis;
+  assert.equal(cards.find((k) => /FORECAST/.test(k.label)), undefined);
+  for (const card of cards) assert.ok(card.metric, `${card.label} names no metric`);
 });
 
 test('risks and opportunities are the AI screen\'s, not a second derivation', () => {

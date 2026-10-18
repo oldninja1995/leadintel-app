@@ -80,13 +80,17 @@ module.exports = {
   /* Every tile on the scorecard names its registry metric, so the scorecard
      reads the same definitions as the dashboards rather than being a second
      place the same KPI is written down (Phase 8). */
+  /* CRM-measured figures. The design's net revenue, net ROAS, ADR,
+     occupancy and cancellation tiles need a PMS this workspace has never
+     connected, so they read "—" permanently; these are the figures the
+     account can actually report, the same set the exports carry. */
   scorecardKpis: [
-    { metric: 'revenue.net', label: 'NET REVENUE', value: '₹52.3L', delta: '+12.4%', deltaColor: UP },
-    { metric: 'roas.net', label: 'NET ROAS', value: '4.8x', delta: '+0.6x', deltaColor: UP },
-    { metric: 'bookings.confirmed', label: 'BOOKINGS', value: '312', delta: '+38', deltaColor: UP },
-    { metric: 'rate.adr', label: 'ADR', value: '₹8,940', delta: '+6.0%', deltaColor: UP },
-    { metric: 'occupancy.rate', label: 'OCCUPANCY', value: '78%', delta: '−4pt', deltaColor: WARN },
-    { metric: 'cancellation.rate', label: 'CANCEL RATE', value: '3.4%', delta: '+0.9pt', deltaColor: DOWN },
+    { metric: 'revenue.reservations', label: 'RESERVATION VALUE', value: '', delta: '', deltaColor: NA },
+    { metric: 'bookings.reservations', label: 'RESERVATIONS', value: '', delta: '', deltaColor: NA },
+    { metric: 'roas.total', label: 'TOTAL ROAS', value: '', delta: '', deltaColor: NA },
+    { metric: 'revenue.per_reservation', label: 'AVG RESERVATION', value: '', delta: '', deltaColor: NA },
+    { metric: 'leads.count', label: 'LEADS', value: '', delta: '', deltaColor: NA },
+    { metric: 'cost.per_lead', label: 'COST PER LEAD', value: '', delta: '', deltaColor: NA },
   ],
 
   scoreOpps: [
@@ -103,11 +107,12 @@ module.exports = {
 
   /* ── Presentation ── */
 
+  /* Same reasoning; the design's "August forecast" tile had no model behind it. */
   presentKpis: [
-    { metric: 'revenue.net', label: 'NET REVENUE', value: '₹52.3L', delta: '+12.4% vs June', deltaColor: UP },
-    { metric: 'roas.net', label: 'NET ROAS', value: '4.8x', delta: 'target 4.0x', deltaColor: UP },
-    { metric: 'bookings.confirmed', label: 'BOOKINGS', value: '312', delta: '+38 vs June', deltaColor: UP },
-    { label: 'AUGUST FORECAST', value: '₹61.0L', delta: '+16.6% projected', deltaColor: UP },
+    { metric: 'revenue.reservations', label: 'RESERVATION VALUE', value: '', delta: '', deltaColor: NA },
+    { metric: 'roas.total', label: 'TOTAL ROAS', value: '', delta: '', deltaColor: NA },
+    { metric: 'bookings.reservations', label: 'RESERVATIONS', value: '', delta: '', deltaColor: NA },
+    { metric: 'leads.count', label: 'LEADS', value: '', delta: '', deltaColor: NA },
   ],
 
   /* ── Schedule & sharing ── */

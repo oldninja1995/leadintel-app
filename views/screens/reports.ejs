@@ -143,7 +143,7 @@
               <div style="background:linear-gradient(160deg, var(--color-section) 0%, var(--color-section-deep) 75%); border-radius:12px 12px 0 0; box-shadow:var(--shadow-sm); padding:20px 22px;">
                 <div style="display:flex; align-items:flex-start;">
                   <div style="flex:1;">
-                    <div style="font-size:10px; letter-spacing:.09em; color:var(--color-accent-2-300);">EXECUTIVE SCORECARD · JULY 2026</div>
+                    <div style="font-size:10px; letter-spacing:.09em; color:var(--color-accent-2-300);">EXECUTIVE SCORECARD · <%= ((locals.selReport || {}).period || '').toUpperCase() %></div>
                     <div style="font-size:22px; font-weight:500; font-family:var(--font-heading); margin-top:5px;">Parakkat Hospitality</div>
                     <div style="font-size:11.5px; color:var(--color-accent-2-300); margin-top:3px;">3 properties · 104 keys · prepared for the owner & board</div>
                   </div>
@@ -157,7 +157,7 @@
                   <% (scorecardKpis || []).forEach(function (k) { %>
                     <div style="border:1px solid var(--color-section-ghost); border-radius:9px; padding:10px 12px;">
                       <div style="font-size:9px; letter-spacing:.06em; color:var(--color-accent-2-300); opacity:.85; white-space:nowrap;"><%= k.label %></div>
-                      <div style="display:flex; align-items:baseline; gap:6px; margin-top:3px;"><span style="font-size:17px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:10px; color:<%= k.deltaColor %>;"><%= k.delta %></span></div>
+                      <div style="display:flex; align-items:baseline; gap:6px; margin-top:3px;"><span style="font-size:17px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:10px; color:<%= k.deltaColor %>;"><%= k.delta === '—' ? '' : k.delta %></span></div>
                     </div>
                   <% }); %>
                 </div>
@@ -212,7 +212,7 @@
             <div style="background:var(--color-canvas); border-radius:14px; box-shadow:var(--shadow-lg); padding:34px 38px; aspect-ratio:16/9; display:flex; flex-direction:column;">
               <div style="display:flex; align-items:center; gap:10px;">
                 <div style="width:26px; height:26px; border-radius:7px; border:1px solid var(--color-accent-600); display:grid; place-items:center; color:var(--color-accent-400);"><i class="ph-fill ph-pulse" style="font-size:14px;"></i></div>
-                <span style="font-size:12px; color:var(--color-neutral-500); letter-spacing:.06em;">PARAKKAT HOSPITALITY · JULY 2026</span>
+                <span style="font-size:12px; color:var(--color-neutral-500); letter-spacing:.06em;">PARAKKAT HOSPITALITY · <%= ((locals.selReport || {}).period || '').toUpperCase() %></span>
                 <div style="flex:1;"></div>
                 <span style="font-size:12px; color:var(--color-neutral-600);">Revenue performance</span>
               </div>
@@ -221,7 +221,7 @@
                   <div>
                     <div style="font-size:12px; letter-spacing:.07em; color:var(--color-neutral-600);"><%= k.label %></div>
                     <div style="font-size:40px; font-weight:500; font-variant-numeric:tabular-nums; margin-top:6px; letter-spacing:-.01em;"><%= k.value %></div>
-                    <div style="font-size:14px; color:<%= k.deltaColor %>; margin-top:2px;"><%= k.delta %></div>
+                    <div style="font-size:14px; color:<%= k.deltaColor %>; margin-top:2px;"><%= k.delta === '—' ? '' : k.delta %></div>
                   </div>
                 <% }); %>
               </div>
@@ -268,8 +268,8 @@
                     </div>
                   <% }); %>
                   <div style="margin-top:12px; padding:11px 12px; border:1px solid var(--color-neutral-800); border-radius:9px;">
-                    <div style="display:flex; align-items:center; gap:8px;"><i class="ph ph-link" style="font-size:13px; color:var(--color-accent-400);"></i><span style="flex:1; font-size:11px; color:var(--color-neutral-400); font-family:ui-monospace,monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">analytics.parakkat.in/r/jul26-exec</span><i class="ph ph-copy" style="font-size:13px; color:var(--color-neutral-600); cursor:pointer;"></i></div>
-                    <div style="display:flex; gap:12px; margin-top:9px; font-size:10.5px; color:var(--color-neutral-600);"><span><i class="ph ph-lock-key" style="font-size:11px; color:<%= up %>;"></i> Password protected</span><span><i class="ph ph-clock" style="font-size:11px;"></i> Expires Aug 30</span></div>
+                    <div style="display:flex; align-items:center; gap:8px;"><i class="ph ph-link" style="font-size:13px; color:var(--color-accent-400);"></i><span style="flex:1; font-size:11px; color:var(--color-neutral-400); font-family:ui-monospace,monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><%= locals.repShareUrl || '/reports?v=repTemplates' %></span><i class="ph ph-copy" data-action="shareLink" role="button" tabindex="0" title="Copy the link to this report" style="font-size:13px; color:var(--color-neutral-600); cursor:pointer;"></i></div>
+                    <div style="display:flex; gap:12px; margin-top:9px; font-size:10.5px; color:var(--color-neutral-600);"><span><i class="ph ph-users" style="font-size:11px;"></i> Opens for anyone signed in to this workspace — figures follow their own access</span></div>
                   </div>
                 </div>
                 <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
