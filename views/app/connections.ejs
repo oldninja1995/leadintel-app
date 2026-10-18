@@ -319,7 +319,7 @@ const openSource = canManage
                   <div class="li-conn-field<%= f.hint && f.hint.length > 48 ? ' li-conn-field--wide' : '' %>">
                     <label for="<%= c.source %>-<%= f.key %>">
                       <span><%= f.label %></span>
-                      <% if (f.set) { %><em class="li-conn-set">set</em><% } %>
+                      <% if (f.set) { %><em class="li-conn-set">set</em><% } else if (f.sealed) { %><em class="li-conn-set li-conn-set--sealed" title="Saved under the old key — it cannot be kept, paste it again">re-enter</em><% } %>
                       <% if (f.optional) { %><em>optional</em><% } %>
                     </label>
                     <%
@@ -334,7 +334,7 @@ const openSource = canManage
                            type="<%= f.secret ? 'password' : 'text' %>"
                            autocomplete="off" spellcheck="false"
                            <%= !f.secret && f.value ? 'value="' + f.value.replace(/"/g, '&quot;') + '"' : '' %>
-                           placeholder="<%= f.set ? 'leave blank to keep' : (f.hint || '') %>">
+                           placeholder="<%= f.set ? 'leave blank to keep' : (f.sealed ? 'paste again — saved under the old key' : (f.hint || '')) %>">
                     <% if (f.hint && f.set) { %><small><%= f.hint %></small><% } %>
                   </div>
                 <% }); %>

@@ -445,6 +445,7 @@
 .li-conn-field label { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--color-neutral-500); }
 .li-conn-field label em { font-style: normal; font-size: 9.5px; color: var(--color-neutral-700); letter-spacing: .04em; text-transform: uppercase; }
 .li-conn-set { color: var(--c-up) !important; border: 1px solid color-mix(in srgb, var(--c-up) 45%, transparent); border-radius: 99px; padding: 1px 6px; }
+.li-conn-set--sealed { color: var(--c-warn) !important; border-color: color-mix(in srgb, var(--c-warn) 45%, transparent); }
 .li-conn-field input {
   background: var(--color-bg); color: var(--color-text);
   border: 1px solid var(--color-neutral-800); border-radius: 7px;
