@@ -29,7 +29,59 @@ const TOGGLES = {
   toggleEdit: 'edit',
 };
 
+/* A short confirmation in the corner, for actions with no visible result of
+   their own (a copied link). */
+function toast(text) {
+  const t = document.createElement('div');
+  t.className = 'li-toast';
+  t.setAttribute('role', 'status');
+  t.textContent = text;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2200);
+}
+
+/* Every table on the screen as one CSV, each under the heading of the panel it
+   sits in. Read from what is rendered, so the file matches the screen — range,
+   filters and all — without a second definition of the figures. */
+function screenCsv() {
+  const quote = (v) => {
+    const s = String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const blocks = [];
+  for (const table of document.querySelectorAll('main table')) {
+    const panel = table.closest('[style*="border-radius:12px"]') || table.parentElement;
+    const title = panel && panel.querySelector('div[style*="font-weight:500"]');
+    const rows = [...table.querySelectorAll('tr')]
+      .map((tr) => [...tr.querySelectorAll('th, td')].map((c) => quote(c.innerText)))
+      .filter((r) => r.some((c) => c));
+    if (rows.length) blocks.push([title ? quote(title.innerText) : '', ...rows.map((r) => r.join(','))].filter(Boolean).join('\n'));
+  }
+  return blocks.join('\n\n');
+}
+
 const HANDLERS = {
+  exportCsv() {
+    const csv = screenCsv();
+    if (!csv) { toast('Nothing to export on this screen'); return; }
+    const name = (document.querySelector('main h1') || {}).innerText || 'leadintel';
+    const a = document.createElement('a');
+    /* The BOM is what makes Excel read ₹ and other non-ASCII text as UTF-8. */
+    a.href = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = `${name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  },
+  async shareLink() {
+    try {
+      await navigator.clipboard.writeText(location.href);
+      toast('Link copied — it opens this screen with the same dates and filters');
+    } catch (err) {
+      window.prompt('Copy this link', location.href);
+    }
+  },
+  printPage() { window.print(); },
   /* A sub-screen list that folds away, and stays that way.
    *
    * Server-rendered open when the reader is standing in the branch, and

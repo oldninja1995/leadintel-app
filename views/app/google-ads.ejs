@@ -28,6 +28,8 @@ const txt = (v) => (v === null || v === undefined || v === '' ? '—' : v);
 const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
 %>
 
+<header class="li-ota-head"><div class="li-ota-title"><h1>Google Ads Analytics</h1></div></header>
+
 <% if (!d.connected) { %>
   <p class="li-conn-notice li-conn-notice--warn">
     <i class="ph ph-warning-diamond"></i>

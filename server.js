@@ -1105,6 +1105,22 @@ function fingerprint(name) {
   }
 }
 
+/* Where a KPI card goes when clicked: the screen that breaks its figure down,
+   chosen by the metric's family. Every card said "Click to drill down" and none
+   did anything; a card with no metric behind it gets no destination and the
+   view marks it inert. */
+const DRILL = [
+  [/^(ads|cost)\./, '/campaigns'],
+  [/^roas\./, '/marketing'],
+  [/^leads?\./, '/leads'],
+  [/^(revenue|bookings?)\./, '/funnel-analytics'],
+  [/^(occupancy|cancellation|rate)\./, '/ota'],
+];
+app.locals.drillFor = (metric) => {
+  const hit = metric && DRILL.find(([re]) => re.test(String(metric)));
+  return hit ? hit[1] : null;
+};
+
 const assetVersions = new Map();
 /* Available to every render: Express merges `app.locals` into view locals, so
    the layout does not have to be handed this by each of the routes. */

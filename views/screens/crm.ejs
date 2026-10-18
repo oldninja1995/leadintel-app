@@ -3,13 +3,13 @@
             <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:19px;">CRM Dashboard</h1>
             <span style="font-size:11.5px; color:var(--color-neutral-600);">source of truth · TeleCRM + HotSoft PMS · synced 4 min ago</span>
             <div style="flex:1;"></div>
-            <div class="hv-3" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-neutral-500); border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; cursor:pointer;"><i class="ph ph-export" style="font-size:13px;"></i>Export</div>
+            <div class="hv-3" data-action="exportCsv" title="Download this screen's tables as CSV" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-neutral-500); border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; cursor:pointer;"><i class="ph ph-export" style="font-size:13px;"></i>Export</div>
           </div>
           <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:12px;">
             <% (crmHero || []).forEach(function (k) { %>
-              <div class="hv-4" style="background:linear-gradient(180deg, var(--color-surface), var(--color-raised)); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px 12px; cursor:pointer;">
+              <div class="hv-4"<% var drill = drillFor(k.metric); %><% if (drill) { %> data-action="<%= drill %>"<% } else { %> data-li-inert<% } %> style="background:linear-gradient(180deg, var(--color-surface), var(--color-raised)); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px 12px; cursor:pointer;">
                 <div title="<%= k.tip %>" style="display:flex; align-items:center; gap:6px; font-size:10.5px; letter-spacing:.08em; color:var(--color-neutral-500); text-transform:uppercase;"><i class="<%= k.icon %>" style="font-size:13px; color:var(--color-accent-400);"></i><%= k.label %><span style="flex:1;"></span><span style="font-size:8.5px; letter-spacing:.05em; border:1px solid <%= k.srcBorder %>; border-radius:4px; padding:1px 5px; color:<%= k.srcColor %>;"><%= k.src %></span></div>
-                <div style="display:flex; align-items:baseline; gap:9px; margin-top:7px;"><span style="font-size:26px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:11.5px; font-weight:500; color:<%= k.deltaColor %>;"><%= k.delta %></span></div>
+                <div style="display:flex; align-items:baseline; gap:9px; margin-top:7px;"><span style="font-size:26px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:11.5px; font-weight:500; color:<%= k.deltaColor %>;"><%= k.delta === '—' ? '' : k.delta %></span></div>
                 <div style="font-size:10.5px; color:var(--color-neutral-600); margin-top:2px;"><%= k.sub %></div>
                 <svg viewBox="0 0 120 26" style="width:100%; height:26px; margin-top:8px;" preserveAspectRatio="none"><polyline points="<%= k.spark %>" fill="none" stroke="var(--color-accent-500)" stroke-width="1.6" stroke-linejoin="round" opacity="0.9"></polyline></svg>
               </div>
@@ -17,9 +17,9 @@
           </div>
           <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:12px;">
             <% (crmKpis || []).forEach(function (k) { %>
-              <div class="hv-4" title="<%= k.tip %>" style="background:var(--color-surface); border-radius:10px; box-shadow:var(--shadow-sm); padding:9px 12px; cursor:pointer;">
+              <div class="hv-4"<% var drill = drillFor(k.metric); %><% if (drill) { %> data-action="<%= drill %>"<% } else { %> data-li-inert<% } %> title="<%= k.tip %>" style="background:var(--color-surface); border-radius:10px; box-shadow:var(--shadow-sm); padding:9px 12px; cursor:pointer;">
                 <div style="display:flex; align-items:center; gap:5px;"><span style="font-size:9.5px; letter-spacing:.06em; color:var(--color-neutral-500); text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= k.label %></span><span style="flex:1;"></span><span style="font-size:8px; border:1px solid <%= k.srcBorder %>; border-radius:4px; padding:0.5px 4px; color:<%= k.srcColor %>;"><%= k.src %></span></div>
-                <div style="display:flex; align-items:baseline; gap:6px; margin-top:3px;"><span style="font-size:15px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:10px; color:<%= k.deltaColor %>;"><%= k.delta %></span></div>
+                <div style="display:flex; align-items:baseline; gap:6px; margin-top:3px;"><span style="font-size:15px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:10px; color:<%= k.deltaColor %>;"><%= k.delta === '—' ? '' : k.delta %></span></div>
               </div>
             <% }); %>
           </div>
