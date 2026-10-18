@@ -223,6 +223,15 @@ async function hydrateEntities(workspaceId) {
     /* Read before the build, not after — see lib/store/freshness.js. */
     const marker = await snapshotFreshness.marker(workspaceId);
     const entities = await (stale ? snapshotInBackground(workspaceId) : snapshotFor(workspaceId));
+    /* Unpacked one collection per turn of the event loop before the swap, so
+       requests interleave with it — left lazy, the first page after the swap
+       inflated them all at once and stalled ~2.5 s. */
+    if (stale) {
+      for (const key of Object.keys(entities)) {
+        await new Promise((resolve) => setImmediate(resolve));
+        try { void entities[key]; } catch (err) { /* surfaces on read, as before */ }
+      }
+    }
     if (SERVE_STALE) console.log(`entities: built "${workspaceId}" (${why}${stale ? ', served stale meanwhile' : ''}) in ${Date.now() - t0}ms`);
     entityCache.set(workspaceId, entities);
     snapshotFreshness.record(workspaceId, marker);
@@ -1108,7 +1117,20 @@ app.use('/assets', express.static(ASSETS, {
   /* Safe to cache hard now that the URL changes with the file. A request for a
      version that is current cannot be stale by construction. */
   maxAge: '30d',
+  /* Browsers ignore speculation rules served as plain JSON. */
+  setHeaders: (res, file) => {
+    if (file.endsWith('speculation-rules.json')) res.setHeader('Content-Type', 'application/speculationrules+json');
+  },
 }));
+
+/* Hover a link and Chromium fetches that screen before the click, so the
+   ~250 ms round trip to the self-hosted server is paid while the pointer
+   travels. Delivered as a header because the CSP allows no inline script;
+   action URLs are excluded in the rules file itself. */
+app.use((req, res, next) => {
+  if (req.method === 'GET') res.setHeader('Speculation-Rules', `"${app.locals.asset('speculation-rules.json')}"`);
+  next();
+});
 
 /* Browsers ask for /favicon.ico regardless of the <link rel="icon"> every page
    declares, and the request 404'd in the logs on every first visit. */

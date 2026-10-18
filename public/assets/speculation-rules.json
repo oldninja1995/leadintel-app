@@ -1,0 +1,15 @@
+{
+  "prefetch": [
+    {
+      "source": "document",
+      "where": {
+        "and": [
+          { "href_matches": "/*" },
+          { "not": { "href_matches": ["/logout", "/logout?*", "/connections/*", "/assets/*", "/cron/*", "/ingest/*", "/store/*", "/*.csv", "/*.csv?*", "/*/*.csv", "/*/*.csv?*"] } },
+          { "not": { "selector_matches": "[download], [target=_blank], [data-no-prefetch]" } }
+        ]
+      },
+      "eagerness": "moderate"
+    }
+  ]
+}
