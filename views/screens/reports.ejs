@@ -2,9 +2,31 @@
           <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
             <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:19px;">Reports & Dashboards</h1>
             <div style="flex:1;"></div>
-            <div class="hv-3" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-neutral-500); border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; cursor:pointer;"><i class="ph ph-bookmark-simple" style="font-size:13px;"></i>Bookmarks</div>
-            <div class="hv-7" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-accent-300); border:1px solid var(--color-accent-600); border-radius:7px; padding:5px 11px; cursor:pointer;"><i class="ph ph-plus" style="font-size:13px;"></i>New dashboard</div>
+            <div class="hv-3" data-action="toggleBm" role="button" tabindex="0" title="Saved dashboards and bookmarked views" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-neutral-500); border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; cursor:pointer;"><i class="ph ph-bookmark-simple" style="font-size:13px;"></i>Bookmarks</div>
+            <div class="hv-7" data-action="/reports?v=repBuilder&new=1" role="button" tabindex="0" title="Create a dashboard" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-accent-300); border:1px solid var(--color-accent-600); border-radius:7px; padding:5px 11px; cursor:pointer;"><i class="ph ph-plus" style="font-size:13px;"></i>New dashboard</div>
           </div>
+          <% if (locals.repError) { %><p class="li-conn-notice li-conn-notice--warn"><i class="ph ph-warning"></i><span><%= locals.repError %></span></p><% } %>
+          <% if (locals.repNewOpen) { %>
+            <form method="post" action="/reports/new" class="li-rb-new">
+              <strong>New dashboard</strong>
+              <input name="name" required maxlength="80" placeholder="Name — e.g. Owner Monday view" aria-label="Dashboard name">
+              <select name="from" aria-label="Start from"><% ((locals.repDefs || {}).starters || []).forEach(function (st) { %><option value="<%= st.id %>"><%= st.id === 'blank' ? 'Start blank' : 'Start from: ' + st.label %></option><% }); %></select>
+              <button type="submit">Create</button><a href="/reports?v=repBuilder">Cancel</a>
+            </form>
+          <% } %>
+          <% if (locals.repBookmarksOpen) { %>
+            <section class="li-rb-marks">
+              <div class="li-rb-head"><strong>Bookmarks</strong><span>Saved dashboards and bookmarked views, for the whole team.</span></div>
+              <% ((locals.repDefs || {}).reports || []).forEach(function (r) { %><a class="li-rb-row" href="/reports?v=repBuilder&report=<%= r.id %>"><i class="ph ph-squares-four"></i><span class="li-rb-name"><%= r.name %></span><span class="li-rb-meta">dashboard · <%= r.widgets %> widgets</span></a><% }); %>
+              <% ((locals.repDefs || {}).bookmarks || []).forEach(function (b) { %><div class="li-rb-row"><i class="ph ph-bookmark-simple"></i><a class="li-rb-name" href="<%= b.url %>"><%= b.name %></a><span class="li-rb-meta"><%= b.url %> · <%= b.by %></span><form method="post" action="/reports/bookmarks/<%= b.id %>/delete"><input type="hidden" name="back" value="/reports?bm=1"><button type="submit" aria-label="Remove bookmark">×</button></form></div><% }); %>
+              <form method="post" action="/reports/bookmarks" class="li-rb-new">
+                <input type="hidden" name="back" value="/reports?bm=1">
+                <input name="name" maxlength="80" placeholder="Name" aria-label="Bookmark name">
+                <input name="url" required maxlength="500" value="<%= locals.repBookmarkUrl || '/reports' %>" aria-label="Page to bookmark" title="Any page in this app — paste a link from the address bar">
+                <button type="submit">Bookmark</button>
+              </form>
+            </section>
+          <% } %>
           <div style="display:flex; gap:4px; margin-bottom:12px; border-bottom:1px solid var(--color-neutral-900); overflow-x:auto;">
             <% (repTabs || []).forEach(function (t) { %>
               <div class="hv-5" data-action="<%= t.go %>" style="padding:8px 13px; font-size:12.5px; cursor:pointer; white-space:nowrap; color:<%= t.color %>; border-bottom:2px solid <%= t.border %>; margin-bottom:-1px;"><%= t.label %></div>
@@ -13,99 +35,85 @@
 
           <!-- DASHBOARD BUILDER -->
           <% if (repBuilder) { %>
-            <div style="display:grid; grid-template-columns:214px 1fr; gap:12px; align-items:start;">
-              <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px; position:sticky; top:0;">
-                <div style="font-size:12px; font-weight:500; margin-bottom:2px;">Widget library</div>
-                <div style="font-size:10px; color:var(--color-neutral-600); margin-bottom:10px;">drag onto the canvas</div>
-                <div style="display:flex; align-items:center; gap:7px; border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 9px; color:var(--color-neutral-600); margin-bottom:10px;"><i class="ph ph-magnifying-glass" style="font-size:11px;"></i><span style="font-size:11px;">Search widgets…</span></div>
-                <% (widgetGroups || []).forEach(function (g) { %>
-                  <div style="margin-bottom:10px;">
-                    <div style="font-size:9px; letter-spacing:.07em; color:var(--color-neutral-700); margin-bottom:5px;"><%= g.label %></div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px;">
-                      <% (g.items || []).forEach(function (w) { %>
-                        <div class="hv-11" title="<%= w.name %>" style="display:flex; flex-direction:column; align-items:center; gap:4px; border:1px solid var(--color-neutral-800); border-radius:7px; padding:8px 4px; cursor:grab;">
-                          <i class="<%= w.icon %>" style="font-size:15px; color:var(--color-accent-400);"></i>
-                          <span style="font-size:9px; color:var(--color-neutral-400); text-align:center; line-height:1.2;"><%= w.name %></span>
-                        </div>
-                      <% }); %>
-                    </div>
-                  </div>
+            <%# The builder. Saved dashboards live in lib/report-defs.js; every
+                change is a POST that records a version. No drag and drop: a
+                widget is added from the picker and moved with the arrows, which
+                works the same with a mouse, a keyboard and a phone. %>
+            <% var saved = locals.repSaved; var cat = locals.repCatalog || { metrics: [], charts: [], tables: [], narratives: [] }; %>
+            <% if (!saved) { %>
+              <section class="li-rb-list">
+                <div class="li-rb-head"><strong>Your dashboards</strong><span>Saved for the whole team. Open one to edit it.</span></div>
+                <% if (!((locals.repDefs || {}).reports || []).length) { %>
+                  <p class="li-rb-empty">No dashboards yet. Create one with <strong>New dashboard</strong> — start blank or from a template, then add the figures and charts you want to watch.</p>
+                <% } %>
+                <% ((locals.repDefs || {}).reports || []).forEach(function (r) { %>
+                  <a class="li-rb-row" href="/reports?v=repBuilder&report=<%= r.id %>"><i class="ph ph-squares-four"></i><span class="li-rb-name"><%= r.name %></span><span class="li-rb-meta"><%= r.widgets %> widget<%= r.widgets === 1 ? '' : 's' %> · updated <%= r.updatedAt %> · by <%= r.by %></span></a>
                 <% }); %>
-              </div>
-              <div>
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-                  <div style="display:flex; gap:3px;">
-                    <% (dashTabs || []).forEach(function (d) { %>
-                      <span class="hv-5" style="font-size:11.5px; padding:5px 12px; border-radius:7px; cursor:pointer; color:<%= d.color %>; background:<%= d.bg %>;"><%= d.label %></span>
-                    <% }); %>
-                    <span class="hv-2" style="font-size:11.5px; padding:5px 9px; border-radius:7px; cursor:pointer; color:var(--color-neutral-600);"><i class="ph ph-plus"></i></span>
-                  </div>
+              </section>
+            <% } else { %>
+              <section class="li-rb">
+                <div class="li-rb-bar">
+                  <form method="post" action="/reports/<%= saved.id %>/rename" class="li-rb-rename">
+                    <input name="name" value="<%= saved.name %>" maxlength="80" aria-label="Dashboard name">
+                    <button type="submit">Rename</button>
+                  </form>
                   <div style="flex:1;"></div>
-                  <span style="display:flex; align-items:center; gap:5px; font-size:11px; border:1px solid var(--color-accent-700); background:var(--color-accent-900); border-radius:7px; padding:5px 11px; color:var(--color-accent-300); cursor:pointer;"><i class="ph ph-squares-four" style="font-size:12px;"></i>Editing layout</span>
-                  <span class="hv-5" style="font-size:11px; border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; color:var(--color-neutral-400); cursor:pointer;">Clone</span>
-                  <span class="hv-5" style="font-size:11px; border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; color:var(--color-neutral-400); cursor:pointer;">Share</span>
-                  <span class="hv-5" data-action="goPresent" style="display:flex; align-items:center; gap:5px; font-size:11px; border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; color:var(--color-neutral-400); cursor:pointer;"><i class="ph ph-projector-screen" style="font-size:12px;"></i>Present</span>
+                  <a class="li-rb-btn<%= locals.repVersionsOpen ? ' li-tt-on' : '' %>" href="/reports?v=repBuilder&report=<%= saved.id %><%= locals.repVersionsOpen ? '' : '&versions=1' %>"><i class="ph ph-clock-counter-clockwise"></i> Version history (v<%= saved.versions[0].v %>)</a>
+                  <form method="post" action="/reports/<%= saved.id %>/delete" data-li-confirm="Delete the dashboard “<%= saved.name %>” for everyone?"><button type="submit" class="li-rb-btn li-rb-danger"><i class="ph ph-trash"></i> Delete</button></form>
+                  <a class="li-rb-btn" href="/reports?v=repBuilder">All dashboards</a>
                 </div>
-                <div style="background:repeating-linear-gradient(0deg, transparent, transparent 23px, var(--color-neutral-900) 23px, var(--color-neutral-900) 24px), repeating-linear-gradient(90deg, transparent, transparent 23px, var(--color-neutral-900) 23px, var(--color-neutral-900) 24px); border:1px dashed var(--color-neutral-800); border-radius:12px; padding:12px;">
-                  <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
-                    <% (canvasWidgets || []).forEach(function (w) { %>
-                      <div class="hv-12" style="grid-column:span <%= w.span %>; background:var(--color-surface); border-radius:10px; box-shadow:var(--shadow-sm); padding:12px 14px; position:relative; cursor:move; border:1px solid transparent;">
-                        <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
-                          <span style="font-size:10.5px; color:var(--color-neutral-400); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= w.title %></span>
-                          <div style="flex:1;"></div>
-                          <i class="ph ph-copy hv-2" style="font-size:11px; color:var(--color-neutral-700); cursor:pointer;"></i>
-                          <i class="ph ph-trash hv-13" style="font-size:11px; color:var(--color-neutral-700); cursor:pointer;"></i>
-                          <i class="ph ph-dots-six-vertical" style="font-size:12px; color:var(--color-accent-400);"></i>
-                        </div>
-                        <% if (w.isKpi) { %>
-                          <div style="display:flex; align-items:baseline; gap:7px;"><span style="font-size:22px; font-weight:500; font-variant-numeric:tabular-nums;"><%= w.value %></span><span style="font-size:11px; color:<%= w.deltaColor %>;"><%= w.delta %></span></div>
-                        <% } %>
-                        <% if (w.isLine) { %>
-                          <svg viewBox="0 0 300 80" style="width:100%; height:<%= w.h %>;" preserveAspectRatio="none">
-                            <path d="M0,64 L40,58 L80,62 L120,46 L160,52 L200,34 L240,40 L300,18 L300,80 L0,80 Z" fill="var(--color-accent-500)" opacity="0.14"></path>
-                            <polyline points="0,64 40,58 80,62 120,46 160,52 200,34 240,40 300,18" fill="none" stroke="var(--color-accent-400)" stroke-width="2"></polyline>
-                          </svg>
-                        <% } %>
-                        <% if (w.isBar) { %>
-                          <svg viewBox="0 0 300 80" style="width:100%; height:<%= w.h %>;" preserveAspectRatio="none">
-                            <g fill="var(--color-accent-600)"><rect x="8" y="42" width="26" height="38" rx="3"></rect><rect x="48" y="30" width="26" height="50" rx="3"></rect><rect x="88" y="38" width="26" height="42" rx="3"></rect><rect x="128" y="22" width="26" height="58" rx="3"></rect><rect x="168" y="28" width="26" height="52" rx="3"></rect><rect x="208" y="14" width="26" height="66" rx="3"></rect></g>
-                            <rect x="248" y="8" width="26" height="72" rx="3" fill="var(--color-accent-400)"></rect>
-                          </svg>
-                        <% } %>
-                        <% if (w.isDonut) { %>
-                          <div style="display:grid; place-items:center; padding:4px 0;">
-                            <svg viewBox="0 0 90 90" style="width:78px; height:78px;">
-                              <circle cx="45" cy="45" r="34" fill="none" stroke="var(--color-neutral-900)" stroke-width="11"></circle>
-                              <circle cx="45" cy="45" r="34" fill="none" stroke="var(--color-accent-400)" stroke-width="11" stroke-dasharray="81 213.6" transform="rotate(-90 45 45)"></circle>
-                              <circle cx="45" cy="45" r="34" fill="none" stroke="var(--color-accent-600)" stroke-width="11" stroke-dasharray="58 213.6" stroke-dashoffset="-81" transform="rotate(-90 45 45)"></circle>
-                              <circle cx="45" cy="45" r="34" fill="none" stroke="var(--color-accent-800)" stroke-width="11" stroke-dasharray="41 213.6" stroke-dashoffset="-139" transform="rotate(-90 45 45)"></circle>
-                            </svg>
-                          </div>
-                        <% } %>
-                        <% if (w.isFunnel) { %>
-                          <div style="display:flex; flex-direction:column; gap:5px; padding-top:2px;">
-                            <% (w.bars || []).forEach(function (b) { %>
-                              <div style="height:9px; width:<%= b %>; border-radius:99px; background:linear-gradient(90deg, var(--color-accent-700), var(--color-accent-400));"></div>
-                            <% }); %>
-                          </div>
-                        <% } %>
-                        <% if (w.isTable) { %>
-                          <% (w.rows || []).forEach(function (r) { %>
-                            <div style="display:flex; gap:8px; padding:5px 0; border-top:1px solid var(--color-neutral-900); font-size:11px;"><span style="flex:1; color:var(--color-neutral-400); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= r.a %></span><span style="color:var(--color-neutral-200); font-variant-numeric:tabular-nums;"><%= r.b %></span></div>
-                          <% }); %>
-                        <% } %>
-                        <% if (w.isAi) { %>
-                          <div style="font-size:11px; color:var(--color-neutral-400); line-height:1.55;"><i class="ph-fill ph-sparkle" style="color:var(--color-accent-400); font-size:11px;"></i> <%= w.text %></div>
+                <% if (locals.repVersionsOpen) { %>
+                  <div class="li-rb-versions">
+                    <% saved.versions.forEach(function (v) { %>
+                      <div class="li-rb-version"><span class="li-rb-v">v<%= v.v %></span><span><%= v.note %></span><span class="li-rb-meta"><%= v.at %> UTC · <%= v.by %></span>
+                        <% if (v.current) { %><em>current</em><% } else { %>
+                          <form method="post" action="/reports/<%= saved.id %>/restore/<%= v.v %>"><input type="hidden" name="back" value="/reports?v=repBuilder&report=<%= saved.id %>&versions=1"><button type="submit">Restore</button></form>
                         <% } %>
                       </div>
                     <% }); %>
-                    <div class="hv-10" style="grid-column:span 4; border:1px dashed var(--color-neutral-800); border-radius:10px; padding:16px; text-align:center; color:var(--color-neutral-600); cursor:pointer;">
-                      <i class="ph ph-plus-circle" style="font-size:17px;"></i><div style="font-size:11px; margin-top:4px;">Drop a widget here, or click to browse the library</div>
-                    </div>
                   </div>
+                <% } %>
+                <form method="post" action="/reports/<%= saved.id %>/widgets" class="li-rb-add">
+                  <i class="ph ph-plus-circle"></i>
+                  <select name="w" required aria-label="Widget to add">
+                    <option value="">Add a widget…</option>
+                    <optgroup label="Charts"><% cat.charts.forEach(function (o) { %><option value="chart:<%= o.id %>"><%= o.name %></option><% }); %></optgroup>
+                    <optgroup label="Tables"><% cat.tables.forEach(function (o) { %><option value="table:<%= o.id %>"><%= o.name %></option><% }); %></optgroup>
+                    <optgroup label="Narrative"><% cat.narratives.forEach(function (o) { %><option value="narrative:<%= o.id %>"><%= o.name %></option><% }); %></optgroup>
+                    <optgroup label="KPI tiles"><% cat.metrics.forEach(function (o) { %><option value="kpi:<%= o.id %>"><%= o.name %></option><% }); %></optgroup>
+                  </select>
+                  <button type="submit">Add</button>
+                </form>
+                <% if (!saved.blocks.length) { %>
+                  <p class="li-rb-empty">This dashboard is empty. Add a KPI tile, a chart, the campaigns table or the executive summary above.</p>
+                <% } %>
+                <div class="li-rb-canvas">
+                  <% saved.blocks.forEach(function (b) { %>
+                    <div class="li-rb-w li-rb-w--<%= b.kind %>">
+                      <div class="li-rb-tools">
+                        <span class="li-rb-wname"><%= b.label %></span>
+                        <% if (!b.first) { %><form method="post" action="/reports/<%= saved.id %>/widgets/<%= b.wid %>/move"><input type="hidden" name="step" value="-1"><button type="submit" aria-label="Move earlier" title="Move earlier">↑</button></form><% } %>
+                        <% if (!b.last) { %><form method="post" action="/reports/<%= saved.id %>/widgets/<%= b.wid %>/move"><input type="hidden" name="step" value="1"><button type="submit" aria-label="Move later" title="Move later">↓</button></form><% } %>
+                        <form method="post" action="/reports/<%= saved.id %>/widgets/<%= b.wid %>/delete"><button type="submit" aria-label="Remove widget" title="Remove">×</button></form>
+                      </div>
+                      <% if (b.kind === 'kpi') { %>
+                        <% var k = (locals.builderKpis || []).filter(function (x) { return x.wid === b.wid; })[0] || { label: b.label, value: '—' }; %>
+                        <div class="li-rb-kpi" title="<%= k.tip || '' %>"><div class="li-rb-kpi-l"><%= k.label %></div><div class="li-rb-kpi-v"><%= k.value %><span style="color:<%= k.deltaColor %>;"><%= k.delta === '—' ? '' : k.delta %></span></div><% if (k.sub) { %><div class="li-rb-meta"><%= k.sub %></div><% } %></div>
+                      <% } else if (b.kind === 'chart') { %>
+                        <%- include('../partials/dash-charts', { set: b.set, charts: (locals.builderCharts || {})[b.set], only: b.ref }) %>
+                      <% } else if (b.kind === 'table') { %>
+                        <div style="overflow-x:auto;"><table class="li-rb-table"><thead><tr><th>CAMPAIGN</th><th>PLATFORM</th><th>SPEND</th><th>LEADS</th><th>CPL</th><th>BOOKINGS</th><th>ROAS</th></tr></thead><tbody>
+                          <% (saved.tableRows || []).forEach(function (r) { %><tr><td><%= r.name %></td><td><%= r.platform %></td><td><%= r.spend %></td><td><%= r.leads %></td><td><%= r.cpl %></td><td><%= r.bookings %></td><td style="color:<%= r.roasColor %>;"><%= r.roas %></td></tr><% }); %>
+                          <% if (!(saved.tableRows || []).length) { %><tr><td colspan="7">No campaign spend in this range.</td></tr><% } %>
+                        </tbody></table></div>
+                      <% } else { %>
+                        <p class="li-rb-summary"><%= saved.summary %></p>
+                      <% } %>
+                    </div>
+                  <% }); %>
                 </div>
-              </div>
-            </div>
+              </section>
+            <% } %>
           <% } %>
 
           <!-- SCORECARD -->

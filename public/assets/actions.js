@@ -29,6 +29,7 @@ const TOGGLES = {
   toggleEdit: 'edit',
   toggleCompare: 'compare',
   toggleNotes: 'notes',
+  toggleBm: 'bm',
 };
 
 /* A short confirmation in the corner, for actions with no visible result of

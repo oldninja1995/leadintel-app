@@ -417,6 +417,8 @@ const connections = new Connections({ backend: backends.docs });
 const layouts = new Layouts(undefined, { backend: backends.docs });
 const { Annotations } = require('./lib/annotations');
 const annotations = new Annotations(undefined, { backend: backends.docs });
+const { ReportDefs, STARTERS: REPORT_STARTERS } = require('./lib/report-defs');
+const reportDefs = new ReportDefs(undefined, { backend: backends.docs });
 /* Product & marketing config — written by marketing/server.js's /admin/config,
    read here to filter the sidebar (filterNavGroups below). */
 const siteConfig = new SiteConfig(undefined, { backend: backends.docs });
@@ -784,6 +786,13 @@ const readParams = (query, workspaceId = null) => {
   if (!workspaceId) return params;
   /* Team notes, for the screens that show them (Campaign Analytics). */
   params.annotations = annotations.list(workspaceId);
+  /* Saved dashboards and bookmarks, for Reports & Dashboards. */
+  params.reportDefs = {
+    reports: reportDefs.reports(workspaceId),
+    bookmarks: reportDefs.bookmarks(workspaceId),
+    starters: Object.entries(REPORT_STARTERS).map(([id, s]) => ({ id, label: s.label })),
+  };
+  if (typeof params.report === 'string') params.savedReport = reportDefs.report(workspaceId, params.report);
 
   const back = metrics.period.previous(over);
   params.values = metricValues(workspaceId, null, over).values;
@@ -1705,7 +1714,7 @@ app.use((req, res, next) => {
      * store left outside it costs a full round trip, and the Server-Timing
      * numbers put that at about 190ms each on this deployment: these reads do
      * not overlap, whatever Promise.all suggests. */
-    timed('docs', store.hydrateDocuments({ connections, workspace, webhookTokens, layouts, annotations, definitionLog: metrics.definitionLog }), marks),
+    timed('docs', store.hydrateDocuments({ connections, workspace, webhookTokens, layouts, annotations, reportDefs, definitionLog: metrics.definitionLog }), marks),
     timed('runlog', runner.log.hydrate({ perTag: EDGE_RUN_WINDOW }), marks),
     timed('rules', fires.hydrate(), marks),
     timed('dispatches', dispatches.hydrate(), marks),
@@ -2279,6 +2288,66 @@ app.post('/annotations/:id/delete', express.urlencoded({ extended: false }), asy
     return res.redirect(303, `${back}${back.includes('?') ? '&' : '?'}noteError=${encodeURIComponent(err.message)}`);
   }
 });
+
+/* Reports & Dashboards — saved dashboards, their widgets and versions, and
+   bookmarks. Every change answers with a redirect back to where it was made,
+   carrying an error message when it was refused. */
+const reportBack = (req, fallback) => backTo(req.body && req.body.back, fallback);
+const reportFail = (res, back, err) => res.redirect(303, `${back}${back.includes('?') ? '&' : '?'}repError=${encodeURIComponent(err.message)}`);
+const reportEdit = (handler) => [
+  express.urlencoded({ extended: false }),
+  gatekeeper.gate('report.edit', (req) => ({ report: req.params.id || null, action: 'edit' })),
+  async (req, res) => {
+    const fallback = req.params.id ? `/reports?v=repBuilder&report=${encodeURIComponent(req.params.id)}` : '/reports?v=repBuilder';
+    const back = reportBack(req, fallback);
+    try {
+      const to = handler(req);
+      await reportDefs.flush();
+      return res.redirect(303, to || back);
+    } catch (err) {
+      return reportFail(res, back, err);
+    }
+  },
+];
+const by = (req) => (req.user && req.user.name) || null;
+app.post('/reports/new', ...reportEdit((req) => {
+  const report = reportDefs.create(req.workspace, { name: req.body.name, from: req.body.from, by: by(req) });
+  return `/reports?v=repBuilder&report=${report.id}`;
+}));
+app.post('/reports/bookmarks', ...reportEdit((req) => {
+  reportDefs.bookmark(req.workspace, { name: req.body.name, url: req.body.url, by: by(req) });
+  return null;
+}));
+app.post('/reports/bookmarks/:bid/delete', ...reportEdit((req) => {
+  reportDefs.unbookmark(req.workspace, req.params.bid);
+  return null;
+}));
+app.post('/reports/:id/widgets', ...reportEdit((req) => {
+  /* The picker sends one value, "kind:ref". */
+  const [kind, ...rest] = String(req.body.w || '').split(':');
+  reportDefs.addWidget(req.workspace, req.params.id, { kind: req.body.kind || kind, ref: req.body.ref || rest.join(':') }, by(req));
+  return null;
+}));
+app.post('/reports/:id/widgets/:wid/delete', ...reportEdit((req) => {
+  reportDefs.removeWidget(req.workspace, req.params.id, req.params.wid, by(req));
+  return null;
+}));
+app.post('/reports/:id/widgets/:wid/move', ...reportEdit((req) => {
+  reportDefs.moveWidget(req.workspace, req.params.id, req.params.wid, Number(req.body.step) || 1, by(req));
+  return null;
+}));
+app.post('/reports/:id/rename', ...reportEdit((req) => {
+  reportDefs.rename(req.workspace, req.params.id, req.body.name, by(req));
+  return null;
+}));
+app.post('/reports/:id/restore/:v', ...reportEdit((req) => {
+  reportDefs.restore(req.workspace, req.params.id, req.params.v, by(req));
+  return null;
+}));
+app.post('/reports/:id/delete', ...reportEdit((req) => {
+  reportDefs.remove(req.workspace, req.params.id);
+  return '/reports?v=repBuilder';
+}));
 
 app.post('/connections/sync',
   express.urlencoded({ extended: false }), express.json(),

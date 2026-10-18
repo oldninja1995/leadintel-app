@@ -1230,11 +1230,21 @@
     tables.forEach(apply);
   }
 
+  /* A destructive form asks first: `data-li-confirm="question"`. Inline
+     onsubmit handlers cannot run under this app's CSP. */
+  function confirmForms() {
+    document.addEventListener('submit', (e) => {
+      const form = e.target.closest && e.target.closest('form[data-li-confirm]');
+      if (form && !window.confirm(form.getAttribute('data-li-confirm'))) e.preventDefault();
+    }, true);
+  }
+
   syncBadge();
   autoSync();
   hoverPrefetch();
   lazyThumbs();
   tableTools();
+  confirmForms();
   chartPops();
   enhanceChips();
   enhanceRange();
