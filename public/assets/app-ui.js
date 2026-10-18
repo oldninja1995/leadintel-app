@@ -1066,9 +1066,27 @@
     }, { passive: true });
   }
 
+  /* ── Lazy thumbnails ───────────────────────────────────────────────────
+   *
+   * Creative cards paint their gradient first and carry the thumbnail in
+   * `data-li-bg`; it is applied as the card comes within 400 px of view.
+   * Creative Intelligence fetched and decoded ~40 at first paint, a 230 ms
+   * freeze, and scrolling straight away stuttered while they arrived. */
+  function lazyThumbs() {
+    const cards = document.querySelectorAll('[data-li-bg]');
+    if (!cards.length) return;
+    const show = (el) => { el.style.background = el.getAttribute('data-li-bg'); el.removeAttribute('data-li-bg'); };
+    if (!('IntersectionObserver' in window)) { cards.forEach(show); return; }
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { io.unobserve(e.target); show(e.target); }
+    }, { rootMargin: '400px 0px' });
+    cards.forEach((el) => io.observe(el));
+  }
+
   syncBadge();
   autoSync();
   hoverPrefetch();
+  lazyThumbs();
   chartPops();
   enhanceChips();
   enhanceRange();

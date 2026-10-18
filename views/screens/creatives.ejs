@@ -37,7 +37,7 @@
           <div data-li-slot="grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
             <% (creatives || []).forEach(function (cr) { %>
               <div class="hv-4" data-action="<%= cr.go %>" style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); overflow:hidden; cursor:pointer;">
-                <div style="height:132px; background:<%= cr.grad %>; display:grid; place-items:center; position:relative;">
+                <div style="height:132px; background:<%= cr.gradFirst || cr.grad %>; display:grid; place-items:center; position:relative;"<% if (cr.gradFirst && cr.grad !== cr.gradFirst) { %> data-li-bg="<%= cr.grad %>"<% } %>>
                   <div style="width:38px; height:38px; border-radius:99px; background:rgba(20,22,31,<%= cr.video ? .78 : .55 %>); display:grid; place-items:center;" title="<%= cr.video ? "Open to watch this creative" : "Open for the full-size still" %>"><i class="<%= cr.video ? "ph-fill ph-play" : cr.icon %>" style="font-size:18px; color:var(--color-accent-200);"></i></div>
                   <% if (cr.rank) { %><span style="position:absolute; bottom:8px; left:8px; font-size:11px; font-weight:600; border-radius:5px; padding:2px 8px; background:rgba(20,22,31,.82); color:var(--color-accent-300); font-variant-numeric:tabular-nums;">#<%= cr.rank %></span><% } %>
                   <span data-li-slot="format" style="position:absolute; top:8px; left:8px; font-size:10px; border-radius:5px; padding:2px 7px; background:rgba(20,22,31,.75); color:var(--color-neutral-300);"><%= cr.type %></span>
