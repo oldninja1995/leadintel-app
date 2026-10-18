@@ -4,8 +4,32 @@
               <h1 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:19px;">Lead Intelligence</h1>
               <span style="font-size:11.5px; color:var(--color-neutral-600);"><%= typeof leadNote !== 'undefined' ? leadNote : '' %><% if (typeof leadTagged !== 'undefined' && leadTagged) { %> · <%= leadTagged %><% } %></span>
               <div style="flex:1;"></div>
-              <div class="hv-7" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-accent-300); border:1px solid var(--color-accent-600); border-radius:7px; padding:5px 11px; cursor:pointer;"><i class="ph ph-plus" style="font-size:13px;"></i>New lead</div>
+              <div class="hv-7" data-action="/leads?new=1" title="Create a lead in TeleCRM" style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--color-accent-300); border:1px solid var(--color-accent-600); border-radius:7px; padding:5px 11px; cursor:pointer;"><i class="ph ph-plus" style="font-size:13px;"></i>New lead</div>
             </div>
+            <% var nf = locals.leadForm || {}; %>
+            <% if (nf.created) { %>
+              <p class="li-conn-notice"><i class="ph ph-check-circle"></i><span><strong><%= nf.created || 'The lead' %></strong> was created in TeleCRM. It appears in this list once TeleCRM has been read back — usually within a few seconds; refresh to see it.</span></p>
+            <% } %>
+            <% if (nf.open) { %>
+              <form method="post" action="/leads/new" class="li-newlead" autocomplete="off">
+                <div class="li-newlead-h"><strong>New lead</strong><span>Created in TeleCRM, the source of truth — an existing lead with the same phone is updated instead.</span><a href="/leads" class="li-newlead-x" aria-label="Close">×</a></div>
+                <% if (nf.error) { %><p class="li-conn-notice li-conn-notice--warn"><i class="ph ph-warning"></i><span><%= nf.error %></span></p><% } %>
+                <div class="li-newlead-grid">
+                  <label>Name<input name="name" required maxlength="120" value="<%= nf.name || '' %>"></label>
+                  <label>Phone<input name="phone" required inputmode="tel" maxlength="20" placeholder="98470 12345"></label>
+                  <label>Email <em>optional</em><input name="email" type="email" maxlength="120"></label>
+                  <label>Source
+                    <select name="source">
+                      <option value="">—</option>
+                      <% (nf.sources || []).forEach(function (src) { %><option<%= src === nf.source ? ' selected' : '' %>><%= src %></option><% }); %>
+                    </select>
+                  </label>
+                  <label>Check-in <em>optional</em><input name="checkIn" type="date"></label>
+                  <label class="li-newlead-wide">Notes <em>optional</em><textarea name="message" rows="2" maxlength="1000"></textarea></label>
+                </div>
+                <div class="li-newlead-foot"><button type="submit">Create lead</button><a href="/leads">Cancel</a></div>
+              </form>
+            <% } %>
             <%# The filter bar. A GET form so a filtered list is a link that can be
                 shared or bookmarked, and so it works with the CSP (no inline
                 script): the selects submit through app-ui.js's data-li-autosubmit. %>

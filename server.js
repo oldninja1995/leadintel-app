@@ -2215,6 +2215,31 @@ async function syncConfigured(req) {
   return { queue, ran, failed, running, written: [...outcome.values()].reduce((n, r) => n + (r.written || 0), 0) };
 }
 
+/* "New lead" on Lead Intelligence: written to TeleCRM, the source of truth,
+   then read back by a TeleCRM sync started in the background, so the lead is
+   in the list within seconds without this request waiting for the pull. The
+   phone never travels in a redirect URL. */
+const telecrmWrite = require('./lib/telecrm-write');
+app.post('/leads/new',
+  express.urlencoded({ extended: false }),
+  gatekeeper.gate('lead.create', () => ({ source: 'telecrm', action: 'create-lead' })),
+  async (req, res) => {
+    const form = req.body || {};
+    const back = (q) => res.redirect(303, `/leads?${q}`);
+    try {
+      const credentials = connections.secretsFor(req.workspace, 'telecrm');
+      await telecrmWrite.createLead({ credentials, form });
+      if (req.workspace === SYNC_WORKSPACE) {
+        runner.runOne('telecrm')
+          .then(() => runner.log.flush())
+          .catch((err) => console.warn('new lead: follow-up TeleCRM sync failed —', err.message));
+      }
+      return back(`created=${encodeURIComponent(String(form.name || '').trim())}`);
+    } catch (err) {
+      return back(`new=1&error=${encodeURIComponent(err.message)}&name=${encodeURIComponent(String(form.name || '').slice(0, 80))}&source=${encodeURIComponent(String(form.source || '').slice(0, 40))}`);
+    }
+  });
+
 app.post('/connections/sync',
   express.urlencoded({ extended: false }), express.json(),
   gatekeeper.gate('connection.manage', () => ({ source: 'all', action: 'sync' })),

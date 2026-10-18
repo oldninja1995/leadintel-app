@@ -486,3 +486,18 @@ circle.li-pop-mark:hover, circle.li-pop-on { filter: brightness(1.3); }
 .li-lf-clear { font-size: 11.5px; color: var(--color-neutral-500); }
 .li-lf-go { border: 1px solid var(--color-neutral-800); background: transparent; color: var(--color-neutral-300); border-radius: 7px; padding: 5px 11px; font: inherit; font-size: 11.5px; cursor: pointer; }
 @media (max-width: 640px) { .li-lf-search { width: 100%; } }
+
+/* "New lead" panel on Lead Intelligence. */
+.li-newlead { background: var(--color-surface); border: 1px solid var(--color-accent-800); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+.li-newlead-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; font-size: 13px; }
+.li-newlead-h span { flex: 1; font-size: 11.5px; color: var(--color-neutral-500); }
+.li-newlead-x { color: var(--color-neutral-500); text-decoration: none; font-size: 18px; line-height: 1; }
+.li-newlead-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px; }
+.li-newlead-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--color-neutral-500); }
+.li-newlead-grid em { font-style: normal; color: var(--color-neutral-600); }
+.li-newlead-grid input, .li-newlead-grid select, .li-newlead-grid textarea { border: 1px solid var(--color-neutral-800); background: transparent; color: var(--color-neutral-200); border-radius: 7px; padding: 7px 9px; font: inherit; font-size: 12.5px; }
+.li-newlead-grid select option { background: var(--color-surface); }
+.li-newlead-wide { grid-column: 1 / -1; }
+.li-newlead-foot { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.li-newlead-foot button { border: 1px solid var(--color-accent-600); background: var(--color-accent-900); color: var(--color-accent-200); border-radius: 7px; padding: 7px 14px; font: inherit; font-size: 12px; cursor: pointer; }
+.li-newlead-foot a { font-size: 12px; color: var(--color-neutral-500); }
