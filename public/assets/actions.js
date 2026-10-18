@@ -85,6 +85,22 @@ const HANDLERS = {
     }
   },
   printPage() { window.print(); },
+  /* Presentation mode. Full screen enlarges the presented area; TV mode does
+     the same and reloads every five minutes so a lobby screen keeps current
+     — the reload re-enters TV mode from the ?tv=1 it carries. */
+  presentFullscreen() {
+    const stage = document.querySelector('[data-li-present]') || document.documentElement;
+    if (document.fullscreenElement) document.exitFullscreen();
+    else if (stage.requestFullscreen) stage.requestFullscreen().catch(() => toast('This browser would not go full screen'));
+  },
+  presentTv() {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tv', '1');
+    window.history.replaceState(null, '', url);
+    HANDLERS.presentFullscreen();
+    setTimeout(() => window.location.reload(), 5 * 60 * 1000);
+    toast('TV mode — figures refresh every 5 minutes. Press Esc to leave full screen.');
+  },
   /* A sub-screen list that folds away, and stays that way.
    *
    * Server-rendered open when the reader is standing in the branch, and

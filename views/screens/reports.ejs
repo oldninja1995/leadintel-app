@@ -202,13 +202,13 @@
           <!-- PRESENTATION MODE -->
           <% if (repPresent) { %>
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-              <span style="font-size:11.5px; color:var(--color-neutral-500);">Slide 2 of 6 · auto-rotate every 30s</span>
+              <span style="font-size:11.5px; color:var(--color-neutral-500);"><%= ((locals.selReport || {}).period || '') %> · live figures, refreshed every 5 minutes in TV mode</span>
               <div style="flex:1;"></div>
-              <span class="hv-5" style="display:flex; align-items:center; gap:5px; font-size:11px; border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; color:var(--color-neutral-400); cursor:pointer;"><i class="ph ph-television-simple" style="font-size:12px;"></i>TV mode</span>
-              <span class="hv-5" style="display:flex; align-items:center; gap:5px; font-size:11px; border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; color:var(--color-neutral-400); cursor:pointer;"><i class="ph ph-moon" style="font-size:12px;"></i>Dark room</span>
-              <span class="hv-7" style="display:flex; align-items:center; gap:5px; font-size:11px; border:1px solid var(--color-accent-600); border-radius:7px; padding:5px 11px; color:var(--color-accent-300); cursor:pointer;"><i class="ph ph-corners-out" style="font-size:12px;"></i>Fullscreen</span>
+              <span class="hv-5" data-action="presentTv" role="button" tabindex="0" title="Full screen, refreshing the figures every 5 minutes — for a lobby or office screen" style="display:flex; align-items:center; gap:5px; font-size:11px; border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; color:var(--color-neutral-400); cursor:pointer;"><i class="ph ph-television-simple" style="font-size:12px;"></i>TV mode</span>
+              <span class="hv-5" data-action="toggleTheme" role="button" tabindex="0" title="Switch between the dark and light theme" style="display:flex; align-items:center; gap:5px; font-size:11px; border:1px solid var(--color-neutral-800); border-radius:7px; padding:5px 11px; color:var(--color-neutral-400); cursor:pointer;"><i class="ph ph-moon" style="font-size:12px;"></i>Dark room</span>
+              <span class="hv-7" data-action="presentFullscreen" role="button" tabindex="0" title="Show the presentation full screen" style="display:flex; align-items:center; gap:5px; font-size:11px; border:1px solid var(--color-accent-600); border-radius:7px; padding:5px 11px; color:var(--color-accent-300); cursor:pointer;"><i class="ph ph-corners-out" style="font-size:12px;"></i>Fullscreen</span>
             </div>
-            <div style="background:var(--color-canvas); border-radius:14px; box-shadow:var(--shadow-lg); padding:34px 38px; aspect-ratio:16/9; display:flex; flex-direction:column;">
+            <div data-li-present style="background:var(--color-canvas); border-radius:14px; box-shadow:var(--shadow-lg); padding:34px 38px; aspect-ratio:16/9; display:flex; flex-direction:column;">
               <div style="display:flex; align-items:center; gap:10px;">
                 <div style="width:26px; height:26px; border-radius:7px; border:1px solid var(--color-accent-600); display:grid; place-items:center; color:var(--color-accent-400);"><i class="ph-fill ph-pulse" style="font-size:14px;"></i></div>
                 <span style="font-size:12px; color:var(--color-neutral-500); letter-spacing:.06em;">PARAKKAT HOSPITALITY · <%= ((locals.selReport || {}).period || '').toUpperCase() %></span>
@@ -224,15 +224,8 @@
                   </div>
                 <% }); %>
               </div>
-              <div style="flex:1; margin-top:22px; display:flex; align-items:flex-end;">
-                <svg viewBox="0 0 900 220" style="width:100%; height:100%;" preserveAspectRatio="none">
-                  <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="55" x2="900" y2="55"></line><line x1="0" y1="110" x2="900" y2="110"></line><line x1="0" y1="165" x2="900" y2="165"></line></g>
-                  <path d="M0,168 L112,152 L224,158 L336,124 L448,134 L560,96 L672,104 L784,58 L900,40 L900,220 L0,220 Z" fill="var(--color-accent-500)" opacity="0.16"></path>
-                  <polyline points="0,168 112,152 224,158 336,124 448,134 560,96 672,104 784,58 900,40" fill="none" stroke="var(--color-accent-400)" stroke-width="3.5" stroke-linejoin="round"></polyline>
-                  <circle cx="900" cy="40" r="6" fill="var(--color-accent-300)"></circle>
-                </svg>
-              </div>
-              <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--color-neutral-700); margin-top:8px;"><span>Jan</span><span>Mar</span><span>May</span><span>Jul</span></div>
+              <%# Was a hand-drawn rising line labelled Jan–Jul — the same shape whatever the data. %>
+              <%- include('../partials/dash-charts', { set: 'exec', charts: locals.presentCharts, only: 'leadsVsBookings' }) %>
             </div>
           <% } %>
 
@@ -244,7 +237,7 @@
                   <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:9px 8px 9px 0; font-weight:500;">REPORT</th><th style="padding:9px 8px; font-weight:500;">FREQUENCY</th><th style="padding:9px 8px; font-weight:500;">DELIVERY</th><th style="padding:9px 8px; font-weight:500;">RECIPIENTS</th><th style="padding:9px 8px; font-weight:500;">NEXT RUN</th><th style="padding:9px 0 9px 8px; text-align:right; font-weight:500;">STATUS</th></tr></thead>
                   <tbody>
                     <% (schedules || []).forEach(function (sc) { %>
-                      <tr class="hv-1" style="border-top:1px solid var(--color-neutral-900); cursor:pointer;">
+                      <tr class="hv-1" data-action="/reports?v=repTemplates" title="Open this report" style="border-top:1px solid var(--color-neutral-900); cursor:pointer;">
                         <td style="padding:9px 8px 9px 0;"><span style="display:flex; align-items:center; gap:8px;"><i class="<%= sc.icon %>" style="font-size:14px; color:var(--color-accent-400);"></i><span style="color:var(--color-neutral-200); white-space:nowrap;"><%= sc.name %></span></span></td>
                         <td style="padding:9px 8px; color:var(--color-neutral-400); white-space:nowrap;"><%= sc.freq %></td>
                         <td style="padding:9px 8px;"><span style="display:flex; gap:6px;"><% (sc.channels || []).forEach(function (ch) { %><i class="<%= ch %>" style="font-size:13px; color:var(--color-neutral-500);"></i><% }); %></span></td>
