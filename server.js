@@ -177,14 +177,18 @@ const building = new Map();
 const SERVE_STALE = !SERVERLESS;
 
 async function hydrateEntities(workspaceId) {
-  if (!shouldRebuild(workspaceId) && !(await storeMoved(workspaceId))) return entityCache.get(workspaceId);
+  const rebuild = shouldRebuild(workspaceId);
+  if (!rebuild && !(await storeMoved(workspaceId))) return entityCache.get(workspaceId);
   const stale = SERVE_STALE && entityCache.has(workspaceId);
   if (building.has(workspaceId)) return stale ? entityCache.get(workspaceId) : building.get(workspaceId);
 
+  const why = !entityCache.has(workspaceId) ? 'no snapshot yet' : (rebuild ? 'marked stale' : 'store moved');
+  const t0 = Date.now();
   const work = (async () => {
     /* Read before the build, not after — see lib/store/freshness.js. */
     const marker = await snapshotFreshness.marker(workspaceId);
     const entities = await snapshotFor(workspaceId);
+    if (SERVE_STALE) console.log(`entities: built "${workspaceId}" (${why}${stale ? ', served stale meanwhile' : ''}) in ${Date.now() - t0}ms`);
     entityCache.set(workspaceId, entities);
     snapshotFreshness.record(workspaceId, marker);
     staleAt.delete(workspaceId);
@@ -4877,24 +4881,29 @@ async function start() {
 
   const server = app.listen(PORT, () => {
     console.log(`LeadIntel app on http://localhost:${PORT}`);
-    /* Build the snapshot now rather than inside the first visitor's request:
-       on the self-hosted server that first build takes ~30 s. */
-    if (store.usingPostgres()) {
+    /* Warm the app the way a visitor would, rather than inside the first
+       visitor's request: on the self-hosted server the first Executive view
+       paid ~6 s for template compiles, lazy collections and metric caches, and
+       the snapshot build before that ~30 s. Signs in as the seeded owner over
+       loopback and opens the main screens once; nothing is written but the
+       session row and its audit line. */
+    if (store.usingPostgres() && process.env.LEADINTEL_WARM !== 'off') {
       const t = Date.now();
-      hydrateEntities(SYNC_WORKSPACE)
-        .then(async () => {
-          console.log(`entities: warmed "${SYNC_WORKSPACE}" in ${Date.now() - t}ms`);
-          /* And the default window's figures and dashboard projection, which a
-             first Executive Dashboard view otherwise computed for ~9 s. */
-          const u = Date.now();
-          const params = readParams({}, SYNC_WORKSPACE);
-          await repo.read('dashboard', params);
-          await repo.read('marketing', params);
-          const v = Date.now();
-          notifications(SYNC_WORKSPACE);
-          console.log(`dashboard: warmed in ${v - u}ms, notifications in ${Date.now() - v}ms`);
-        })
-        .catch((err) => console.warn('entities: warm-up failed —', err.message));
+      (async () => {
+        await hydrateEntities(SYNC_WORKSPACE);
+        const base = `http://127.0.0.1:${PORT}`;
+        const login = await fetch(`${base}/login`, {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ user: 'anand', password: 'leadintel' }), redirect: 'manual',
+        });
+        const cookie = (login.headers.get('set-cookie') || '').split(';')[0];
+        if (!cookie) throw new Error(`warm-up sign-in answered ${login.status}`);
+        for (const path of ['/', '/marketing', '/funnel-analytics', '/leads', '/connections']) {
+          const res = await fetch(base + path, { headers: { cookie } });
+          await res.text();
+        }
+        console.log(`warm-up: ready in ${Date.now() - t}ms`);
+      })().catch((err) => console.warn('warm-up failed —', err.message));
     }
   });
 
