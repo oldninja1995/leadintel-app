@@ -166,9 +166,20 @@ function snapshotFor(workspaceId) {
  * build, which is the duplication this was meant to remove. */
 const building = new Map();
 
+/* Off Vercel a stale snapshot is served while its replacement builds.
+ *
+ * On the self-hosted server (2026-10-18) a rebuild took 18–28 s and ran inside
+ * whichever page request found the cache stale — during a 365-day backfill
+ * that was every other page. A process that lives on can build in the
+ * background and swap the result in; a serverless instance cannot, because
+ * nothing runs after it answers, so it keeps waiting as before. Only the very
+ * first build of a process (no snapshot at all) is waited for. */
+const SERVE_STALE = !SERVERLESS;
+
 async function hydrateEntities(workspaceId) {
   if (!shouldRebuild(workspaceId) && !(await storeMoved(workspaceId))) return entityCache.get(workspaceId);
-  if (building.has(workspaceId)) return building.get(workspaceId);
+  const stale = SERVE_STALE && entityCache.has(workspaceId);
+  if (building.has(workspaceId)) return stale ? entityCache.get(workspaceId) : building.get(workspaceId);
 
   const work = (async () => {
     /* Read before the build, not after — see lib/store/freshness.js. */
@@ -185,6 +196,10 @@ async function hydrateEntities(workspaceId) {
   })().finally(() => building.delete(workspaceId));
 
   building.set(workspaceId, work);
+  if (stale) {
+    work.catch((err) => console.warn(`entities: background rebuild for "${workspaceId}" failed —`, err.message));
+    return entityCache.get(workspaceId);
+  }
   return work;
 }
 
@@ -233,6 +248,11 @@ async function storeMoved(workspaceId) {
 function entitiesFor(workspaceId) {
   if (!workspaceId) throw new Error('entities need a workspace');
   if (!shouldRebuild(workspaceId)) return entityCache.get(workspaceId);
+  /* The request's hydrate already chose to serve this one while a newer
+     snapshot builds — see SERVE_STALE. */
+  if (SERVE_STALE && entityCache.has(workspaceId) && (building.has(workspaceId) || store.usingPostgres())) {
+    return entityCache.get(workspaceId);
+  }
 
   const entities = snapshotFor(workspaceId);
   /* Against a file store this is already a value and nothing had to be
@@ -315,10 +335,18 @@ const staleAt = new Map();
 function dropEntities(workspaceId = null, { now = false } = {}) {
   const ids = workspaceId ? [workspaceId] : [...entityCache.keys()];
   for (const id of ids) {
+    /* Off Vercel "now" means rebuild now, in the background, while the current
+       snapshot keeps answering — deleting it made the next page wait ~25 s. */
+    if (now && SERVE_STALE && entityCache.has(id)) {
+      staleAt.set(id, 1); // long past, so shouldRebuild says yes (0 would read as "not stale")
+      snapshotFreshness.forget(id);
+      hydrateEntities(id).catch((err) => console.warn(`entities: rebuild for "${id}" failed —`, err.message));
+      continue;
+    }
     if (now) { entityCache.delete(id); staleAt.delete(id); snapshotFreshness.forget(id); continue; }
     if (!staleAt.has(id)) staleAt.set(id, Date.now());
   }
-  if (!workspaceId && now) entityCache.clear();
+  if (!workspaceId && now && !SERVE_STALE) entityCache.clear();
 }
 
 /* Whether the snapshot for a workspace should be rebuilt now. */
