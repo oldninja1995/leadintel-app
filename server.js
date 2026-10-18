@@ -2271,9 +2271,9 @@ app.post('/connections/:source/test',
     try {
       const credentials = connections.secretsFor(req.workspace, source);
       if (!credentials) throw new Error('no credential stored');
-      const transport = ingest.createTransport('http', { credentials });
+      const transport = ingest.createTransport('http', { credentials, firstPageOnly: true });
       const rows = await transport.fetch({ source: ingest.sources.get(source), kind: ingest.sources.get(source).kinds[0], window: null });
-      result = { ok: true, detail: `${rows.length} record(s) returned` };
+      result = { ok: true, detail: `credential works — ${rows.length} record(s) on the first page` };
     } catch (err) {
       result = { ok: false, detail: err.message };
     }

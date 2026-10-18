@@ -495,3 +495,14 @@ test('a lead pull fetches the remaining pages concurrently and keeps every row i
   assert.equal(rows[249].lead_id, 'l249');
   assert.ok(peak >= 2, `pages after the first should overlap, peak was ${peak}`);
 });
+
+test('a credential test reads one page, however many the account has', async () => {
+  let calls = 0;
+  const fetchImpl = async () => {
+    calls += 1;
+    return { ok: true, status: 200, json: async () => ({ data: Array.from({ length: 100 }, (_, i) => ({ id: `l${i}`, fields: { phone: String(i) } })), total_count: 101494 }) };
+  };
+  const rows = await httpTransport({ credentials: CREDS, fetchImpl, firstPageOnly: true }).fetch({ source: sources.get('telecrm'), kind: 'lead', window: null });
+  assert.equal(rows.length, 100);
+  assert.equal(calls, 1);
+});
