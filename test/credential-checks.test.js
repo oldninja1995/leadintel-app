@@ -206,3 +206,16 @@ test('an unconfigured source reports no values at all', () => {
   assert.equal(described.configured, false);
   for (const field of described.fields) assert.equal(field.value, null);
 });
+
+test('a credential sealed under an old secret can be repaired by re-entering its secret fields', () => {
+  /* The 2026-10-18 move off Vercel: the store came across, the old
+     LEADINTEL_SECRET did not. Plain fields survive; secrets must be retyped. */
+  const file = temp();
+  new Connections({ file, secret: 'old-secret' }).set('ws', 'meta_ads', { accountId: 'act_1015452922906510', accessToken: `${REAL_META_TOKEN}old` });
+  const moved = new Connections({ file, secret: 'new-secret' });
+  assert.throws(() => moved.secretsFor('ws', 'meta_ads'));
+  assert.deepEqual(moved.readableFor('ws', 'meta_ads'), { accountId: 'act_1015452922906510' });
+
+  moved.set('ws', 'meta_ads', { ...moved.readableFor('ws', 'meta_ads'), accessToken: REAL_META_TOKEN });
+  assert.deepEqual(moved.secretsFor('ws', 'meta_ads'), { accountId: 'act_1015452922906510', accessToken: REAL_META_TOKEN });
+});

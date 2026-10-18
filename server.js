@@ -2170,7 +2170,7 @@ app.post('/connections/:source',
     try {
       /* A blank field means "keep what is stored" rather than "clear it", so
          updating one credential does not silently wipe the others. */
-      const existing = connections.secretsFor(req.workspace, source) || {};
+      const existing = connections.readableFor(req.workspace, source);
       const merged = { ...existing };
       for (const [key, value] of Object.entries(req.body || {})) {
         if (String(value || '').trim()) merged[key] = String(value).trim();
