@@ -24,7 +24,7 @@
               <label class="li-lf-pick<%= lf.owner ? ' is-on' : '' %>"><span>Owner</span>
                 <select name="owner" data-li-autosubmit aria-label="Owner">
                   <option value="">All</option>
-                  <% lf.owners.forEach(function (o) { %><option value="<%= o.value %>"<%= o.value === lf.owner ? ' selected' : '' %>><%= o.label %> (<%= o.n %>)</option><% }); %>
+                  <% lf.owners.forEach(function (o) { %><option value="<%= o.value %>"<%= o.value.toLowerCase() === String(lf.owner || '').toLowerCase() ? ' selected' : '' %>><%= o.label %> (<%= o.n %>)</option><% }); %>
                 </select>
               </label>
               <label class="li-lf-pick<%= lf.progress ? ' is-on' : '' %>" title="How far the lead got, by the same rules as Full Funnel Analytics"><span>Progress</span>
