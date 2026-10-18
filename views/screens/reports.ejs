@@ -157,13 +157,13 @@
                   <div>
                     <div style="font-size:12px; font-weight:500; color:<%= up %>; margin-bottom:6px;">Top opportunities</div>
                     <% (scoreOpps || []).forEach(function (o) { %>
-                      <div style="display:flex; gap:9px; padding:8px 0; border-top:1px solid var(--color-neutral-900); font-size:11.5px; color:var(--color-neutral-300); line-height:1.5;"><i class="ph ph-arrow-up-right" style="color:<%= up %>; font-size:13px; margin-top:1px;"></i><span style="flex:1;"><%= o.text %></span><span style="color:var(--color-neutral-500); white-space:nowrap;"><%= o.value %></span></div>
+                      <div style="display:flex; gap:9px; padding:8px 0; border-top:1px solid var(--color-neutral-900); font-size:11.5px; color:var(--color-neutral-300); line-height:1.5;"><i class="ph ph-arrow-up-right" style="color:<%= up %>; font-size:13px; margin-top:1px;"></i><span style="flex:1; min-width:0;"><span class="li-rep-head"><%= o.text %></span><span class="li-rep-why"><%= o.value %></span></span></div>
                     <% }); %>
                   </div>
                   <div>
                     <div style="font-size:12px; font-weight:500; color:<%= down %>; margin-bottom:6px;">Top risks</div>
                     <% (scoreRisks || []).forEach(function (o) { %>
-                      <div style="display:flex; gap:9px; padding:8px 0; border-top:1px solid var(--color-neutral-900); font-size:11.5px; color:var(--color-neutral-300); line-height:1.5;"><i class="ph ph-arrow-down-right" style="color:<%= down %>; font-size:13px; margin-top:1px;"></i><span style="flex:1;"><%= o.text %></span><span style="color:var(--color-neutral-500); white-space:nowrap;"><%= o.value %></span></div>
+                      <div style="display:flex; gap:9px; padding:8px 0; border-top:1px solid var(--color-neutral-900); font-size:11.5px; color:var(--color-neutral-300); line-height:1.5;"><i class="ph ph-arrow-down-right" style="color:<%= down %>; font-size:13px; margin-top:1px;"></i><span style="flex:1; min-width:0;"><span class="li-rep-head"><%= o.text %></span><span class="li-rep-why"><%= o.value %></span></span></div>
                     <% }); %>
                   </div>
                 </div>
@@ -297,13 +297,13 @@
               <div>
                 <div style="font-size:12px; font-weight:500; margin-bottom:6px; color:<%= up %>;">Top performers</div>
                 <% (selReport.top || []).forEach(function (t) { %>
-                  <div style="display:flex; justify-content:space-between; gap:8px; padding:7px 0; border-top:1px solid var(--color-neutral-900); font-size:11.5px;"><span style="color:var(--color-neutral-300);"><%= t.name %></span><span style="font-variant-numeric:tabular-nums; color:var(--color-neutral-200); font-weight:500; white-space:nowrap;"><%= t.val %></span></div>
+                  <div class="li-rep-item"><span class="li-rep-head"><%= t.name %></span><span class="li-rep-why"><%= t.val %></span></div>
                 <% }); %>
               </div>
               <div>
                 <div style="font-size:12px; font-weight:500; margin-bottom:6px; color:<%= down %>;">Needs attention</div>
                 <% (selReport.worst || []).forEach(function (t) { %>
-                  <div style="display:flex; justify-content:space-between; gap:8px; padding:7px 0; border-top:1px solid var(--color-neutral-900); font-size:11.5px;"><span style="color:var(--color-neutral-300);"><%= t.name %></span><span style="font-variant-numeric:tabular-nums; color:var(--color-neutral-200); font-weight:500; white-space:nowrap;"><%= t.val %></span></div>
+                  <div class="li-rep-item"><span class="li-rep-head"><%= t.name %></span><span class="li-rep-why"><%= t.val %></span></div>
                 <% }); %>
               </div>
             </div>

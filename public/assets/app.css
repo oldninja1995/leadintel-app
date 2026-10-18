@@ -583,3 +583,10 @@ a.li-rb-row:hover, .li-rb-row:hover { background: var(--color-neutral-900); }
 .li-rb-table td { padding: 7px 8px; border-top: 1px solid var(--color-neutral-900); font-variant-numeric: tabular-nums; }
 @media (max-width: 1180px) { .li-rb-canvas { grid-template-columns: repeat(2, minmax(0, 1fr)); } .li-rb-w--chart { grid-column: 1 / -1; } }
 @media (max-width: 640px) { .li-rb-canvas { grid-template-columns: 1fr; } .li-rb-w { grid-column: 1 / -1 !important; } .li-rb-add select, .li-rb-rename input { min-width: 0; flex: 1; } }
+
+/* Reports' top-performer / needs-attention rows: a short headline over its
+   explanation. The design expected the reverse shape, and a long explanation
+   set to nowrap squeezed the headline into a sliver. */
+.li-rep-item { padding: 7px 0; border-top: 1px solid var(--color-neutral-900); font-size: 11.5px; line-height: 1.5; }
+.li-rep-head { display: block; color: var(--color-neutral-200); font-weight: 500; }
+.li-rep-why { display: block; color: var(--color-neutral-500); }

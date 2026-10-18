@@ -1239,12 +1239,26 @@
     }, true);
   }
 
+  /* A cross-document view transition the browser abandons — a form posting
+     and redirecting, a tab in the background — rejects its promises, and
+     nothing awaited them, so every such navigation logged "Transition was
+     aborted". The fade is cosmetic; a skipped one needs no report. */
+  function quietTransitions() {
+    const settle = (vt) => {
+      if (!vt) return;
+      for (const k of ['ready', 'finished', 'updateCallbackDone']) if (vt[k] && vt[k].catch) vt[k].catch(() => {});
+    };
+    window.addEventListener('pageswap', (e) => settle(e.viewTransition));
+    window.addEventListener('pagereveal', (e) => settle(e.viewTransition));
+  }
+
   syncBadge();
   autoSync();
   hoverPrefetch();
   lazyThumbs();
   tableTools();
   confirmForms();
+  quietTransitions();
   chartPops();
   enhanceChips();
   enhanceRange();
