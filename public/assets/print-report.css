@@ -1,0 +1,27 @@
+/* Print view of a report — light, plain, A4-friendly. */
+* { box-sizing: border-box; }
+body { margin: 0; background: #fff; color: #1f2330; font: 13px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+.pr { max-width: 960px; margin: 0 auto; padding: 32px 28px; }
+.pr-head { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; border-bottom: 2px solid #6d5bd0; padding-bottom: 14px; margin-bottom: 20px; }
+.pr-head h1 { margin: 0; font-size: 24px; }
+.pr-head p { margin: 4px 0 0; color: #6d5bd0; font-weight: 500; }
+.pr-meta { text-align: right; color: #6b7180; font-size: 11.5px; }
+.pr-print { margin-top: 8px; border: 1px solid #c9c4ea; background: #f4f3fa; color: #3b2f8f; border-radius: 6px; padding: 6px 12px; font: inherit; cursor: pointer; }
+h2 { font-size: 14px; margin: 22px 0 8px; color: #3b2f8f; }
+.pr-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.pr-kpi { border: 1px solid #e1def2; border-radius: 8px; padding: 10px 12px; break-inside: avoid; }
+.pr-l { font-size: 10px; letter-spacing: .05em; text-transform: uppercase; color: #6b7180; }
+.pr-v { font-size: 20px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.pr-d { font-size: 11px; color: #6d5bd0; }
+.pr-summary { margin: 0; }
+.pr-two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.pr-item { padding: 6px 0; border-top: 1px solid #eee; break-inside: avoid; }
+.pr-item strong { display: block; }
+.pr-item span { color: #6b7180; }
+ul { margin: 0; padding-left: 18px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { text-align: left; font-weight: 600; color: #6b7180; border-bottom: 1px solid #ddd; padding: 6px 8px; }
+td { border-bottom: 1px solid #eee; padding: 6px 8px; font-variant-numeric: tabular-nums; }
+tr { break-inside: avoid; }
+@media print { .pr-print { display: none; } .pr { padding: 0; } @page { margin: 14mm; } }
+@media (max-width: 640px) { .pr-kpis { grid-template-columns: 1fr 1fr; } .pr-two { grid-template-columns: 1fr; } .pr-head { flex-direction: column; } .pr-meta { text-align: left; } }

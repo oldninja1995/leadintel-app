@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title><%= data.title %> — <%= data.period %></title>
+<link rel="stylesheet" href="<%= asset('print-report.css') %>">
+</head>
+<body<%= auto ? ' data-auto-print' : '' %>>
+<main class="pr">
+  <header class="pr-head">
+    <div><h1><%= data.title %></h1><p><%= data.period %></p></div>
+    <div class="pr-meta">LeadIntel · generated <%= data.generated %><br><button type="button" class="pr-print" data-print>Print / Save as PDF</button></div>
+  </header>
+  <% if (data.kpis.length) { %>
+    <section class="pr-kpis">
+      <% data.kpis.forEach(function (k) { %><div class="pr-kpi"><div class="pr-l"><%= k.label %></div><div class="pr-v"><%= k.value %></div><% if (k.delta) { %><div class="pr-d"><%= k.delta %></div><% } %></div><% }); %>
+    </section>
+  <% } %>
+  <% if (data.summary) { %><section><h2>Summary</h2><p class="pr-summary"><%= data.summary %></p></section><% } %>
+  <% if (data.top.length || data.worst.length) { %>
+    <section class="pr-two">
+      <div><h2>Top performers</h2><% data.top.forEach(function (t) { %><div class="pr-item"><strong><%= t.name %></strong><span><%= t.val %></span></div><% }); %></div>
+      <div><h2>Needs attention</h2><% data.worst.forEach(function (t) { %><div class="pr-item"><strong><%= t.name %></strong><span><%= t.val %></span></div><% }); %></div>
+    </section>
+  <% } %>
+  <% if (data.recs.length) { %><section><h2>Recommendations</h2><ul><% data.recs.forEach(function (r) { %><li><%= r %></li><% }); %></ul></section><% } %>
+  <% if (data.campaigns.length) { %>
+    <section><h2>Campaigns</h2>
+      <table><thead><tr><th>Campaign</th><th>Platform</th><th>Spend</th><th>Leads</th><th>CPL</th><th>Bookings</th><th>ROAS</th></tr></thead>
+      <tbody><% data.campaigns.forEach(function (c) { %><tr><td><%= c.name %></td><td><%= c.platform %></td><td><%= c.spend %></td><td><%= c.leads %></td><td><%= c.cpl %></td><td><%= c.bookings %></td><td><%= c.roas %></td></tr><% }); %></tbody></table>
+    </section>
+  <% } %>
+</main>
+<script src="<%= asset('print-report.js') %>"></script>
+</body>
+</html>

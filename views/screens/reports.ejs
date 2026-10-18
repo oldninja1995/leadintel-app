@@ -60,6 +60,9 @@
                   <div style="flex:1;"></div>
                   <a class="li-rb-btn<%= locals.repVersionsOpen ? ' li-tt-on' : '' %>" href="/reports?v=repBuilder&report=<%= saved.id %><%= locals.repVersionsOpen ? '' : '&versions=1' %>"><i class="ph ph-clock-counter-clockwise"></i> Version history (v<%= saved.versions[0].v %>)</a>
                   <form method="post" action="/reports/<%= saved.id %>/delete" data-li-confirm="Delete the dashboard “<%= saved.name %>” for everyone?"><button type="submit" class="li-rb-btn li-rb-danger"><i class="ph ph-trash"></i> Delete</button></form>
+                  <a class="li-rb-btn" href="/reports/print<%= locals.repQsAnd %>report=<%= saved.id %>" target="_blank" rel="noopener"><i class="ph ph-file-pdf"></i> PDF</a>
+                  <a class="li-rb-btn" href="/reports/export.xlsx<%= locals.repQsAnd %>report=<%= saved.id %>"><i class="ph ph-file-xls"></i> Excel</a>
+                  <a class="li-rb-btn" href="/reports/export.pptx<%= locals.repQsAnd %>report=<%= saved.id %>"><i class="ph ph-presentation-chart"></i> PPT</a>
                   <a class="li-rb-btn" href="/reports?v=repBuilder">All dashboards</a>
                 </div>
                 <% if (locals.repVersionsOpen) { %>
@@ -127,8 +130,8 @@
                     <div style="font-size:11.5px; color:var(--color-accent-2-300); margin-top:3px;">3 properties · 104 keys · prepared for the owner & board</div>
                   </div>
                   <div style="display:flex; gap:6px;">
-                    <span style="font-size:11px; border:1px solid var(--color-section-ghost); border-radius:7px; padding:5px 12px; color:var(--color-accent-2-300); cursor:pointer;">PDF</span>
-                    <span style="font-size:11px; border:1px solid var(--color-section-ghost); border-radius:7px; padding:5px 12px; color:var(--color-accent-2-300); cursor:pointer;">PPT</span>
+                    <a href="/reports/print<%= locals.repQs %>" target="_blank" rel="noopener" style="font-size:11px; border:1px solid var(--color-section-ghost); border-radius:7px; padding:5px 12px; color:var(--color-accent-2-300); cursor:pointer; text-decoration:none;">PDF</a>
+                    <a href="/reports/export.pptx<%= locals.repQs %>" style="font-size:11px; border:1px solid var(--color-section-ghost); border-radius:7px; padding:5px 12px; color:var(--color-accent-2-300); cursor:pointer; text-decoration:none;">PPT</a>
                     <span class="hv-7" style="font-size:11px; border:1px solid var(--color-accent-500); border-radius:7px; padding:5px 12px; color:var(--color-accent-200); cursor:pointer;">Send</span>
                   </div>
                 </div>
@@ -255,7 +258,7 @@
                   <div style="font-size:13px; font-weight:500; margin-bottom:2px;">Export designer</div>
                   <div style="font-size:10.5px; color:var(--color-neutral-600); margin-bottom:11px;">branded output · applies white-label settings</div>
                   <% (exportOpts || []).forEach(function (e) { %>
-                    <div class="hv-1" style="display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--color-neutral-900); font-size:11.5px; cursor:pointer;">
+                    <% var go = { PDF: '/reports/print' + (locals.repQs || ''), Excel: '/reports/export.xlsx' + (locals.repQs || ''), CSV: '/reports/export.csv' + (locals.repQs || ''), Link: 'shareLink' }[e.name]; %><div class="hv-1"<% if (go) { %> data-action="<%= go %>"<% } %> role="button" tabindex="0" style="display:flex; align-items:center; gap:10px; padding:8px 0; border-top:1px solid var(--color-neutral-900); font-size:11.5px; cursor:pointer;">
                       <i class="<%= e.icon %>" style="font-size:15px; color:<%= e.color %>;"></i>
                       <div style="flex:1;"><div style="color:var(--color-neutral-300);"><%= e.name %></div><div style="font-size:10px; color:var(--color-neutral-600);"><%= e.meta %></div></div>
                       <i class="ph ph-caret-right" style="font-size:12px; color:var(--color-neutral-700);"></i>
@@ -283,9 +286,9 @@
               <div><div style="font-size:16px; font-weight:500; font-family:var(--font-heading);"><%= selReport.name %></div><div style="font-size:11px; color:var(--color-neutral-600); margin-top:2px;"><%= selReport.period %> · auto-scheduled · 4 recipients</div></div>
               <div style="flex:1;"></div>
               <div style="display:flex; gap:6px;">
-                <span class="hv-5" style="font-size:11px; border:1px solid var(--color-neutral-800); border-radius:6px; padding:4px 10px; color:var(--color-neutral-400); cursor:pointer;">PDF</span>
-                <span class="hv-5" style="font-size:11px; border:1px solid var(--color-neutral-800); border-radius:6px; padding:4px 10px; color:var(--color-neutral-400); cursor:pointer;">Excel</span>
-                <span class="hv-5" style="font-size:11px; border:1px solid var(--color-neutral-800); border-radius:6px; padding:4px 10px; color:var(--color-neutral-400); cursor:pointer;">PPT</span>
+                <a class="hv-5" href="/reports/print<%= locals.repQs %>" target="_blank" rel="noopener" style="font-size:11px; border:1px solid var(--color-neutral-800); border-radius:6px; padding:4px 10px; color:var(--color-neutral-400); cursor:pointer; text-decoration:none;">PDF</a>
+                <a class="hv-5" href="/reports/export.xlsx<%= locals.repQs %>" style="font-size:11px; border:1px solid var(--color-neutral-800); border-radius:6px; padding:4px 10px; color:var(--color-neutral-400); cursor:pointer; text-decoration:none;">Excel</a>
+                <a class="hv-5" href="/reports/export.pptx<%= locals.repQs %>" style="font-size:11px; border:1px solid var(--color-neutral-800); border-radius:6px; padding:4px 10px; color:var(--color-neutral-400); cursor:pointer; text-decoration:none;">PPT</a>
                 <span class="hv-7" style="font-size:11px; border:1px solid var(--color-accent-600); border-radius:6px; padding:4px 10px; color:var(--color-accent-300); cursor:pointer;"><i class="ph ph-envelope-simple" style="font-size:11px;"></i> Email now</span>
               </div>
             </div>

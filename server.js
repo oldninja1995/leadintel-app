@@ -2349,6 +2349,62 @@ app.post('/reports/:id/delete', ...reportEdit((req) => {
   return '/reports?v=repBuilder';
 }));
 
+/* Report exports. The figures come out of the same projection and metric
+   resolver that draw Reports, so a file and the screen cannot disagree. A
+   saved dashboard (?report=) exports its own KPI tiles, table and summary;
+   otherwise the Templates report goes out with a standard set of figures. */
+const reportExport = require('./lib/report-export');
+const EXPORT_KPIS = ['revenue.reservations', 'bookings.reservations', 'roas.total', 'revenue.per_reservation', 'leads.count', 'leads.interested_rate', 'ads.spend', 'cost.per_lead'];
+async function reportExportData(req) {
+  const params = readParams(req.query, req.workspace);
+  const out = await repo.read('reports', params);
+  const saved = out.repSaved;
+  const metricsWanted = saved
+    ? (out.builderKpis || []).map((k) => ({ metric: k.metric, label: k.label }))
+    : EXPORT_KPIS.map((id) => ({ metric: id, label: (metrics.registry.get(id) || { name: id }).name }));
+  const resolved = resolveMetrics({ exportKpis: metricsWanted }, req.workspace, params.over).exportKpis || [];
+  const sel = out.selReport || {};
+  return reportExport.collect({
+    title: saved ? saved.name : (sel.name || 'Owner weekly summary'),
+    period: sel.period,
+    kpis: resolved.map((k) => ({ label: k.label, value: k.value, delta: k.delta })),
+    summary: saved ? saved.summary : sel.summary,
+    top: saved ? [] : (sel.top || []),
+    worst: saved ? [] : (sel.worst || []),
+    recs: saved ? [] : (sel.recs || []),
+    campaigns: saved ? (saved.tableRows || []) : (out.repCampaigns || []),
+  });
+}
+const EXPORT_TYPES = {
+  xlsx: { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', build: reportExport.toXlsx },
+  pptx: { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', build: reportExport.toPptx },
+  csv: { type: 'text/csv; charset=utf-8', build: async (d) => Buffer.from(reportExport.toCsv(d), 'utf8') },
+};
+app.get('/reports/export.:fmt', async (req, res, next) => {
+  const kind = EXPORT_TYPES[req.params.fmt];
+  if (!kind) return next();
+  try {
+    const data = await reportExportData(req);
+    const body = await kind.build(data);
+    res.setHeader('Content-Type', kind.type);
+    res.setHeader('Content-Disposition', `attachment; filename="${reportExport.fileName(data, req.params.fmt)}"`);
+    res.setHeader('Cache-Control', 'no-store');
+    return res.send(body);
+  } catch (err) {
+    return next(err);
+  }
+});
+/* PDF: a print layout of the same report, which opens the print dialog —
+   "Save as PDF" in every browser. */
+app.get('/reports/print', async (req, res, next) => {
+  try {
+    const data = await reportExportData(req);
+    return res.render('print-report', { data, auto: req.query.auto !== '0', asset: app.locals.asset });
+  } catch (err) {
+    return next(err);
+  }
+});
+
 app.post('/connections/sync',
   express.urlencoded({ extended: false }), express.json(),
   gatekeeper.gate('connection.manage', () => ({ source: 'all', action: 'sync' })),
