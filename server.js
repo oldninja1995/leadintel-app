@@ -2118,8 +2118,11 @@ app.post('/connections/sync',
    itself fresh instead: every page asks here, and this syncs only when the
    oldest connected source is older than AUTO_SYNC_EVERY_S. Any number of tabs
    and users can ask; while the data is fresh the answer costs one log read.
+   Hourly, not every 15 minutes: on 18 Oct 2026 the free plan's CPU fair-use
+   limit blocked the whole Vercel account, and a full sync of every source four
+   times an hour per open tab was a large share of it.
    `inFlight` stops one instance starting a second run over its own. */
-const AUTO_SYNC_EVERY_S = 15 * 60;
+const AUTO_SYNC_EVERY_S = 60 * 60;
 let autoSyncInFlight = null;
 function syncAge(workspace) {
   const configured = connections.configured(workspace);

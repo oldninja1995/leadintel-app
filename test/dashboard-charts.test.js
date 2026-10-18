@@ -24,3 +24,13 @@ test('arrival heatmap buckets by India time', () => {
   const out = charts.executive({ leads: [{ id: 'a', createdAt: '2026-10-04T23:30:00Z', stage: 'Fresh' }], deals: [], campaignDays: [] }).arrivals;
   assert.strictEqual(out.peak, 'Mon 5am–6am');
 });
+
+test('charts are computed once per snapshot and range, and again when the data changes', () => {
+  const whole = { leads: [{ id: 'a', createdAt: '2026-10-01T05:00:00Z', stage: 'Fresh' }], deals: [], campaignDays: [] };
+  const over = { from: '2026-10-01T00:00:00.000Z', to: '2026-10-02T00:00:00.000Z', label: '2026-10-01..2026-10-01' };
+  const first = charts.executive(whole, { whole, over });
+  assert.strictEqual(charts.executive(whole, { whole, over }), first);
+  assert.notStrictEqual(charts.executive(whole, { whole, over, channel: 'meta' }), first);
+  const rebuilt = { ...whole };
+  assert.notStrictEqual(charts.executive(rebuilt, { whole: rebuilt, over }), first);
+});

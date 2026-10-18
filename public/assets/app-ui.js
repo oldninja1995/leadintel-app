@@ -889,6 +889,10 @@
     const label = pill.querySelector('[data-li-sync-label]');
     const KEY = 'li-auto-sync-asked';
     const ASK_EVERY = 5 * 60 * 1000;
+    /* The server's threshold, learnt from its answers. While the last sync is
+       younger than this the page does not ask at all — every request is
+       function time, and on 18 Oct the account ran out of it. */
+    const read0 = () => { try { return Number(localStorage.getItem('li-auto-sync-every')) || 3600; } catch (e) { return 3600; } };
     let lastAt = null;
     let pending = false;
 
@@ -906,7 +910,7 @@
       if (title) pill.title = title;
     };
     const idle = () => {
-      if (lastAt) show('Synced ' + ago(lastAt), 'var(--color-accent-500)', 'Synced automatically every 15 minutes while the app is open. Click for Connections.');
+      if (lastAt) show('Synced ' + ago(lastAt), 'var(--color-accent-500)', 'Synced automatically every hour while the app is open. Click for Connections.');
     };
     const read = (k) => { try { return Number(localStorage.getItem(k)) || 0; } catch (e) { return 0; } };
     const write = (k, v) => { try { localStorage.setItem(k, String(v)); } catch (e) { /* private window */ } };
@@ -914,6 +918,7 @@
     async function ask(force) {
       if (pending || document.hidden) return;
       if (!force && Date.now() - read(KEY) < ASK_EVERY) { idle(); return; }
+      if (!force && lastAt && Date.now() - new Date(lastAt).getTime() < read0() * 1000) { idle(); return; }
       write(KEY, Date.now());
       pending = true;
       const slow = setTimeout(() => show('Syncing…', 'var(--color-neutral-400)', 'Pulling the latest from every connected source'), 600);
@@ -923,6 +928,7 @@
         if (!res.ok) { pill.style.display = 'none'; return; }
         const out = await res.json();
         if (out.lastAt) { lastAt = out.lastAt; write('li-auto-sync-last', new Date(out.lastAt).getTime()); }
+        if (out.every) write('li-auto-sync-every', out.every);
         if (out.state === 'synced') {
           const issues = (out.failed || []).length + (out.running || []).length;
           if (out.written > 0) {
