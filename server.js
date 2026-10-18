@@ -793,6 +793,7 @@ const readParams = (query, workspaceId = null) => {
     starters: Object.entries(REPORT_STARTERS).map(([id, s]) => ({ id, label: s.label })),
   };
   if (typeof params.report === 'string') params.savedReport = reportDefs.report(workspaceId, params.report);
+  params.emailReady = connections.configured(workspaceId).has('email');
 
   const back = metrics.period.previous(over);
   params.values = metricValues(workspaceId, null, over).values;
@@ -2404,6 +2405,68 @@ app.get('/reports/print', async (req, res, next) => {
     return next(err);
   }
 });
+
+/* Email now / Send: the report as an email, with the Excel attached, sent
+   from the workspace's own account (Connections → Email). Recorded as a
+   dispatch — the figures as sent — so a later restatement can be flagged. */
+const mailer = require('./lib/mailer');
+app.post('/reports/email', express.urlencoded({ extended: false }),
+  gatekeeper.gate('report.send', () => ({ action: 'email' })),
+  async (req, res) => {
+    const body = req.body || {};
+    const back = backTo(body.back, '/reports?v=repTemplates');
+    const done = (key, msg) => res.redirect(303, `${back}${back.includes('?') ? '&' : '?'}${key}=${encodeURIComponent(msg)}`);
+    try {
+      const to = mailer.recipients(body.to);
+      /* The export reads the range and report from the query; the form posts
+         them, so the email carries the window the sender was looking at. */
+      const query = {};
+      for (const k of ['period', 'from', 'to', 'property', 'channel', 'campaign', 'room', 'report']) {
+        if (typeof body['q_' + k] === 'string' && body['q_' + k]) query[k] = body['q_' + k];
+      }
+      const data = await reportExportData({ ...req, query });
+      const base = (process.env.LEADINTEL_PUBLIC_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+      const live = `${base}/reports${query.report ? `?v=repBuilder&report=${encodeURIComponent(query.report)}` : '?v=repTemplates'}`;
+      const mail = mailer.reportEmail(data, { note: String(body.note || '').slice(0, 2000), by: req.user && req.user.name, link: live });
+      await mailer.send({
+        credentials: connections.secretsFor(req.workspace, 'email'),
+        to,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+        attachments: [{ filename: reportExport.fileName(data, 'xlsx'), content: await reportExport.toXlsx(data) }],
+      });
+      try {
+        dispatches.send(data.title, {
+          evaluation: metrics.recordEvaluation(entitiesFor(req.workspace), { note: `emailed: ${data.title}` }),
+          recipients: to,
+          channels: ['email'],
+        });
+      } catch (err) {
+        console.warn('email: sent, but the dispatch was not recorded —', err.message);
+      }
+      return done('emailed', `Sent to ${to.join(', ')}`);
+    } catch (err) {
+      return done('emailError', err.message);
+    }
+  });
+app.post('/connections/email/test-email', express.urlencoded({ extended: false }),
+  gatekeeper.gate('connection.manage', () => ({ source: 'email', action: 'test' })),
+  async (req, res) => {
+    const creds = (() => { try { return connections.secretsFor(req.workspace, 'email'); } catch (err) { return null; } })();
+    try {
+      await mailer.send({
+        credentials: creds,
+        to: creds && creds.address,
+        subject: 'LeadIntel — test email',
+        text: 'This is a test from LeadIntel. Reports can now be emailed from this account.',
+        html: '<p>This is a test from <strong>LeadIntel</strong>. Reports can now be emailed from this account.</p>',
+      });
+      return res.redirect(303, `/connections?source=email&saved=${encodeURIComponent(`Test email sent to ${creds.address} — check that inbox`)}`);
+    } catch (err) {
+      return res.redirect(303, `/connections?source=email&error=${encodeURIComponent(err.message)}`);
+    }
+  });
 
 app.post('/connections/sync',
   express.urlencoded({ extended: false }), express.json(),
