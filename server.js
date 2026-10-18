@@ -415,6 +415,8 @@ const dispatches = new reports.Dispatches(undefined, { backend: backends.dispatc
 const connections = new Connections({ backend: backends.docs });
 /* Which cards each person keeps on each screen — see lib/layout.js. */
 const layouts = new Layouts(undefined, { backend: backends.docs });
+const { Annotations } = require('./lib/annotations');
+const annotations = new Annotations(undefined, { backend: backends.docs });
 /* Product & marketing config — written by marketing/server.js's /admin/config,
    read here to filter the sidebar (filterNavGroups below). */
 const siteConfig = new SiteConfig(undefined, { backend: backends.docs });
@@ -780,6 +782,8 @@ const readParams = (query, workspaceId = null) => {
   const over = periodFor(query).over;
   const params = { ...(query || {}), model: workspace.model(), over };
   if (!workspaceId) return params;
+  /* Team notes, for the screens that show them (Campaign Analytics). */
+  params.annotations = annotations.list(workspaceId);
 
   const back = metrics.period.previous(over);
   params.values = metricValues(workspaceId, null, over).values;
@@ -1701,7 +1705,7 @@ app.use((req, res, next) => {
      * store left outside it costs a full round trip, and the Server-Timing
      * numbers put that at about 190ms each on this deployment: these reads do
      * not overlap, whatever Promise.all suggests. */
-    timed('docs', store.hydrateDocuments({ connections, workspace, webhookTokens, layouts, definitionLog: metrics.definitionLog }), marks),
+    timed('docs', store.hydrateDocuments({ connections, workspace, webhookTokens, layouts, annotations, definitionLog: metrics.definitionLog }), marks),
     timed('runlog', runner.log.hydrate({ perTag: EDGE_RUN_WINDOW }), marks),
     timed('rules', fires.hydrate(), marks),
     timed('dispatches', dispatches.hydrate(), marks),
@@ -2239,6 +2243,42 @@ app.post('/leads/new',
       return back(`new=1&error=${encodeURIComponent(err.message)}&name=${encodeURIComponent(String(form.name || '').slice(0, 80))}&source=${encodeURIComponent(String(form.source || '').slice(0, 40))}`);
     }
   });
+
+/* Annotations — team notes on campaigns. Anyone signed in may add one; the
+   author or the owner may delete it. Only same-site paths are honoured as the
+   place to return to. */
+const backTo = (raw, fallback) => {
+  const v = String(raw || '');
+  return v.startsWith('/') && !v.startsWith('//') ? v : fallback;
+};
+app.post('/annotations', express.urlencoded({ extended: false }), async (req, res) => {
+  const back = backTo(req.body.back, '/campaigns?notes=1');
+  try {
+    annotations.add(req.workspace, {
+      campaign: req.body.campaign || null,
+      date: req.body.date,
+      text: req.body.text,
+      by: req.user && req.user.name,
+    });
+    await annotations.flush();
+    return res.redirect(303, back);
+  } catch (err) {
+    return res.redirect(303, `${back}${back.includes('?') ? '&' : '?'}noteError=${encodeURIComponent(err.message)}`);
+  }
+});
+app.post('/annotations/:id/delete', express.urlencoded({ extended: false }), async (req, res) => {
+  const back = backTo(req.body.back, '/campaigns?notes=1');
+  try {
+    annotations.remove(req.workspace, req.params.id, {
+      by: req.user && req.user.name,
+      allowAny: gatekeeper.permissions.can(req.user, 'connection.manage'),
+    });
+    await annotations.flush();
+    return res.redirect(303, back);
+  } catch (err) {
+    return res.redirect(303, `${back}${back.includes('?') ? '&' : '?'}noteError=${encodeURIComponent(err.message)}`);
+  }
+});
 
 app.post('/connections/sync',
   express.urlencoded({ extended: false }), express.json(),

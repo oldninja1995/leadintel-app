@@ -1083,10 +1083,158 @@
     cards.forEach((el) => io.observe(el));
   }
 
+  /* ── Table tools: columns, views, pin, search ─────────────────────────
+   *
+   * For a table marked `data-li-table="<id>"` and controls marked
+   * `data-li-tt="columns|view|pin"` + `data-li-tt-for="<id>"`. The design drew
+   * all four on Campaigns and none did anything. Hidden columns are applied
+   * with one generated nth-child rule per column, so every row follows without
+   * touching cells one by one. Remembered per browser; storage failing
+   * (private mode) only means the choice is not remembered. */
+  const TABLE_VIEWS = {
+    campaigns: {
+      'All columns': null,
+      'Revenue focus': ['CAMPAIGN', 'SPEND', 'LEADS', 'CPL', 'BOOKINGS', 'REVENUE', 'ROAS (CRM)'],
+      'Delivery focus': ['CAMPAIGN', 'OBJECTIVE', 'BUDGET PACING', 'SPEND', 'IMPR.', 'CTR', 'TREND'],
+      Efficiency: ['CAMPAIGN', 'SPEND', 'CTR', 'CPL', 'LEADS', 'BOOKINGS', 'ROAS (CRM)'],
+    },
+  };
+  function tableTools() {
+    const tables = document.querySelectorAll('table[data-li-table]');
+    if (!tables.length) return;
+    const load = (id) => { try { return JSON.parse(localStorage.getItem('li-table:' + id)) || {}; } catch (e) { return {}; } };
+    const save = (id, st) => { try { localStorage.setItem('li-table:' + id, JSON.stringify(st)); } catch (e) { /* not remembered */ } };
+    const heads = (table) => [...table.querySelectorAll('thead th')].map((th) => th.innerText.trim());
+    const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    const styleFor = (id) => {
+      let el = document.getElementById('li-tt-style-' + id);
+      if (!el) { el = document.createElement('style'); el.id = 'li-tt-style-' + id; document.head.appendChild(el); }
+      return el;
+    };
+    const tableOf = (id) => document.querySelector('table[data-li-table="' + id + '"]');
+    const apply = (table) => {
+      const id = table.getAttribute('data-li-table');
+      const st = load(id);
+      const names = heads(table);
+      const hidden = new Set(st.hidden || []);
+      const sel = 'table[data-li-table="' + id + '"]';
+      styleFor(id).textContent = names
+        .map((n, i) => (hidden.has(n) && i > 0 ? sel + ' tr > :nth-child(' + (i + 1) + ') { display: none; }' : ''))
+        .join('\n');
+      table.classList.toggle('li-tt-pinned', Boolean(st.pinned));
+      for (const pin of document.querySelectorAll('[data-li-tt="pin"][data-li-tt-for="' + id + '"]')) {
+        pin.setAttribute('aria-pressed', st.pinned ? 'true' : 'false');
+        pin.classList.toggle('li-tt-on', Boolean(st.pinned));
+      }
+      for (const lab of document.querySelectorAll('[data-li-tt="view"][data-li-tt-for="' + id + '"] [data-li-tt-view-label]')) {
+        lab.textContent = st.view || (hidden.size ? 'Custom' : 'All columns');
+      }
+      for (const btn of document.querySelectorAll('[data-li-tt="columns"][data-li-tt-for="' + id + '"]')) {
+        btn.classList.toggle('li-tt-on', hidden.size > 0);
+      }
+    };
+
+    let menu = null;
+    const closeMenu = () => { if (menu) { menu.remove(); menu = null; } };
+    const openMenu = (anchor, build) => {
+      closeMenu();
+      menu = document.createElement('div');
+      menu.className = 'li-menu li-tt-menu';
+      menu.setAttribute('role', 'menu');
+      build(menu);
+      document.body.appendChild(menu);
+      const r = anchor.getBoundingClientRect();
+      menu.style.top = (r.bottom + 6) + 'px';
+      menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8)) + 'px';
+    };
+
+    document.addEventListener('click', (e) => {
+      if (menu && menu.contains(e.target)) return;
+      const ctl = e.target.closest && e.target.closest('[data-li-tt]');
+      if (!ctl) { closeMenu(); return; }
+      const id = ctl.getAttribute('data-li-tt-for');
+      const table = tableOf(id);
+      if (!table) return;
+      const kind = ctl.getAttribute('data-li-tt');
+      const st = load(id);
+      if (kind === 'pin') {
+        st.pinned = !st.pinned;
+        save(id, st);
+        apply(table);
+        closeMenu();
+        return;
+      }
+      if (kind === 'columns') {
+        openMenu(ctl, (m) => {
+          const hidden = new Set(st.hidden || []);
+          m.innerHTML = '<div class="li-tt-menu-h">Show columns</div>'
+            + heads(table).slice(1).map((n) => '<label class="li-tt-opt"><input type="checkbox" value="' + esc(n) + '"'
+              + (hidden.has(n) ? '' : ' checked') + '> ' + esc(n) + '</label>').join('')
+            + '<button type="button" class="li-tt-reset">Show all</button>';
+          m.addEventListener('change', (ev) => {
+            const now = load(id);
+            const h = new Set(now.hidden || []);
+            if (ev.target.checked) h.delete(ev.target.value); else h.add(ev.target.value);
+            now.hidden = [...h];
+            now.view = null;
+            save(id, now);
+            apply(table);
+          });
+          m.querySelector('.li-tt-reset').addEventListener('click', () => {
+            const now = load(id);
+            now.hidden = [];
+            now.view = null;
+            save(id, now);
+            apply(table);
+            m.querySelectorAll('input').forEach((i) => { i.checked = true; });
+          });
+        });
+        return;
+      }
+      if (kind === 'view') {
+        const views = TABLE_VIEWS[id] || { 'All columns': null };
+        openMenu(ctl, (m) => {
+          m.innerHTML = '<div class="li-tt-menu-h">View</div>' + Object.keys(views).map((v) => '<button type="button" class="li-tt-opt'
+            + ((st.view || 'All columns') === v ? ' is-on' : '') + '" data-view="' + esc(v) + '">' + esc(v) + '</button>').join('');
+          m.addEventListener('click', (ev) => {
+            const b = ev.target.closest('[data-view]');
+            if (!b) return;
+            const v = b.getAttribute('data-view');
+            const keepCols = views[v];
+            const now = load(id);
+            now.hidden = keepCols ? heads(table).filter((n) => !keepCols.includes(n)) : [];
+            now.view = v;
+            save(id, now);
+            apply(table);
+            closeMenu();
+          });
+        });
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeMenu();
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[data-li-tt]')) { e.preventDefault(); e.target.click(); }
+    });
+
+    for (const input of document.querySelectorAll('[data-li-tt-search]')) {
+      const table = tableOf(input.getAttribute('data-li-tt-search'));
+      if (!table) continue;
+      input.addEventListener('input', () => {
+        const q = input.value.trim().toLowerCase();
+        for (const tr of table.querySelectorAll('tbody tr')) {
+          const first = tr.querySelector('td');
+          tr.hidden = Boolean(q) && !(first ? first.innerText : tr.innerText).toLowerCase().includes(q);
+        }
+      });
+    }
+    tables.forEach(apply);
+  }
+
   syncBadge();
   autoSync();
   hoverPrefetch();
   lazyThumbs();
+  tableTools();
   chartPops();
   enhanceChips();
   enhanceRange();

@@ -27,6 +27,8 @@ const NAVIGATE = {
 const TOGGLES = {
   toggleWs: 'ws',
   toggleEdit: 'edit',
+  toggleCompare: 'compare',
+  toggleNotes: 'notes',
 };
 
 /* A short confirmation in the corner, for actions with no visible result of
