@@ -148,6 +148,41 @@ function snapshotFor(workspaceId) {
   return snapshot.through(workspaceId, { connected: [...connected], build, shape: ingest.SHAPE });
 }
 
+/* A background rebuild (see SERVE_STALE) runs its replay in a worker thread,
+   which writes the snapshot row; this thread then only reads that row back.
+   On the main thread the ~25 s build stalled every request for seconds at a
+   time. If the worker fails — out of its memory cap, say — the ordinary path
+   below still builds it here, slowly but correctly. */
+const { Worker } = require('worker_threads');
+const SNAPSHOT_WORKER = path.join(__dirname, 'lib', 'store', 'snapshot-worker.js');
+function buildInWorker(workspaceId) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = (result) => { if (!settled) { settled = true; resolve(result); } };
+    let worker;
+    try {
+      worker = new Worker(SNAPSHOT_WORKER, {
+        workerData: { workspace: workspaceId, connected: [...connectedFor(workspaceId)], shape: ingest.SHAPE },
+        resourceLimits: { maxOldGenerationSizeMb: Number(process.env.LEADINTEL_WORKER_HEAP_MB) || 900 },
+      });
+    } catch (err) {
+      done({ ok: false, error: err.message });
+      return;
+    }
+    worker.once('message', (m) => { done(m); worker.terminate(); });
+    worker.once('error', (err) => done({ ok: false, error: err.message }));
+    worker.once('exit', (code) => done({ ok: false, error: `worker exited with code ${code}` }));
+  });
+}
+
+async function snapshotInBackground(workspaceId) {
+  if (!store.usingPostgres()) return snapshotFor(workspaceId);
+  const result = await buildInWorker(workspaceId);
+  if (!result.ok) console.warn(`entities: worker build for "${workspaceId}" failed, building here —`, result.error);
+  else console.log(`entities: worker ${result.source === 'stored' ? 'found the snapshot current' : 'built the snapshot'} in ${result.ms}ms`);
+  return snapshotFor(workspaceId);
+}
+
 /* Filling the cache is the async half; reading it is not.
  *
  * A Postgres store replays over the network, so the snapshot is a promise. Made
@@ -187,7 +222,7 @@ async function hydrateEntities(workspaceId) {
   const work = (async () => {
     /* Read before the build, not after — see lib/store/freshness.js. */
     const marker = await snapshotFreshness.marker(workspaceId);
-    const entities = await snapshotFor(workspaceId);
+    const entities = await (stale ? snapshotInBackground(workspaceId) : snapshotFor(workspaceId));
     if (SERVE_STALE) console.log(`entities: built "${workspaceId}" (${why}${stale ? ', served stale meanwhile' : ''}) in ${Date.now() - t0}ms`);
     entityCache.set(workspaceId, entities);
     snapshotFreshness.record(workspaceId, marker);
