@@ -12,7 +12,7 @@ module.exports = {
        one, but canonical only uses deals to resolve a booking's revenue and
        never exposes them as an entity — so there is nothing to sum. The
        probability weighting is a model output besides, which is Phase 7. */
-    { label: 'Pipeline value', value: '₹38.4L', delta: '+22.1%', deltaColor: UP, sub: 'probability weighted ₹14.2L', tip: 'Sum of open opportunity values', icon: 'ph ph-currency-inr', spark: spark([42, 46, 49, 54, 58, 62, 66, 70, 74, 79]), ...SRC.crm },
+    { go: '/pipeline', label: 'Pipeline value', value: '₹38.4L', delta: '+22.1%', deltaColor: UP, sub: 'probability weighted ₹14.2L', tip: 'Sum of open opportunity values', icon: 'ph ph-currency-inr', spark: spark([42, 46, 49, 54, 58, 62, 66, 70, 74, 79]), ...SRC.crm },
     { metric: 'lead.conversion', label: 'Close rate', value: '16.1%', delta: '+2.4pt', deltaColor: UP, sub: 'lead → confirmed booking', tip: 'Share of leads that become bookings', icon: 'ph ph-target', spark: spark([38, 41, 44, 46, 51, 54, 58, 61, 65, 68]), ...SRC.crm },
     { metric: 'lead.response_minutes', label: 'Median response', value: '44 min', delta: '−2.4 hrs', deltaColor: UP, sub: 'target under 30 min', tip: 'First response to a new lead', icon: 'ph ph-timer', spark: spark([82, 76, 70, 62, 55, 48, 42, 36, 30, 26]), ...SRC.crm },
   ],
