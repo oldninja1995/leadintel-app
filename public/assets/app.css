@@ -473,3 +473,16 @@ circle.li-pop-mark:hover, circle.li-pop-on { filter: brightness(1.3); }
 [data-li-inert].hv-4:hover { box-shadow: var(--shadow-sm); }
 
 .li-toast { position: fixed; z-index: 95; right: 18px; bottom: 18px; max-width: min(360px, calc(100vw - 36px)); background: var(--color-surface); border: 1px solid var(--color-neutral-800); border-radius: 10px; box-shadow: var(--shadow-md); padding: 10px 14px; font-size: 12.5px; animation: li-pop .14s ease; }
+
+/* Lead Intelligence filter bar. */
+.li-lf { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.li-lf-search { display: flex; align-items: center; gap: 7px; border: 1px solid var(--color-neutral-800); border-radius: 7px; padding: 0 10px; width: 250px; max-width: 100%; color: var(--color-neutral-600); }
+.li-lf-search:focus-within { border-color: var(--color-accent-600); }
+.li-lf-search input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--color-neutral-200); font: inherit; font-size: 12px; padding: 7px 0; outline: none; }
+.li-lf-pick { display: flex; align-items: center; gap: 6px; border: 1px solid var(--color-neutral-800); border-radius: 99px; padding: 2px 4px 2px 11px; font-size: 11px; color: var(--color-neutral-500); }
+.li-lf-pick.is-on { border-color: var(--color-accent-600); color: var(--color-accent-300); }
+.li-lf-pick select { border: 0; background: transparent; color: var(--color-neutral-200); font: inherit; font-size: 11.5px; padding: 4px 4px; max-width: 190px; cursor: pointer; }
+.li-lf-pick select option { background: var(--color-surface); color: var(--color-neutral-200); }
+.li-lf-clear { font-size: 11.5px; color: var(--color-neutral-500); }
+.li-lf-go { border: 1px solid var(--color-neutral-800); background: transparent; color: var(--color-neutral-300); border-radius: 7px; padding: 5px 11px; font: inherit; font-size: 11.5px; cursor: pointer; }
+@media (max-width: 640px) { .li-lf-search { width: 100%; } }
