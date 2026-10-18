@@ -2167,15 +2167,31 @@ app.post('/connections/sync',
    `inFlight` stops one instance starting a second run over its own. */
 const AUTO_SYNC_EVERY_S = 60 * 60;
 let autoSyncInFlight = null;
+/* `age` decides whether to sync and is measured from each source's last
+   *attempt*, failed or not: measured from the last success, a source that keeps
+   failing (a credential awaiting re-entry) made every page start a full sync —
+   on the self-hosted server that was four syncs and four ~25 s rebuilds an
+   hour. `lastAt` is what the pill shows: the most recent successful sync. */
 function syncAge(workspace) {
   const configured = connections.configured(workspace);
   const ids = ingest.sources.list().map((s) => s.id).filter((id) => configured.has(id) && httpConnectors.has(id));
   if (!ids.length) return { ids, age: null, lastAt: null };
-  const lags = ids.map((id) => runner.lag(id));
-  const age = lags.some((l) => l === null) ? Infinity : Math.max(...lags);
-  const freshest = Math.min(...lags.map((l) => (l === null ? Infinity : l)));
-  return { ids, age, lastAt: Number.isFinite(age) ? new Date(Date.now() - age * 1000).toISOString() : null, freshestAt: Number.isFinite(freshest) ? new Date(Date.now() - freshest * 1000).toISOString() : null };
+  const now = Date.now();
+  const since = (stamp) => (stamp ? Math.max(0, Math.round((now - Date.parse(stamp)) / 1000)) : null);
+  const attempts = ids.map((id) => {
+    const last = runner.log.recent(id, 1)[0];
+    return since(last && (last.finishedAt || last.startedAt));
+  });
+  const age = attempts.some((l) => l === null) ? Infinity : Math.max(...attempts);
+  const successes = ids.map((id) => runner.lag(id)).filter((l) => l !== null);
+  const freshest = successes.length ? Math.min(...successes) : null;
+  return { ids, age, lastAt: freshest === null ? null : new Date(now - freshest * 1000).toISOString() };
 }
+
+/* `report` on a host that syncs on its own schedule (the self-hosted server's
+   hourly cron): the pill still says when data last synced, but opening a page
+   never starts one. */
+const AUTO_SYNC_TRIGGERS = process.env.LEADINTEL_AUTO_SYNC !== 'report';
 app.post('/connections/auto-sync',
   express.json(),
   async (req, res) => {
@@ -2186,7 +2202,7 @@ app.post('/connections/auto-sync',
     }
     const before = syncAge(req.workspace);
     if (!before.ids.length) return res.json({ state: 'none', every: AUTO_SYNC_EVERY_S });
-    if (before.age < AUTO_SYNC_EVERY_S) return res.json({ state: 'fresh', lastAt: before.lastAt, every: AUTO_SYNC_EVERY_S });
+    if (!AUTO_SYNC_TRIGGERS || before.age < AUTO_SYNC_EVERY_S) return res.json({ state: 'fresh', lastAt: before.lastAt, every: AUTO_SYNC_EVERY_S });
     if (autoSyncInFlight) return res.json({ state: 'busy', lastAt: before.lastAt, every: AUTO_SYNC_EVERY_S });
     gatekeeper.audit.record({ user: req.user, action: 'connection.manage', outcome: 'allowed', workspace: req.workspace, detail: { source: 'all', action: 'auto-sync' } });
     try {
