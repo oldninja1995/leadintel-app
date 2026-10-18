@@ -81,6 +81,16 @@ const PORT = process.env.PORT || 3000;
    on a socket, and the in-process sync timer is not started — see /cron/sync. */
 const SERVERLESS = Boolean(process.env.VERCEL);
 
+/* A long-running process has no next invocation to start clean, so one stray
+   rejection must not end it — it would drop every request in flight and every
+   session's work, as it did during a 365-day TeleCRM fetch on 2026-10-18.
+   Logged loudly instead; the cause still gets fixed where it starts. */
+if (!SERVERLESS) {
+  process.on('unhandledRejection', (err) => {
+    console.error('unhandled rejection (kept running) —', err && err.stack ? err.stack : err);
+  });
+}
+
 /* Phase 9 — the raw store is partitioned per workspace: `var/raw/<workspace>/`.
    Isolation is a property of *where the data is*, not of a filter applied on
    the way out. A tenant with no ingested data gets an empty store rather than
@@ -221,6 +231,7 @@ async function storeMoved(workspaceId) {
 }
 
 function entitiesFor(workspaceId) {
+  if (!workspaceId) throw new Error('entities need a workspace');
   if (!shouldRebuild(workspaceId)) return entityCache.get(workspaceId);
 
   const entities = snapshotFor(workspaceId);
@@ -230,6 +241,10 @@ function entitiesFor(workspaceId) {
      hydrate — a programming error, and one that would otherwise surface as a
      promise being treated as an entity set and every figure reading as empty. */
   if (entities && typeof entities.then === 'function') {
+    /* Nobody awaits this build, so its failure must not go unheard: an
+       unhandled rejection ends the process, and on the self-hosted server
+       (2026-10-18) that took the app down in the middle of a 365-day fetch. */
+    entities.catch((err) => console.warn(`entities: abandoned build for "${workspaceId}" failed —`, err.message));
     throw new Error(`entities for "${workspaceId}" were not hydrated for this request`);
   }
   entityCache.set(workspaceId, entities);
@@ -4747,7 +4762,10 @@ async function start() {
         data: null,
         drawer: null,
         palette: await palette(),
-        notifications: notifications(req.workspace),
+        /* A 404 also answers public paths — /favicon.ico, a missing /assets
+           file — which carry no workspace; reading notifications there started
+           a rebuild for "undefined" that crashed the server. */
+        notifications: req.workspace ? notifications(req.workspace) : alerts.build({ status: [], problems: [], match: null, unattributed: 0, restatements: [], fired: [] }),
         filterData: filterData(null),
         filterNote: null,
         attrPreview: null,
