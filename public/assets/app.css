@@ -595,3 +595,11 @@ a.li-rb-row:hover, .li-rb-row:hover { background: var(--color-neutral-900); }
 .li-rb-email textarea { flex-basis: 100%; border: 1px solid var(--color-neutral-800); background: transparent; color: var(--color-neutral-200); border-radius: 7px; padding: 7px 9px; font: inherit; font-size: 12px; }
 .li-rb-email button[disabled] { opacity: .5; cursor: not-allowed; }
 .li-rb-email .li-rb-meta { flex-basis: 100%; }
+
+/* Report footer tools: filters, compare, comments, versions. */
+.li-rt { border-top: 1px solid var(--color-neutral-900); margin-top: 10px; padding-top: 10px; }
+.li-rt-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 8px; }
+.li-rt-l { font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; color: var(--color-neutral-600); width: 70px; }
+.li-rt-chip { font-size: 11.5px; border: 1px solid var(--color-neutral-800); border-radius: 99px; padding: 4px 11px; color: var(--color-neutral-400); text-decoration: none; }
+.li-rt-chip:hover { border-color: var(--color-neutral-700); color: var(--color-neutral-200); }
+.li-rt-chip.is-on { border-color: var(--color-accent-600); color: var(--color-accent-300); background: var(--color-accent-900); }

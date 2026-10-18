@@ -794,6 +794,27 @@ const readParams = (query, workspaceId = null) => {
   };
   if (typeof params.report === 'string') params.savedReport = reportDefs.report(workspaceId, params.report);
   params.emailReady = connections.configured(workspaceId).has('email');
+  /* The report's own comment thread: a saved dashboard's id, or the template. */
+  params.reportKey = typeof params.report === 'string' && params.report ? params.report : 'tpl:owner-weekly';
+  params.reportComments = reportDefs.comments(workspaceId, params.reportKey);
+  /* "Version history": the definition changes behind the report's figures —
+     the real versions of what it says, from the metric definition log. */
+  params.reportDefHistory = metrics.definitionLog.historyOf()
+    .filter((h) => REPORT_METRICS.includes(h.metric))
+    .slice(-40);
+  /* "Compare periods": each figure for this window and the one before it,
+     through the same resolver as every card. Only when asked for. */
+  if (params.rcmp === '1') {
+    const rows = REPORT_METRICS.map((id) => ({ metric: id, label: (metrics.registry.get(id) || { name: id }).name }));
+    const now = resolveMetrics({ rows }, workspaceId, over).rows || [];
+    const before = metrics.period.previous(over);
+    const then = before ? (resolveMetrics({ rows }, workspaceId, before).rows || []) : [];
+    params.reportCompare = {
+      windowNow: over && over.label ? over.label : null,
+      windowBefore: before ? `${String(before.from).slice(0, 10)} – ${new Date(Date.parse(before.to) - 1).toISOString().slice(0, 10)}` : null,
+      rows: now.map((r, i) => ({ label: r.label, now: r.value, before: then[i] ? then[i].value : '—', delta: r.delta, deltaColor: r.deltaColor })),
+    };
+  }
 
   const back = metrics.period.previous(over);
   params.values = metricValues(workspaceId, null, over).values;
@@ -2295,6 +2316,31 @@ app.post('/annotations/:id/delete', express.urlencoded({ extended: false }), asy
    carrying an error message when it was refused. */
 const reportBack = (req, fallback) => backTo(req.body && req.body.back, fallback);
 const reportFail = (res, back, err) => res.redirect(303, `${back}${back.includes('?') ? '&' : '?'}repError=${encodeURIComponent(err.message)}`);
+/* Report comments — any signed-in member may add one; the author or the
+   owner may delete it. */
+app.post('/reports/comments', express.urlencoded({ extended: false }), async (req, res) => {
+  const back = reportBack(req, '/reports?v=repTemplates&rcom=1');
+  try {
+    reportDefs.comment(req.workspace, String(req.body.key || ''), { text: req.body.text, by: req.user && req.user.name });
+    await reportDefs.flush();
+    return res.redirect(303, back);
+  } catch (err) {
+    return reportFail(res, back, err);
+  }
+});
+app.post('/reports/comments/:cid/delete', express.urlencoded({ extended: false }), async (req, res) => {
+  const back = reportBack(req, '/reports?v=repTemplates&rcom=1');
+  try {
+    reportDefs.uncomment(req.workspace, String(req.body.key || ''), req.params.cid, {
+      by: req.user && req.user.name,
+      allowAny: gatekeeper.permissions.can(req.user, 'connection.manage'),
+    });
+    await reportDefs.flush();
+    return res.redirect(303, back);
+  } catch (err) {
+    return reportFail(res, back, err);
+  }
+});
 const reportEdit = (handler) => [
   express.urlencoded({ extended: false }),
   gatekeeper.gate('report.edit', (req) => ({ report: req.params.id || null, action: 'edit' })),
@@ -2355,6 +2401,7 @@ app.post('/reports/:id/delete', ...reportEdit((req) => {
    saved dashboard (?report=) exports its own KPI tiles, table and summary;
    otherwise the Templates report goes out with a standard set of figures. */
 const reportExport = require('./lib/report-export');
+const REPORT_METRICS = ['revenue.reservations', 'bookings.reservations', 'roas.total', 'revenue.per_reservation', 'leads.count', 'leads.interested_rate', 'ads.spend', 'cost.per_lead'];
 const EXPORT_KPIS = ['revenue.reservations', 'bookings.reservations', 'roas.total', 'revenue.per_reservation', 'leads.count', 'leads.interested_rate', 'ads.spend', 'cost.per_lead'];
 async function reportExportData(req) {
   const params = readParams(req.query, req.workspace);
