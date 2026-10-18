@@ -4890,7 +4890,9 @@ async function start() {
           const params = readParams({}, SYNC_WORKSPACE);
           await repo.read('dashboard', params);
           await repo.read('marketing', params);
-          console.log(`dashboard: warmed in ${Date.now() - u}ms`);
+          const v = Date.now();
+          notifications(SYNC_WORKSPACE);
+          console.log(`dashboard: warmed in ${v - u}ms, notifications in ${Date.now() - v}ms`);
         })
         .catch((err) => console.warn('entities: warm-up failed —', err.message));
     }
