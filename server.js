@@ -4861,6 +4861,14 @@ async function start() {
 
   const server = app.listen(PORT, () => {
     console.log(`LeadIntel app on http://localhost:${PORT}`);
+    /* Build the snapshot now rather than inside the first visitor's request:
+       on the self-hosted server that first build takes ~30 s. */
+    if (store.usingPostgres()) {
+      const t = Date.now();
+      hydrateEntities(SYNC_WORKSPACE)
+        .then(() => console.log(`entities: warmed "${SYNC_WORKSPACE}" in ${Date.now() - t}ms`))
+        .catch((err) => console.warn('entities: warm-up failed —', err.message));
+    }
   });
 
   /* Graceful shutdown. The sync runner writes JSONL a line at a time, so being
