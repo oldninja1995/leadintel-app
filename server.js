@@ -4882,7 +4882,16 @@ async function start() {
     if (store.usingPostgres()) {
       const t = Date.now();
       hydrateEntities(SYNC_WORKSPACE)
-        .then(() => console.log(`entities: warmed "${SYNC_WORKSPACE}" in ${Date.now() - t}ms`))
+        .then(async () => {
+          console.log(`entities: warmed "${SYNC_WORKSPACE}" in ${Date.now() - t}ms`);
+          /* And the default window's figures and dashboard projection, which a
+             first Executive Dashboard view otherwise computed for ~9 s. */
+          const u = Date.now();
+          const params = readParams({}, SYNC_WORKSPACE);
+          await repo.read('dashboard', params);
+          await repo.read('marketing', params);
+          console.log(`dashboard: warmed in ${Date.now() - u}ms`);
+        })
         .catch((err) => console.warn('entities: warm-up failed —', err.message));
     }
   });
