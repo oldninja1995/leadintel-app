@@ -1988,7 +1988,7 @@ async function renderConnections(req, res, {
              where somebody would act on it. Derived here rather than in the
              template so the rule has a test. */
           sync,
-          ...stateOf({ configured: c.configured, readable: c.readable, webhook, sync }),
+          ...stateOf({ configured: c.configured, readable: c.readable, webhook, sync, sendOnly: c.sendOnly }),
         };
       }),
       publicBase,

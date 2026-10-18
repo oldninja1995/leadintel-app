@@ -62,7 +62,7 @@ const openSource = canManage
       </p>
     </div>
     <div class="li-conn-tally">
-      <span class="li-conn-tally-n"><%= receiving.length %><em>/<%= connections.length %></em></span>
+      <span class="li-conn-tally-n"><%= receiving.length %><em>/<%= connections.filter(function (c) { return !c.sendOnly; }).length %></em></span>
       <span class="li-conn-tally-l">receiving</span>
     </div>
     <%# Every card below is a <details> that starts closed, so the per-source
