@@ -1021,8 +1021,54 @@
     window.addEventListener('resize', close);
   }
 
+  /* ── Hover prefetch ───────────────────────────────────────────────────
+   *
+   * Every in-app destination is a path in `data-action` (actions.js navigates
+   * on click), which the document rules in /assets/speculation-rules.json
+   * cannot see — they match <a href> only. Resting on one for 80 ms (or
+   * touching it) asks the browser to fetch that screen now, so the click pays
+   * no round trip to the server. Action URLs are never fetched ahead. */
+  function hoverPrefetch() {
+    const fetched = new Set();
+    const rules = Boolean(window.HTMLScriptElement && HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules'));
+    const SKIP = /^\/(logout|connections\/|assets\/|cron\/|ingest\/|store\/)|\.csv(\?|$)/;
+    const here = () => location.pathname + location.search;
+    const fetchAhead = (href) => {
+      if (fetched.has(href) || fetched.size >= 40) return;
+      fetched.add(href);
+      if (rules) {
+        const s = document.createElement('script');
+        s.type = 'speculationrules';
+        s.textContent = JSON.stringify({ prefetch: [{ source: 'list', urls: [href] }] });
+        document.head.appendChild(s);
+      } else {
+        const l = document.createElement('link');
+        l.rel = 'prefetch';
+        l.href = href;
+        document.head.appendChild(l);
+      }
+    };
+    const target = (e) => {
+      const el = e.target && e.target.closest && e.target.closest('[data-action^="/"], a[href^="/"]');
+      if (!el) return null;
+      const href = el.getAttribute('data-action') || el.getAttribute('href');
+      return href && !SKIP.test(href) && href !== here() ? href : null;
+    };
+    let timer = null;
+    document.addEventListener('pointerover', (e) => {
+      clearTimeout(timer);
+      const href = target(e);
+      if (href) timer = setTimeout(() => fetchAhead(href), 80);
+    });
+    document.addEventListener('touchstart', (e) => {
+      const href = target(e);
+      if (href) fetchAhead(href);
+    }, { passive: true });
+  }
+
   syncBadge();
   autoSync();
+  hoverPrefetch();
   chartPops();
   enhanceChips();
   enhanceRange();
