@@ -219,3 +219,12 @@ test('a credential sealed under an old secret can be repaired by re-entering its
   moved.set('ws', 'meta_ads', { ...moved.readableFor('ws', 'meta_ads'), accessToken: REAL_META_TOKEN });
   assert.deepEqual(moved.secretsFor('ws', 'meta_ads'), { accountId: 'act_1015452922906510', accessToken: REAL_META_TOKEN });
 });
+
+test('a value pasted with its quotes is stored and read without them', () => {
+  /* Google's JSON download wraps the client id in quotes; sent as-is, the
+     consent screen answers "The OAuth client was not found" (invalid_client). */
+  const store = fresh();
+  store.set('ws', 'meta_ads', { accountId: '"act_1015452922906510"', accessToken: `“${REAL_META_TOKEN}”` });
+  assert.deepEqual(store.secretsFor('ws', 'meta_ads'), { accountId: 'act_1015452922906510', accessToken: REAL_META_TOKEN });
+  assert.equal(store.describe('ws', 'meta_ads').fields.find((f) => f.key === 'accountId').value, 'act_1015452922906510');
+});
