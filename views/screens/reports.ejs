@@ -83,42 +83,6 @@
                   <a class="li-rb-btn" href="/reports?v=repBuilder&report=<%= saved.id %>&email=1<%= (locals.repQs || '').replace('?', '&') %>"><i class="ph ph-envelope-simple"></i> Email</a>
                   <a class="li-rb-btn" href="/reports?v=repBuilder">All dashboards</a>
                 </div>
-            <% var rt = locals.repTools; %>
-            <% if (rt && rt.filtersOpen) { %>
-              <div class="li-rt">
-                <div class="li-rt-row"><span class="li-rt-l">Period</span><% rt.presets.forEach(function (p) { %><a class="li-rt-chip<%= p.on ? ' is-on' : '' %>" href="<%= p.href %>"><%= p.label %></a><% }); %></div>
-                <div class="li-rt-row"><span class="li-rt-l">Channel</span><% rt.channels.forEach(function (c) { %><a class="li-rt-chip<%= c.on ? ' is-on' : '' %>" href="<%= c.href %>"><%= c.label %></a><% }); %></div>
-                <p class="li-rb-meta">Every figure on this report follows the choice — the same filters as the top bar, set from here.</p>
-              </div>
-            <% } %>
-            <% if (rt && rt.compareOpen && rt.compare) { %>
-              <div class="li-rt">
-                <table class="li-rb-table"><thead><tr><th>FIGURE</th><th>THIS PERIOD</th><th>PREVIOUS<%= rt.compare.windowBefore ? ' (' + rt.compare.windowBefore + ')' : '' %></th><th>CHANGE</th></tr></thead><tbody>
-                  <% rt.compare.rows.forEach(function (r) { %><tr><td><%= r.label %></td><td><%= r.now %></td><td><%= r.before %></td><td style="color:<%= r.deltaColor %>;"><%= r.delta === '—' ? '' : r.delta %></td></tr><% }); %>
-                </tbody></table>
-              </div>
-            <% } %>
-            <% if (rt && rt.commentsOpen) { %>
-              <div class="li-rt">
-                <% if (!rt.comments.length) { %><p class="li-rb-meta">No comments yet — a note here is seen by everyone who opens this report.</p><% } %>
-                <% rt.comments.forEach(function (c) { %>
-                  <div class="li-note"><span class="li-note-date"><%= c.at %></span><span class="li-note-camp"><%= c.by %></span><span class="li-note-text"><%= c.text %></span><span></span>
-                    <form method="post" action="/reports/comments/<%= c.id %>/delete"><input type="hidden" name="key" value="<%= rt.key %>"><input type="hidden" name="back" value="<%= rt.back %>&rcom=1"><button type="submit" aria-label="Delete comment" title="Delete (author or owner)">×</button></form></div>
-                <% }); %>
-                <form method="post" action="/reports/comments" class="li-notes-add" style="margin-top:8px;">
-                  <input type="hidden" name="key" value="<%= rt.key %>"><input type="hidden" name="back" value="<%= rt.back %>&rcom=1">
-                  <input type="text" name="text" maxlength="1000" required placeholder="Add a comment for the team" aria-label="Comment" style="flex:1;">
-                  <button type="submit">Comment</button>
-                </form>
-              </div>
-            <% } %>
-            <% if (rt && rt.versionsOpen) { %>
-              <div class="li-rt">
-                <p class="li-rb-meta">This report's figures are computed by these metric definitions. Each change to one is a new version of the report — v<%= rt.version %> now.</p>
-                <% if (!rt.history.length) { %><p class="li-rb-meta">No recorded definition changes.</p><% } %>
-                <% rt.history.forEach(function (h) { %><div class="li-rb-version"><span class="li-rb-v"><%= h.at %></span><span><strong><%= h.metric %></strong> — <%= h.change %><%= h.fields ? ' (' + h.fields + ')' : '' %></span><span class="li-rb-meta"><%= h.by %></span></div><% }); %>
-              </div>
-            <% } %>
                 <% if (locals.repVersionsOpen) { %>
                   <div class="li-rb-versions">
                     <% saved.versions.forEach(function (v) { %>
@@ -377,6 +341,42 @@
               <a class="hv-2<%= locals.repTools && locals.repTools.commentsOpen ? ' li-tt-on' : '' %>" href="<%= locals.repTools ? locals.repTools.toggle.rcom : '#' %>" style="display:flex; align-items:center; gap:5px; cursor:pointer; text-decoration:none;"><i class="ph ph-chat-circle" style="font-size:12px;"></i><%= (locals.repTools || { comments: [] }).comments.length %> comment<%= (locals.repTools || { comments: [] }).comments.length === 1 ? '' : 's' %></a>
               <a class="hv-2<%= locals.repTools && locals.repTools.versionsOpen ? ' li-tt-on' : '' %>" href="<%= locals.repTools ? locals.repTools.toggle.rver : '#' %>" style="display:flex; align-items:center; gap:5px; cursor:pointer; text-decoration:none;"><i class="ph ph-clock-counter-clockwise" style="font-size:12px;"></i>Version history (v<%= (locals.repTools || { version: 1 }).version %>)</a>
             </div>
+            <% var rt = locals.repTools; %>
+            <% if (rt && rt.filtersOpen) { %>
+              <div class="li-rt">
+                <div class="li-rt-row"><span class="li-rt-l">Period</span><% rt.presets.forEach(function (p) { %><a class="li-rt-chip<%= p.on ? ' is-on' : '' %>" href="<%= p.href %>"><%= p.label %></a><% }); %></div>
+                <div class="li-rt-row"><span class="li-rt-l">Channel</span><% rt.channels.forEach(function (c) { %><a class="li-rt-chip<%= c.on ? ' is-on' : '' %>" href="<%= c.href %>"><%= c.label %></a><% }); %></div>
+                <p class="li-rb-meta">Every figure on this report follows the choice — the same filters as the top bar, set from here.</p>
+              </div>
+            <% } %>
+            <% if (rt && rt.compareOpen && rt.compare) { %>
+              <div class="li-rt">
+                <table class="li-rb-table"><thead><tr><th>FIGURE</th><th>THIS PERIOD</th><th>PREVIOUS<%= rt.compare.windowBefore ? ' (' + rt.compare.windowBefore + ')' : '' %></th><th>CHANGE</th></tr></thead><tbody>
+                  <% rt.compare.rows.forEach(function (r) { %><tr><td><%= r.label %></td><td><%= r.now %></td><td><%= r.before %></td><td style="color:<%= r.deltaColor %>;"><%= r.delta === '—' ? '' : r.delta %></td></tr><% }); %>
+                </tbody></table>
+              </div>
+            <% } %>
+            <% if (rt && rt.commentsOpen) { %>
+              <div class="li-rt">
+                <% if (!rt.comments.length) { %><p class="li-rb-meta">No comments yet — a note here is seen by everyone who opens this report.</p><% } %>
+                <% rt.comments.forEach(function (c) { %>
+                  <div class="li-note"><span class="li-note-date"><%= c.at %></span><span class="li-note-camp"><%= c.by %></span><span class="li-note-text"><%= c.text %></span><span></span>
+                    <form method="post" action="/reports/comments/<%= c.id %>/delete"><input type="hidden" name="key" value="<%= rt.key %>"><input type="hidden" name="back" value="<%= rt.back %>&rcom=1"><button type="submit" aria-label="Delete comment" title="Delete (author or owner)">×</button></form></div>
+                <% }); %>
+                <form method="post" action="/reports/comments" class="li-notes-add" style="margin-top:8px;">
+                  <input type="hidden" name="key" value="<%= rt.key %>"><input type="hidden" name="back" value="<%= rt.back %>&rcom=1">
+                  <input type="text" name="text" maxlength="1000" required placeholder="Add a comment for the team" aria-label="Comment" style="flex:1;">
+                  <button type="submit">Comment</button>
+                </form>
+              </div>
+            <% } %>
+            <% if (rt && rt.versionsOpen) { %>
+              <div class="li-rt">
+                <p class="li-rb-meta">This report's figures are computed by these metric definitions. Each change to one is a new version of the report — v<%= rt.version %> now.</p>
+                <% if (!rt.history.length) { %><p class="li-rb-meta">No recorded definition changes.</p><% } %>
+                <% rt.history.forEach(function (h) { %><div class="li-rb-version"><span class="li-rb-v"><%= h.at %></span><span><strong><%= h.metric %></strong> — <%= h.change %><%= h.fields ? ' (' + h.fields + ')' : '' %></span><span class="li-rb-meta"><%= h.by %></span></div><% }); %>
+              </div>
+            <% } %>
           </div>
         </div>
           <% } %>
