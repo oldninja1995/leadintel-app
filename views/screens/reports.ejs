@@ -119,7 +119,7 @@
                       </div>
                       <% if (b.kind === 'kpi') { %>
                         <% var k = (locals.builderKpis || []).filter(function (x) { return x.wid === b.wid; })[0] || { label: b.label, value: '—' }; %>
-                        <div class="li-rb-kpi" title="<%= k.tip || '' %>"><div class="li-rb-kpi-l"><%= k.label %></div><div class="li-rb-kpi-v"><%= k.value %><span style="color:<%= k.deltaColor %>;"><%= k.delta === '—' ? '' : k.delta %></span></div><% if (k.sub) { %><div class="li-rb-meta"><%= k.sub %></div><% } %></div>
+                        <div class="li-rb-kpi" title="<%= k.tip || '' %>"><div class="li-rb-kpi-l"><%= k.label %></div><div class="li-rb-kpi-v"><%= k.value %><span style="color:<%= k.deltaColor %>;"><%= (k.delta === '—' || k.delta === '·') ? '' : k.delta %></span></div><% if (k.sub) { %><div class="li-rb-meta"><%= k.sub %></div><% } %></div>
                       <% } else if (b.kind === 'chart') { %>
                         <%- include('../partials/dash-charts', { set: b.set, charts: (locals.builderCharts || {})[b.set], only: b.ref }) %>
                       <% } else if (b.kind === 'table') { %>
@@ -157,7 +157,7 @@
                   <% (scorecardKpis || []).forEach(function (k) { %>
                     <div style="border:1px solid var(--color-section-ghost); border-radius:9px; padding:10px 12px;">
                       <div style="font-size:9px; letter-spacing:.06em; color:var(--color-accent-2-300); opacity:.85; white-space:nowrap;"><%= k.label %></div>
-                      <div style="display:flex; align-items:baseline; gap:6px; margin-top:3px;"><span style="font-size:17px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:10px; color:<%= k.deltaColor %>;"><%= k.delta === '—' ? '' : k.delta %></span></div>
+                      <div style="display:flex; align-items:baseline; gap:6px; margin-top:3px;"><span style="font-size:17px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:10px; color:<%= k.deltaColor %>;"><%= (k.delta === '—' || k.delta === '·') ? '' : k.delta %></span></div>
                     </div>
                   <% }); %>
                 </div>
@@ -220,7 +220,7 @@
                   <div>
                     <div style="font-size:12px; letter-spacing:.07em; color:var(--color-neutral-600);"><%= k.label %></div>
                     <div style="font-size:40px; font-weight:500; font-variant-numeric:tabular-nums; margin-top:6px; letter-spacing:-.01em;"><%= k.value %></div>
-                    <div style="font-size:14px; color:<%= k.deltaColor %>; margin-top:2px;"><%= k.delta === '—' ? '' : k.delta %></div>
+                    <div style="font-size:14px; color:<%= k.deltaColor %>; margin-top:2px;"><%= (k.delta === '—' || k.delta === '·') ? '' : k.delta %></div>
                   </div>
                 <% }); %>
               </div>

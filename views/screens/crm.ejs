@@ -9,9 +9,9 @@
             <% (crmHero || []).forEach(function (k) { %>
               <div class="hv-4"<% var drill = k.go || drillFor(k.metric); %><% if (drill) { %> data-action="<%= drill %>"<% } else { %> data-li-inert<% } %> style="background:linear-gradient(180deg, var(--color-surface), var(--color-raised)); border-radius:12px; box-shadow:var(--shadow-sm); padding:14px 16px 12px; cursor:pointer;">
                 <div title="<%= k.tip %>" style="display:flex; align-items:center; gap:6px; font-size:10.5px; letter-spacing:.08em; color:var(--color-neutral-500); text-transform:uppercase;"><i class="<%= k.icon %>" style="font-size:13px; color:var(--color-accent-400);"></i><%= k.label %><span style="flex:1;"></span><span style="font-size:8.5px; letter-spacing:.05em; border:1px solid <%= k.srcBorder %>; border-radius:4px; padding:1px 5px; color:<%= k.srcColor %>;"><%= k.src %></span></div>
-                <div style="display:flex; align-items:baseline; gap:9px; margin-top:7px;"><span style="font-size:26px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:11.5px; font-weight:500; color:<%= k.deltaColor %>;"><%= k.delta === '—' ? '' : k.delta %></span></div>
+                <div style="display:flex; align-items:baseline; gap:9px; margin-top:7px;"><span style="font-size:26px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:11.5px; font-weight:500; color:<%= k.deltaColor %>;"><%= (k.delta === '—' || k.delta === '·') ? '' : k.delta %></span></div>
                 <div style="font-size:10.5px; color:var(--color-neutral-600); margin-top:2px;"><%= k.sub %></div>
-                <svg viewBox="0 0 120 26" style="width:100%; height:26px; margin-top:8px;" preserveAspectRatio="none"><polyline points="<%= k.spark %>" fill="none" stroke="var(--color-accent-500)" stroke-width="1.6" stroke-linejoin="round" opacity="0.9"></polyline></svg>
+                <% if (k.spark) { %><svg viewBox="0 0 120 26" style="width:100%; height:26px; margin-top:8px;" preserveAspectRatio="none"><polyline points="<%= k.spark %>" fill="none" stroke="var(--color-accent-500)" stroke-width="1.6" stroke-linejoin="round" opacity="0.9"></polyline></svg><% } %>
               </div>
             <% }); %>
           </div>
@@ -19,24 +19,40 @@
             <% (crmKpis || []).forEach(function (k) { %>
               <div class="hv-4"<% var drill = k.go || drillFor(k.metric); %><% if (drill) { %> data-action="<%= drill %>"<% } else { %> data-li-inert<% } %> title="<%= k.tip %>" style="background:var(--color-surface); border-radius:10px; box-shadow:var(--shadow-sm); padding:9px 12px; cursor:pointer;">
                 <div style="display:flex; align-items:center; gap:5px;"><span style="font-size:9.5px; letter-spacing:.06em; color:var(--color-neutral-500); text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= k.label %></span><span style="flex:1;"></span><span style="font-size:8px; border:1px solid <%= k.srcBorder %>; border-radius:4px; padding:0.5px 4px; color:<%= k.srcColor %>;"><%= k.src %></span></div>
-                <div style="display:flex; align-items:baseline; gap:6px; margin-top:3px;"><span style="font-size:15px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:10px; color:<%= k.deltaColor %>;"><%= k.delta === '—' ? '' : k.delta %></span></div>
+                <div style="display:flex; align-items:baseline; gap:6px; margin-top:3px;"><span style="font-size:15px; font-weight:500; font-variant-numeric:tabular-nums;"><%= k.value %></span><span style="font-size:10px; color:<%= k.deltaColor %>;"><%= (k.delta === '—' || k.delta === '·') ? '' : k.delta %></span></div>
               </div>
             <% }); %>
           </div>
           <div style="display:grid; grid-template-columns:1.7fr 1fr; gap:12px; margin-bottom:12px;">
             <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px;">
               <div style="display:flex; align-items:center; gap:10px; margin-bottom:4px;">
-                <div style="font-size:13px; font-weight:500;">Reservations & revenue trend</div>
+                <div style="font-size:13px; font-weight:500;">Reservations trend</div>
                 <div style="flex:1;"></div>
                 <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-400);"></span>Confirmed</span>
                 <span style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-neutral-600);"></span>Cancelled</span>
               </div>
-              <svg viewBox="0 0 640 190" style="width:100%; height:190px;" preserveAspectRatio="none">
-                <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="47" x2="640" y2="47"></line><line x1="0" y1="94" x2="640" y2="94"></line><line x1="0" y1="141" x2="640" y2="141"></line></g>
-                <g fill="var(--color-accent-600)"><rect x="20" y="120" width="24" height="60" rx="3"></rect><rect x="98" y="104" width="24" height="76" rx="3"></rect><rect x="176" y="112" width="24" height="68" rx="3"></rect><rect x="254" y="88" width="24" height="92" rx="3"></rect><rect x="332" y="96" width="24" height="84" rx="3"></rect><rect x="410" y="66" width="24" height="114" rx="3"></rect><rect x="488" y="76" width="24" height="104" rx="3"></rect><rect x="566" y="48" width="24" height="132" rx="3"></rect></g>
-                <g fill="var(--color-neutral-700)"><rect x="48" y="164" width="24" height="16" rx="3"></rect><rect x="126" y="168" width="24" height="12" rx="3"></rect><rect x="204" y="162" width="24" height="18" rx="3"></rect><rect x="282" y="168" width="24" height="12" rx="3"></rect><rect x="360" y="170" width="24" height="10" rx="3"></rect><rect x="438" y="166" width="24" height="14" rx="3"></rect><rect x="516" y="170" width="24" height="10" rx="3"></rect><rect x="594" y="172" width="24" height="8" rx="3"></rect></g>
-              </svg>
-              <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--color-neutral-700); padding:2px 8px 0;"><span>W1 Jun</span><span>W2</span><span>W3</span><span>W4</span><span>W1 Jul</span><span>W2</span><span>W3</span><span>W4</span></div>
+              <% var ct = locals.crmTrend || { empty: true }; %>
+              <% if (ct.empty) { %>
+                <div style="height:190px; display:grid; place-items:center; font-size:11.5px; color:var(--color-neutral-600);"><%= ct.reason || 'No reservations were won in this range.' %></div>
+              <% } else { %>
+                <div style="display:flex; gap:18px; flex-wrap:wrap; margin:4px 0 6px; font-size:11.5px; color:var(--color-neutral-500);">
+                  <span><strong style="color:var(--color-neutral-200); font-weight:500;"><%= ct.totals.confirmed %></strong> confirmed · <%= ct.totals.value %></span>
+                  <span><strong style="color:var(--color-neutral-200); font-weight:500;"><%= ct.totals.cancelled %></strong> cancelled</span>
+                </div>
+                <svg viewBox="0 0 640 190" style="width:100%; height:190px;" preserveAspectRatio="none">
+                  <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="30" x2="640" y2="30"></line><line x1="0" y1="105" x2="640" y2="105"></line><line x1="0" y1="180" x2="640" y2="180"></line></g>
+                  <% ct.bars.forEach(function (b) { %>
+                    <g><title><%= b.tip %></title>
+                      <rect x="<%= b.confirmed.x.toFixed(1) %>" y="20" width="<%= (b.confirmed.w * 2 + 2).toFixed(1) %>" height="160" fill="transparent"></rect>
+                      <rect x="<%= b.confirmed.x.toFixed(1) %>" y="<%= b.confirmed.y.toFixed(1) %>" width="<%= b.confirmed.w.toFixed(1) %>" height="<%= b.confirmed.h.toFixed(1) %>" rx="3" fill="var(--color-accent-600)"></rect>
+                      <rect x="<%= b.cancelled.x.toFixed(1) %>" y="<%= b.cancelled.y.toFixed(1) %>" width="<%= b.cancelled.w.toFixed(1) %>" height="<%= b.cancelled.h.toFixed(1) %>" rx="3" fill="var(--color-neutral-700)"></rect>
+                    </g>
+                  <% }); %>
+                </svg>
+                <div style="position:relative; height:14px; font-size:10px; color:var(--color-neutral-700);">
+                  <% ct.bars.forEach(function (b, i) { if (i % ct.every) return; %><span style="position:absolute; left:<%= (b.cx / 6.4).toFixed(2) %>%; transform:translateX(-50%); white-space:nowrap;"><%= b.label %></span><% }); %>
+                </div>
+              <% } %>
             </div>
             <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px; display:flex; flex-direction:column;">
               <div style="display:flex; align-items:center; margin-bottom:10px;"><div style="font-size:13px; font-weight:500;">Pipeline by stage</div><div style="flex:1;"></div><span data-action="goPipe" style="font-size:11px; color:var(--color-accent-300); cursor:pointer;">Open pipeline →</span></div>

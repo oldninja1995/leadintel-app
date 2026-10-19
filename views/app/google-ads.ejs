@@ -24,6 +24,9 @@
  */
 const d = data || {};
 const num = (v) => (v === null || v === undefined ? '—' : Number(v).toLocaleString('en-IN'));
+/* Google splits conversion credit, so counts arrive as 314.021; one decimal reads. */
+const CONV = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 1 });
+const conv = (v) => (v === null || v === undefined ? '—' : CONV.format(Number(v)));
 const txt = (v) => (v === null || v === undefined || v === '' ? '—' : v);
 const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
 %>
@@ -60,7 +63,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
           <th class="li-num">Reservation value</th>
           <th class="li-num">Reservations</th>
           <th class="li-num">ROAS on Google spend</th>
-          <th>What it is</th>
+          <th class="li-wrap">What it is</th>
         </tr>
       </thead>
       <tbody>
@@ -69,7 +72,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
           <td class="li-num"><%= txt(ps.crmRevenueText) %></td>
           <td class="li-num"><%= num(ps.crmBookings) %></td>
           <td class="li-num"><%= txt(ps.crmRoasText) %></td>
-          <td>
+          <td class="li-wrap">
             <% if (ps.crmAbsent) { %>
               <%= ps.crmAbsent %>
             <% } else { %>
@@ -83,7 +86,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
           <td class="li-num"><%= txt(ps.revenueText) %></td>
           <td class="li-num"><%= num(ps.bookings) %></td>
           <td class="li-num"><%= txt(ps.roasText) %></td>
-          <td>
+          <td class="li-wrap">
             <% if (ps.absent) { %>
               <%= ps.absent %>
             <% } else { %>
@@ -161,7 +164,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
             <td class="li-num"><%= txt(c.spendText) %></td>
             <td class="li-num"><%= num(c.impressions) %></td>
             <td class="li-num"><%= num(c.clicks) %></td><td class="li-num"><%= txt(c.cpcText) %></td>
-            <td class="li-num"><%= num(c.conversions) %></td><td class="li-num"><%= txt(c.cplText) %></td>
+            <td class="li-num"><%= conv(c.conversions) %></td><td class="li-num"><%= txt(c.cplText) %></td>
           </tr>
         <% }); %>
       </tbody>
@@ -177,7 +180,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
           <th class="li-num"><%= num(tot.impressions) %></th>
           <th class="li-num"><%= num(tot.clicks) %></th>
           <th class="li-num"><%= txt(tot.cpcText) %></th>
-          <th class="li-num"><%= num(tot.conversions) %></th>
+          <th class="li-num"><%= conv(tot.conversions) %></th>
           <th class="li-num"><%= txt(tot.cplText) %></th>
         </tr>
       </tfoot>
@@ -208,7 +211,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
             <td class="li-num"><%= txt(g.spendText) %></td>
             <td class="li-num"><%= num(g.impressions) %></td>
             <td class="li-num"><%= num(g.clicks) %></td><td class="li-num"><%= txt(g.cpcText) %></td>
-            <td class="li-num"><%= num(g.conversions) %></td><td class="li-num"><%= txt(g.cplText) %></td>
+            <td class="li-num"><%= conv(g.conversions) %></td><td class="li-num"><%= txt(g.cplText) %></td>
           </tr>
         <% }); %>
       </tbody>
@@ -240,7 +243,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
             <td><%= chip(a.status) %></td>
             <td class="li-num"><%= txt(a.spendText) %></td>
             <td class="li-num"><%= num(a.clicks) %></td><td class="li-num"><%= txt(a.cpcText) %></td>
-            <td class="li-num"><%= num(a.conversions) %></td><td class="li-num"><%= txt(a.cplText) %></td>
+            <td class="li-num"><%= conv(a.conversions) %></td><td class="li-num"><%= txt(a.cplText) %></td>
           </tr>
         <% }); %>
       </tbody>

@@ -30,6 +30,9 @@
  */
 const d = data || {};
 const num = (v) => (v === null || v === undefined ? '—' : Number(v).toLocaleString('en-IN'));
+/* Google splits conversion credit, so counts arrive as 314.021; one decimal reads. */
+const CONV = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 1 });
+const conv = (v) => (v === null || v === undefined ? '—' : CONV.format(Number(v)));
 const txt = (v) => (v === null || v === undefined || v === '' ? '—' : v);
 const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
 
@@ -406,7 +409,7 @@ const previewNote = (param, fallback) => {
                 <td class="li-num"><%= txt(x.spendText) %></td>
                 <td class="li-num"><%= num(x.clicks) %></td>
                 <td class="li-num"><%= num(x.impressions) %></td>
-                <td class="li-num"><%= num(x.conversions) %></td>
+                <td class="li-num"><%= conv(x.conversions) %></td>
               </tr>
             <% }); %>
           </tbody>
@@ -434,7 +437,7 @@ const previewNote = (param, fallback) => {
                     <td class="li-num"><%= txt(x.spendText) %></td>
                     <td class="li-num"><%= num(x.clicks) %></td>
                     <td class="li-num"><%= num(x.impressions) %></td>
-                    <td class="li-num"><%= num(x.conversions) %></td>
+                    <td class="li-num"><%= conv(x.conversions) %></td>
                     <td><%= x.reason %></td>
                   </tr>
                 <% }); %>
@@ -493,7 +496,7 @@ const previewNote = (param, fallback) => {
             <td class="li-num"><%= num(w.terms) %></td>
             <td class="li-num"><%= txt(w.spendText) %></td>
             <td class="li-num"><%= num(w.clicks) %></td>
-            <td class="li-num"><%= num(w.conversions) %></td>
+            <td class="li-num"><%= conv(w.conversions) %></td>
           </tr>
         <% }); %>
       </tbody>
@@ -681,7 +684,7 @@ const previewNote = (param, fallback) => {
               <td class="li-num"><%= num(k.clicks) %></td>
               <td class="li-num"><%= txt(k.ctr) %></td>
               <td class="li-num"><%= txt(k.cpcText) %></td>
-              <td class="li-num"><%= num(k.conversions) %></td>
+              <td class="li-num"><%= conv(k.conversions) %></td>
               <td class="li-num"><%= txt(k.cplText) %></td>
             </tr>
           <% }); %>
@@ -755,7 +758,7 @@ const previewNote = (param, fallback) => {
             <td class="li-num"><%= num(k.clicks) %></td>
             <td class="li-num"><%= txt(k.ctr) %></td>
             <td class="li-num"><%= txt(k.cpcText) %></td>
-            <td class="li-num"><%= num(k.conversions) %></td>
+            <td class="li-num"><%= conv(k.conversions) %></td>
             <td class="li-num"><%= txt(k.convRate) %></td>
             <td class="li-num"><%= txt(k.cplText) %></td>
           </tr>
@@ -825,7 +828,7 @@ const previewNote = (param, fallback) => {
             <td class="li-num"><%= num(t.clicks) %></td>
             <td class="li-num"><%= txt(t.cpcText) %></td>
             <td class="li-num"><%= txt(t.ctr) %></td>
-            <td class="li-num"><%= num(t.conversions) %></td>
+            <td class="li-num"><%= conv(t.conversions) %></td>
             <td class="li-num"><%= txt(t.convRate) %></td>
             <td class="li-num"><%= txt(t.cplText) %></td>
           </tr>

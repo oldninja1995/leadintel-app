@@ -3335,6 +3335,9 @@ const GOOGLE_KEYWORD_TYPES = new Set(['SEARCH', 'DISPLAY', 'MULTI_CHANNEL', 'UNK
  */
 const GOOGLE_ADS_SLUGS = new Set(['google-ads', 'google-ads/keywords', 'google-ads/ads']);
 
+/* Negative keyword suggestions per entity snapshot; see googleAdsPayload. */
+const NEGATIVES_MEMO = new WeakMap();
+
 /* A thunk that runs once and then answers from memory. */
 function once(fn) {
   let done = false;
@@ -4032,6 +4035,15 @@ async function googleAdsPayload(req, slug = null) {
   const negativeSort = req.query.negSort === 'clicks' ? 'clicks' : 'spend';
   const negativeSuggestions = once(() => {
     const everything = entitiesFor(req.workspace);
+    /* Whole-account, so the same answer for every range until a sync swaps the
+       snapshot: ~60,000 search terms were re-judged on every Keywords view. */
+    const memoKey = `${negativeSort}|${listing.length}`;
+    if (!NEGATIVES_MEMO.has(everything)) NEGATIVES_MEMO.set(everything, new Map());
+    const memo = NEGATIVES_MEMO.get(everything);
+    if (!memo.has(memoKey)) memo.set(memoKey, judgeNegatives(everything));
+    return memo.get(memoKey);
+  });
+  function judgeNegatives(everything) {
     const allNames = new Map();
     for (const day of everything.campaignDays || []) {
       if (day.platform === 'google_ads' && day.campaignId) allNames.set(String(day.campaignId), day.campaign);
@@ -4051,7 +4063,7 @@ async function googleAdsPayload(req, slug = null) {
     out.unjudged = found.unjudged;
     out.flat = out.flatMap((c) => c.suggestions.map((x) => ({ ...x, campaign: c.campaign, campaignId: c.campaignId }))).sort(by);
     return out;
-  });
+  }
   /* For the CSV route; kept off the enumerable page data. */
   Object.defineProperty(data, 'negativeSuggestions', { value: negativeSuggestions, enumerable: false });
   const draws = (screen) => slug === null || !GOOGLE_ADS_SLUGS.has(slug) || slug === screen;

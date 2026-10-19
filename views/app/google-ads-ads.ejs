@@ -24,6 +24,9 @@
  */
 const d = data || {};
 const num = (v) => (v === null || v === undefined ? '—' : Number(v).toLocaleString('en-IN'));
+/* Google splits conversion credit, so counts arrive as 314.021; one decimal reads. */
+const CONV = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 1 });
+const conv = (v) => (v === null || v === undefined ? '—' : CONV.format(Number(v)));
 const txt = (v) => (v === null || v === undefined || v === '' ? '—' : v);
 const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
 
@@ -155,7 +158,7 @@ const showingAll = Boolean(d.showingAll);
             <td class="li-num"><%= txt(c.spendText) %></td>
             <td class="li-num"><%= c.count ? num(c.impressions) : '—' %></td>
             <td class="li-num"><%= c.count ? num(c.clicks) : '—' %></td>
-            <td class="li-num"><%= c.count ? num(c.conversions) : '—' %></td>
+            <td class="li-num"><%= c.count ? conv(c.conversions) : '—' %></td>
           </tr>
         <% }); %>
       </tbody>
@@ -236,7 +239,7 @@ const showingAll = Boolean(d.showingAll);
               <td class="li-num"><%= num(a.clicks) %></td>
               <td class="li-num"><%= txt(a.ctr) %></td>
               <td class="li-num"><%= txt(a.cpcText) %></td>
-              <td class="li-num"><%= num(a.conversions) %></td>
+              <td class="li-num"><%= conv(a.conversions) %></td>
               <td class="li-num"><%= txt(a.cplText) %></td>
             </tr>
           <% }); %>

@@ -855,3 +855,16 @@ a.li-fa-stage:hover { background: var(--color-neutral-900); }
 .li-conn-card--ready { border-left: 2px solid var(--c-up); }
 .li-conn-status--ready { color: var(--c-up); border-color: color-mix(in srgb, var(--c-up) 40%, transparent); }
 .li-conn-status--ready .li-conn-dot { background: var(--c-up); }
+
+/* Reservation value by month: twelve value labels collide below tablet width;
+   every bar still carries its figure on hover/tap. */
+@media (max-width: 720px) { .li-rm-values { display: none; } }
+
+/* A grid item's default min-width is its content's, so one nowrap line (a
+   follow-up's name, a long label) pushed whole rows past the viewport and gave
+   the page a sideways scrollbar. Shrinking lets the ellipsis do its job. */
+main [style*="grid-template-columns"] > * { min-width: 0; }
+
+/* An explanatory column in a figures table: wraps instead of pushing the
+   table past its panel. */
+.li-ota-table th.li-wrap, .li-ota-table td.li-wrap { white-space: normal; min-width: 280px; line-height: 1.45; }
