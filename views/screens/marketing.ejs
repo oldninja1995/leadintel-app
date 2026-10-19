@@ -55,16 +55,39 @@
                 <div style="font-size:10px; color:var(--color-neutral-700); padding:6px 0 0;">Top line = <%= cv.topText %>. Bookings closed in each period ÷ CRM leads that arrived in it, per platform; the figure beside each name is the whole range. Hollow points sit above the top line. Tap a point for the counts.</div>
               <% } %>
             </div>
-            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px; display:flex; flex-direction:column;">
-              <div style="display:flex; align-items:center; margin-bottom:10px;"><div style="font-size:13px; font-weight:500;">Marketing funnel</div><div style="flex:1;"></div><span style="font-size:10px; color:var(--color-neutral-700);">bar = log scale · figures are exact</span></div>
-              <div style="flex:1; display:flex; flex-direction:column; gap:9px; justify-content:center;">
-                <% (mktFunnel || []).forEach(function (s) { %>
-                  <div>
-                    <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:3px;"><span style="color:var(--color-neutral-400);"><%= s.label %></span><span style="font-variant-numeric:tabular-nums;"><span style="color:var(--color-neutral-200); font-weight:500;"><%= s.n %></span> <span style="color:var(--color-neutral-600);">· <%= s.pct %></span></span></div>
-                    <div style="height:8px; border-radius:99px; background:var(--color-neutral-900); overflow:hidden;"><div style="height:100%; width:<%= s.w %>; border-radius:99px; background:linear-gradient(90deg, var(--color-accent-700), var(--color-accent-400));"></div></div>
+            <div style="background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px; display:flex; flex-direction:column; gap:14px;">
+              <% [['ROAS by platform', 'booking value ÷ spend', (locals.mktCharts && locals.mktCharts.roasTrend)], ['CPA by platform', 'spend ÷ bookings', (locals.mktCharts && locals.mktCharts.cpaTrend)]].forEach(function (panel) { var ch = panel[2] || { empty: true }; %>
+                <div>
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+                    <div style="font-size:13px; font-weight:500;"><%= panel[0] %></div>
+                    <span style="font-size:10.5px; color:var(--color-neutral-600);"><%= panel[1] %></span>
+                    <div style="flex:1;"></div>
+                    <% (ch.series || []).forEach(function (s) { %>
+                      <span style="display:flex; align-items:center; gap:4px; font-size:10.5px; color:var(--color-neutral-400);"><span style="width:10px;height:2px;background:<%= s.colour %>;"></span><%= s.label.replace(' Ads', '') %> <strong style="font-weight:500; color:var(--color-neutral-200);"><%= s.overallText %></strong></span>
+                    <% }); %>
                   </div>
-                <% }); %>
-              </div>
+                  <% if (ch.empty) { %>
+                    <div style="height:110px; display:grid; place-items:center; font-size:11px; color:var(--color-neutral-600); text-align:center;"><%= ch.reason %></div>
+                  <% } else { %>
+                    <svg viewBox="0 0 640 200" style="width:100%; height:110px;" preserveAspectRatio="none">
+                      <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="30" x2="640" y2="30"></line><line x1="0" y1="105" x2="640" y2="105"></line><line x1="0" y1="180" x2="640" y2="180"></line></g>
+                      <% ch.series.forEach(function (s) { %>
+                        <% s.paths.forEach(function (p) { %><polyline points="<%= p %>" fill="none" stroke="<%= s.colour %>" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline><% }); %>
+                        <% s.dots.forEach(function (d) { %>
+                          <g class="li-pop-mark" data-li-pop="<%= JSON.stringify(d.pop) %>" tabindex="0" role="button"><title><%= d.tip %></title>
+                            <circle cx="<%= d.cx.toFixed(1) %>" cy="<%= d.cy.toFixed(1) %>" r="9" fill="transparent"></circle>
+                            <circle cx="<%= d.cx.toFixed(1) %>" cy="<%= d.cy.toFixed(1) %>" r="3" fill="<%= d.capped ? 'var(--color-surface)' : s.colour %>" stroke="<%= s.colour %>" stroke-width="1.5" vector-effect="non-scaling-stroke"></circle>
+                          </g>
+                        <% }); %>
+                      <% }); %>
+                    </svg>
+                    <div style="position:relative; height:14px; font-size:10px; color:var(--color-neutral-600);">
+                      <% ch.axis.forEach(function (a, i) { if (i % 2) return; %><span style="position:absolute; left:<%= (a.x / 6.4).toFixed(2) %>%; transform:translateX(-50%); white-space:nowrap;"><%= a.text %></span><% }); %>
+                    </div>
+                    <div style="font-size:10px; color:var(--color-neutral-700); padding-top:4px;">Top line = <%= ch.topText %>; the figure beside each name is the whole range. Tap a point for spend and bookings.</div>
+                  <% } %>
+                </div>
+              <% }); %>
             </div>
           </div>
           <%- include('../partials/dash-charts', { set: 'mkt', charts: locals.mktCharts }) %>
