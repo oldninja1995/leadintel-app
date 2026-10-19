@@ -462,7 +462,7 @@ test('a booking already read keeps its stored mark; only new bookings read histo
   await telecrm.request({ kind: 'deal', window: WINDOW, credentials: CREDS, fetchImpl });
   const store = {
     currentBodies: async () => new Map([
-      ['a', { re_enquiry: false, booking_ref: 'R1' }],
+      ['a', { re_enquiry: false, booking_ref: 'R1', won_at: '2026-03-01T10:00:00.000Z' }],
       ['b', { re_enquiry: false, booking_ref: 'OLD' }],
       ['c', { booking_ref: 'R3' }],
     ]),
@@ -476,6 +476,29 @@ test('a booking already read keeps its stored mark; only new bookings read histo
   await telecrm.enrich(rows, { kind: 'deal', credentials: CREDS, fetchImpl, store });
   assert.deepStrictEqual(read.sort(), ['b', 'c', 'd']);
   assert.deepStrictEqual(rows.map((r) => r.re_enquiry), [false, true, true, true]);
+});
+
+test('a booking is dated by the status change that won it, not the lead\'s last edit', async () => {
+  telecrm.clearPipelineCache();
+  const pipeline = { statuses: [{ id: 5, label: 'Won/Converted', stage: 'WON' }, { id: 6, label: 'Checked in', stage: 'WON' }, { id: 7, label: 'Hot', stage: 'ACTIVE' }] };
+  const histories = {
+    /* won in March, moved between won statuses in September: still March */
+    a: [{ type: 'STATUS_CHANGE', fromStatusid: 7, toStatusid: 5, created_on: '2026-03-04T09:00:00Z' },
+      { type: 'STATUS_CHANGE', fromStatusid: 5, toStatusid: 6, created_on: '2026-09-09T09:00:00Z' }],
+    /* a returning guest: won, reopened, won again — the latest win */
+    b: [{ type: 'STATUS_CHANGE', fromStatusid: 7, toStatusid: 5, created_on: '2025-12-01T09:00:00Z' },
+      { type: 'STATUS_CHANGE', fromStatusid: 5, toStatusid: 7, created_on: '2026-05-01T09:00:00Z' },
+      { type: 'STATUS_CHANGE', fromStatusid: 7, toStatusid: 5, created_on: '2026-05-03T09:00:00Z' }],
+    c: [{ type: 'FACEBOOK', isLeadCaptureAction: true }],
+  };
+  const fetchImpl = async (url) => {
+    const m = /\/lead\/([^/]+)\/action\/search/.exec(url);
+    return json(m ? { data: histories[m[1]] } : pipeline);
+  };
+  await telecrm.request({ kind: 'deal', window: WINDOW, credentials: CREDS, fetchImpl });
+  const rows = [{ lead_id: 'a', outcome: 'won' }, { lead_id: 'b', outcome: 'won' }, { lead_id: 'c', outcome: 'won' }];
+  await telecrm.enrich(rows, { kind: 'deal', credentials: CREDS, fetchImpl });
+  assert.deepStrictEqual(rows.map((r) => r.won_at && r.won_at.slice(0, 10)), ['2026-03-04', '2026-05-03', null]);
 });
 
 test('a lead pull fetches the remaining pages concurrently and keeps every row in order', async () => {
