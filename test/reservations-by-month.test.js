@@ -28,3 +28,21 @@ test('the tile\'s rule: won only, cancellations excluded, by close date', () => 
 test('nothing won reads as empty, not a row of zero bars', () => {
   assert.ok(reservationsByMonth([], NOW).empty);
 });
+
+test('the channel switch picks the platform for bookings and spend alike', () => {
+  const deals = [
+    { outcome: 'won', channel: 'meta', closedAt: '2026-09-10', revenue: 500000 },
+    { outcome: 'won', channel: 'google', closedAt: '2026-09-11', revenue: 300000 },
+  ];
+  const spend = [
+    { platform: 'meta_ads', date: '2026-09-02', spend: 100000 },
+    { platform: 'google_ads', date: '2026-09-02', spend: 200000 },
+  ];
+  const all = reservationsByMonth(deals, NOW, [], spend);
+  assert.deepStrictEqual([all.total, all.spend, all.channelText], ['₹8,000', '₹3,000', 'Meta + Google']);
+  const meta = reservationsByMonth(deals, NOW, [], spend, ['meta']);
+  assert.deepStrictEqual([meta.total, meta.spend, meta.channelText], ['₹5,000', '₹1,000', 'Meta']);
+  const google = reservationsByMonth(deals, NOW, [], spend, ['google']);
+  assert.deepStrictEqual([google.total, google.spend], ['₹3,000', '₹2,000']);
+  assert.ok(reservationsByMonth(deals, NOW, [], spend, []).empty);
+});
