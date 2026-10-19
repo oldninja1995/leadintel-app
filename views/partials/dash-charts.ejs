@@ -157,7 +157,7 @@ var only = (typeof locals.only === 'string' && locals.only) || null;
         <% rm.bars.forEach(function (b) { %><span style="position:absolute; left:<%= (b.cx / 6.4).toFixed(2) %>%; transform:translateX(-50%); white-space:nowrap;"><%= b.valueText %></span><% }); %>
       </div>
       <div style="position:relative; height:14px; font-size:10px; color:var(--color-neutral-600);">
-        <% rm.bars.forEach(function (b) { %><span style="position:absolute; left:<%= (b.cx / 6.4).toFixed(2) %>%; transform:translateX(-50%); white-space:nowrap;"><%= b.label %></span><% }); %>
+        <% rm.bars.forEach(function (b, i) { %><span class="<%= i % 2 ? 'li-rm-odd' : '' %>" style="position:absolute; left:<%= (b.cx / 6.4).toFixed(2) %>%; transform:translateX(-50%); white-space:nowrap;"><%= b.label %></span><% }); %>
       </div>
       <div style="<%= sub %> margin-top:6px;">Purple: reservation value on bookings won that month from leads the CRM tagged Meta or Google — repeat bookings included, however old the lead. Grey: Meta + Google ad spend that month. One rupee scale; the darker purple bar is the current month, still in progress. Tap a month for ROAS and its largest bookings.</div>
     <% } %>

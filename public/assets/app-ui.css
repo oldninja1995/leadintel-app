@@ -858,7 +858,7 @@ a.li-fa-stage:hover { background: var(--color-neutral-900); }
 
 /* Reservation value by month: twelve value labels collide below tablet width;
    every bar still carries its figure on hover/tap. */
-@media (max-width: 720px) { .li-rm-values { display: none; } }
+@media (max-width: 720px) { .li-rm-values, .li-rm-odd { display: none; } }
 
 /* A grid item's default min-width is its content's, so one nowrap line (a
    follow-up's name, a long label) pushed whole rows past the viewport and gave
