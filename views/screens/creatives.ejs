@@ -24,6 +24,19 @@
             <% }); %>
           </div>
           <% } %>
+          <% if ((typeof creativeDigest !== "undefined") && creativeDigest) { %>
+          <div style="background:var(--color-surface); border:1px solid var(--color-neutral-800); border-radius:11px; padding:12px 14px; margin-bottom:12px;">
+            <div style="font-size:9.5px; color:var(--color-neutral-600); text-transform:uppercase; letter-spacing:.04em;">Summary for the selected period</div>
+            <div style="font-size:13.5px; font-weight:600; color:var(--color-neutral-200); margin-top:4px; line-height:1.45;"><%= creativeDigest.headline %></div>
+            <% if (creativeDigest.points.length) { %>
+            <ul style="list-style:none; margin:8px 0 0; padding:0; display:flex; flex-direction:column; gap:5px;">
+              <% creativeDigest.points.forEach(function (p) { %>
+                <li style="position:relative; padding-left:14px; font-size:11.5px; color:var(--color-neutral-300); line-height:1.5;"><span style="position:absolute; left:1px; top:6px; width:6px; height:6px; border-radius:50%; background:<%= p.tone === 'good' ? 'var(--c-up)' : p.tone === 'bad' ? 'var(--c-down)' : 'var(--color-neutral-500)' %>;"></span><%= p.text %></li>
+              <% }); %>
+            </ul>
+            <% } %>
+          </div>
+          <% } %>
           <% if ((typeof creativeNotes !== "undefined") && creativeNotes && creativeNotes.length) { %>
           <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
             <% creativeNotes.forEach(function (n) { %>
