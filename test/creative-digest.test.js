@@ -52,3 +52,9 @@ test('google: conversions, cheapest, idle and thin', () => {
   assert.match(text, /no Google conversion — the largest is “D1”/);
   assert.match(text, /1 of 3 have under 1,000 impressions/);
 });
+
+test('meta: says how many are running now when the status is known', () => {
+  const out = metaDigest([ad('On', { live: true }), ad('Off', { live: false }), ad('Off 2', { live: false })], fmt);
+  assert.ok(out.points.some((p) => p.text === '1 of 3 are running now; 2 are off (paused at the ad, ad set or campaign) but spent in this period.'));
+  assert.ok(!metaDigest([ad('x')], fmt).points.some((p) => /running now/.test(p.text)), 'no status, no sentence');
+});
