@@ -104,8 +104,21 @@ test('a day count beats the word broad', () => {
 test('a named audience with no window given is warm, not hot', () => {
   /* The name says there is an audience but not how recent it is; calling it hot
      would claim the thing that was not said. */
-  assert.equal(funnel.fromName('Lookalike 1% — past bookers').stage, 'Middle');
   assert.equal(funnel.fromName('IG Engagers').stage, 'Middle');
+});
+
+/* A lookalike reaches people like the guest list who have never met the brand:
+   prospecting, so the top of the funnel. "1% LLA" was filed under warm. */
+test('a lookalike is cold prospecting, by name and by targeting', () => {
+  assert.equal(funnel.fromName('Lookalike 1% — past bookers').stage, 'Top');
+  assert.equal(funnel.fromName('1% LLA').stage, 'Top');
+  const lal = { 9: { name: 'Lookalike (1%) - Resort CRS Data.csv', subtype: 'LOOKALIKE' } };
+  const only = funnel.stageFor({ targeting: { customAudienceIds: ['9'] }, adsetName: '1% LLA' }, lal);
+  assert.equal(only.stage, 'Top');
+  assert.equal(only.signal, 'targeting');
+  // Stacked beside a real retargeting pool, the pool still decides.
+  const mixed = funnel.stageFor({ targeting: { customAudienceIds: ['9', '7'] } }, { ...lal, 7: { name: 'Site visitors 60 days', retentionDays: 60 } });
+  assert.equal(mixed.stage, 'Middle');
 });
 
 /* "Cities | TN" names a place, not an audience. */
