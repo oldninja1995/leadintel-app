@@ -197,3 +197,21 @@ test('RC: a booking is returning when TeleCRM marked its lead Re-enquiry, or the
   assert.strictEqual(isReturningCustomer({ repeat: false, reEnquiry: true }), true);
   assert.strictEqual(isNewCustomer({ repeat: false, reEnquiry: true }), false);
 });
+
+test('summarise: headline, change against the window before, biggest leak, waste — never a made-up zero', () => {
+  const fmt = { money: (p) => (p == null ? null : `₹${Math.round(p / 100)}`), count: (n) => (n == null ? null : String(Math.round(n))), pct: (r) => (r == null ? null : `${(r * 100).toFixed(1)}%`), x: (r) => (r == null ? null : `${r.toFixed(2)}x`), priorLabel: 'last month' };
+  const leads = [lead('a', { stage: 'Hot' }), lead('b', { stage: 'Interested' }), lead('c'), lead('d')];
+  const result = funnel.analyse({ leads, deals: [], campaignDays: [day(), day({ campaign: 'idle', label: 'Idle', spend: R(500), leads: 0 })] }, { channel: 'paid' });
+  const prior = { ...result.summary, leads: 2, bookings: 0, revenue: 0, cpl: result.summary.cpl * 2 };
+  const s = funnel.summarise(result, prior, fmt);
+  assert.match(s.headline, /^4 leads → 0 booked \(0\.0%\) → 0 bookings worth/);
+  assert.match(s.headline, /ad spend/);
+  const text = s.points.map((p) => p.text).join('\n');
+  assert.match(text, /Against last month: leads \+100%/);
+  assert.match(text, /cost per lead −50%/);
+  assert.match(text, /Biggest leak:/);
+  assert.match(text, /booked nothing/);
+  assert.doesNotMatch(text, /NaN|undefined|null/);
+  // No window before: no comparison sentence at all.
+  assert.ok(!funnel.summarise(result, null, fmt).points.some((p) => /^Against/.test(p.text)));
+});

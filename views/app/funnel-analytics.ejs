@@ -42,6 +42,21 @@ const dash = function (v) { return (v === null || v === undefined || v === '') ?
     </div>
   </div>
 
+  <section class="li-ota-panel li-fa-summary" aria-label="Summary">
+    <div class="li-ota-panel-head">
+      <h2>Summary</h2>
+      <span class="li-fa-summary-range"><%= rangeLabel %> · <%= channel.label %></span>
+    </div>
+    <p class="li-fa-summary-head"><%= summary.headline %></p>
+    <% if (summary.points.length) { %>
+      <ul class="li-fa-summary-list">
+        <% summary.points.forEach(function (p) { %>
+          <li class="li-fa-summary-item li-fa-summary-item--<%= p.tone %>"><%= p.text %></li>
+        <% }); %>
+      </ul>
+    <% } %>
+  </section>
+
   <section class="li-ota-kpis li-fa-kpis" aria-label="Headline figures">
     <% kpis.forEach(function (k) { %>
       <div class="li-ota-kpi <%= k.lead ? 'li-ota-kpi--lead' : '' %>">

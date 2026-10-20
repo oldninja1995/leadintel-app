@@ -868,3 +868,13 @@ main [style*="grid-template-columns"] > * { min-width: 0; }
 /* An explanatory column in a figures table: wraps instead of pushing the
    table past its panel. */
 .li-ota-table th.li-wrap, .li-ota-table td.li-wrap { white-space: normal; min-width: 280px; line-height: 1.45; }
+
+/* Full Funnel Analytics: the summary of the chosen period */
+.li-fa-summary { padding-bottom: 6px; }
+.li-fa-summary-range { font-size: 12px; color: var(--color-neutral-400); }
+.li-fa-summary-head { margin: 0; padding: 12px 16px 4px; font-size: 16px; font-weight: 600; line-height: 1.45; }
+.li-fa-summary-list { list-style: none; margin: 0; padding: 4px 16px 10px; display: flex; flex-direction: column; gap: 6px; }
+.li-fa-summary-item { position: relative; padding-left: 16px; font-size: 13px; line-height: 1.5; }
+.li-fa-summary-item::before { content: ""; position: absolute; left: 2px; top: 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--color-neutral-500); }
+.li-fa-summary-item--good::before { background: var(--c-up); }
+.li-fa-summary-item--bad::before { background: var(--c-down); }

@@ -3260,6 +3260,7 @@ async function renderFunnel(req, res) {
     data: {
       rangeLabel: rangeLabel(over),
       priorLabel: before ? rangeLabel(before) : null,
+      summary: funnelAnalytics.summarise(result, prior, { money: funnelMoney, count: funnelCount, pct: funnelPct, x: funnelX, priorLabel: before ? rangeLabel(before) : 'the period before' }),
       channel: result.channel,
       grain: result.grain,
       adSide: result.adSide,
