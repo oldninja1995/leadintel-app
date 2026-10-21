@@ -570,6 +570,9 @@ function syncWindow(now = new Date(), sourceId = null) {
   return {
     from: new Date(midnight - (days - 1) * 86400000).toISOString(),
     to: new Date(midnight + 86400000).toISOString(),
+    /* A routine catch-up, not a requested history — a connector may narrow a
+       kind that does not need the whole fortnight (TeleCRM `deal`). */
+    refresh: !FORCED_DAYS && backfilled,
   };
 }
 
