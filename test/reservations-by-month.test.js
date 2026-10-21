@@ -46,3 +46,17 @@ test('the channel switch picks the platform for bookings and spend alike', () =>
   assert.deepStrictEqual([google.total, google.spend], ['₹3,000', '₹2,000']);
   assert.ok(reservationsByMonth(deals, NOW, [], spend, []).empty);
 });
+
+test('repeat-customer value: a re-enquiry, or a second won booking on one lead', () => {
+  const out = reservationsByMonth([
+    { id: 'L1#A', leadId: 'L1', outcome: 'won', channel: 'meta', closedAt: '2026-03-05', revenue: 100000 },
+    { id: 'L1', leadId: 'L1', outcome: 'won', channel: 'meta', closedAt: '2026-09-05', revenue: 200000 },
+    { id: 'L2', leadId: 'L2', outcome: 'won', channel: 'meta', closedAt: '2026-09-06', revenue: 300000, reEnquiry: true },
+    { id: 'L3', leadId: 'L3', outcome: 'won', channel: 'google', closedAt: '2026-09-07', revenue: 400000, repeat: false },
+  ], NOW);
+  assert.deepStrictEqual([out.repeat, out.repeatN, out.repeatShare], ['₹5,000', '2', '50%']);
+  const sept = out.bars[10];
+  assert.ok(sept.rh > 0 && sept.rh < sept.h);
+  assert.match(sept.tip, /₹5,000 from 2 repeat/);
+  assert.strictEqual(out.bars[4].rh, 0);
+});
