@@ -60,3 +60,15 @@ test('repeat-customer value: a re-enquiry, or a second won booking on one lead',
   assert.match(sept.tip, /₹5,000 from 2 repeat/);
   assert.strictEqual(out.bars[4].rh, 0);
 });
+
+test('repeat-customer card: range deals judged against the whole history', () => {
+  const { repeatReservations } = require('../lib/dashboard-charts');
+  const whole = [
+    { id: 'L1#A', leadId: 'L1', outcome: 'won', channel: 'meta', closedAt: '2026-03-05', revenue: 100000 },
+    { id: 'L1', leadId: 'L1', outcome: 'won', channel: 'meta', closedAt: '2026-09-05', revenue: 200000 },
+    { id: 'L3', leadId: 'L3', outcome: 'won', channel: 'google', closedAt: '2026-09-07', revenue: 600000 },
+  ];
+  const r = repeatReservations(whole.slice(1), whole);
+  assert.deepStrictEqual([r.value, r.n, r.total, r.all], [200000, 1, 800000, 2]);
+  assert.strictEqual(repeatReservations(whole.slice(1), whole, ['google']).n, 0);
+});
