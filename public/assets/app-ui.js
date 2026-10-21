@@ -987,7 +987,7 @@
       box.className = 'li-pop';
       box.setAttribute('role', 'dialog');
       box.innerHTML = '<div class="li-pop-h"><span>' + esc(data.title) + '</span><button type="button" class="li-pop-x" aria-label="Close">×</button></div>'
-        + '<div class="li-pop-rows">' + (data.rows || []).map((r) => '<div><span>' + esc(r[0]) + '</span><strong>' + esc(r[1]) + '</strong></div>').join('') + '</div>'
+        + '<div class="li-pop-rows">' + (data.rows || []).map((r) => '<div' + (r[2] === 'warn' ? ' class="li-pop-warn"' : '') + '><span>' + esc(r[0]) + '</span><strong>' + esc(r[1]) + '</strong></div>').join('') + '</div>'
         + (data.go ? '<a class="li-pop-go" href="' + esc(withRange(data.go)) + '">' + esc(data.goText || 'Open') + ' →</a>' : '');
       document.body.appendChild(box);
       const w = box.offsetWidth;

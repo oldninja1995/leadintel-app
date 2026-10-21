@@ -144,6 +144,7 @@ var only = (typeof locals.only === 'string' && locals.only) || null;
         <span><strong style="color:var(--color-neutral-200); font-weight:500;"><%= rm.spend %></strong> ad spend</span>
         <span><strong style="color:var(--color-neutral-200); font-weight:500;"><%= rm.roas %></strong> ROAS</span>
         <span>Best: <strong style="color:var(--color-neutral-200); font-weight:500;"><%= rm.best %></strong></span>
+        <% if (rm.blanks) { %><span style="color:var(--color-warning-500, #d9a03f);">⚠ <strong style="font-weight:600;"><%= rm.blanks %></strong> won booking<%= rm.blanks === 1 ? '' : 's' %> with no value entered — tap a flagged month</span><% } %>
       </div>
       <svg viewBox="0 0 640 200" style="width:100%; height:200px; overflow:visible;" preserveAspectRatio="none">
         <g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="30" x2="640" y2="30"></line><line x1="0" y1="105" x2="640" y2="105"></line><line x1="0" y1="180" x2="640" y2="180"></line></g>
@@ -153,6 +154,7 @@ var only = (typeof locals.only === 'string' && locals.only) || null;
             <rect x="<%= b.x.toFixed(1) %>" y="<%= b.y.toFixed(1) %>" width="<%= b.w.toFixed(1) %>" height="<%= Math.max(0, b.h).toFixed(1) %>" rx="3" fill="<%= b.current ? 'var(--color-accent-700)' : 'var(--color-accent-500)' %>"></rect>
             <% if (b.rh > 0) { %><rect x="<%= b.x.toFixed(1) %>" y="<%= b.ry.toFixed(1) %>" width="<%= b.w.toFixed(1) %>" height="<%= b.rh.toFixed(1) %>" rx="3" fill="var(--color-accent-300)"></rect><% } %>
             <rect x="<%= b.sx.toFixed(1) %>" y="<%= b.sy.toFixed(1) %>" width="<%= b.w.toFixed(1) %>" height="<%= Math.max(0, b.sh).toFixed(1) %>" rx="3" fill="var(--color-neutral-600)"></rect>
+            <% if (b.blank) { %><circle cx="<%= (b.x + b.w / 2).toFixed(1) %>" cy="<%= Math.max(8, b.y - 9).toFixed(1) %>" r="4.5" fill="var(--color-warning-500, #d9a03f)"></circle><% } %>
           </g>
         <% }); %>
       </svg>
@@ -162,7 +164,7 @@ var only = (typeof locals.only === 'string' && locals.only) || null;
       <div style="position:relative; height:14px; font-size:10px; color:var(--color-neutral-600);">
         <% rm.bars.forEach(function (b, i) { %><span class="<%= i % 2 ? 'li-rm-odd' : '' %>" style="position:absolute; left:<%= (b.cx / 6.4).toFixed(2) %>%; transform:translateX(-50%); white-space:nowrap;"><%= b.label %></span><% }); %>
       </div>
-      <div style="<%= sub %> margin-top:6px;">Purple: reservation value on bookings won that month from leads the CRM tagged <%= rm.channelText === 'Meta + Google' ? 'Meta or Google' : rm.channelText %> — repeat bookings included, however old the lead; the light top of each bar is repeat customers (the CRM's Re-enquiry mark, the same phone enquiring before, or a second booking on one lead). Grey: <%= rm.channelText %> ad spend that month. One rupee scale; the darker purple bar is the current month, still in progress. Tap a month for ROAS and its largest bookings.</div>
+      <div style="<%= sub %> margin-top:6px;">Purple: reservation value on bookings won that month from leads the CRM tagged <%= rm.channelText === 'Meta + Google' ? 'Meta or Google' : rm.channelText %> — repeat bookings included, however old the lead; the light top of each bar is repeat customers (the CRM's Re-enquiry mark, the same phone enquiring before, or a second booking on one lead). Grey: <%= rm.channelText %> ad spend that month. One rupee scale; the darker purple bar is the current month, still in progress. Tap a month for ROAS and its largest bookings.<% if (rm.blanks) { %> <span style="color:var(--color-warning-500, #d9a03f);">Amber dot: that month has won bookings with no value entered in TeleCRM — they count as reservations but add ₹0.</span><% } %></div>
     <% } %>
   </div>
   <% } %>
