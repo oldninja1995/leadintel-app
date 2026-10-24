@@ -3393,8 +3393,8 @@ async function googleAdsPayload(req, slug = null) {
 
   /* Google names every first ad group "Ad group 1", so two campaigns' groups read
      identically; each row carries its campaign's name to tell them apart. */
-  const campaignNameById = new Map(googleDays.filter((r) => r.campaignId).map((r) => [String(r.campaignId), r.campaign]));
-  const adGroups = rollUp(entities.googleAdGroups, (r) => r.adgroupId, (r) => ({ adgroup: r.adgroup, campaign: campaignNameById.get(String(r.campaignId)) || null }));
+  const groupCampaignName = new Map(googleDays.filter((r) => r.campaignId).map((r) => [String(r.campaignId), r.campaign]));
+  const adGroups = rollUp(entities.googleAdGroups, (r) => r.adgroupId, (r) => ({ adgroup: r.adgroup, campaign: groupCampaignName.get(String(r.campaignId)) || null }));
   const ads = rollUp(entities.googleAds, (r) => r.adId, (r) => ({
     ad: r.ad, adId: r.adId, adType: r.adType, status: r.status,
     /* Where it ran, carried so Ad Analytics can segment by surface without a
