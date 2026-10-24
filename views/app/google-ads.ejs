@@ -207,7 +207,7 @@ const chip = (v) => String(v || '—').replace(/_/g, ' ').toLowerCase();
       <tbody>
         <% d.adGroups.forEach((g) => { %>
           <tr>
-            <td><%= txt(g.adgroup) %></td>
+            <td><%= txt(g.adgroup) %><% if (g.campaign) { %><br><span style="font-size:11px; color:var(--color-neutral-500);"><%= g.campaign %></span><% } %></td>
             <td class="li-num"><%= txt(g.spendText) %></td>
             <td class="li-num"><%= num(g.impressions) %></td>
             <td class="li-num"><%= num(g.clicks) %></td><td class="li-num"><%= txt(g.cpcText) %></td>

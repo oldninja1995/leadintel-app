@@ -570,7 +570,7 @@ function syncWindow(now = new Date(), sourceId = null) {
   return {
     from: new Date(midnight - (days - 1) * 86400000).toISOString(),
     to: new Date(midnight + 86400000).toISOString(),
-    /* A routine catch-up, not a requested history — a connector may narrow a
+    /* A routine catch-up, not a requested history ï¿½ a connector may narrow a
        kind that does not need the whole fortnight (TeleCRM `deal`). */
     refresh: !FORCED_DAYS && backfilled,
   };
@@ -3391,7 +3391,10 @@ async function googleAdsPayload(req, slug = null) {
   campaignTotal.cpcText = campaignTotal.clicks > 0 ? asMoney(campaignTotal.spend / campaignTotal.clicks) : null;
   campaignTotal.cplText = campaignTotal.conversions > 0 ? asMoney(campaignTotal.spend / campaignTotal.conversions) : null;
 
-  const adGroups = rollUp(entities.googleAdGroups, (r) => r.adgroupId, (r) => ({ adgroup: r.adgroup }));
+  /* Google names every first ad group "Ad group 1", so two campaigns' groups read
+     identically; each row carries its campaign's name to tell them apart. */
+  const campaignNameById = new Map(googleDays.filter((r) => r.campaignId).map((r) => [String(r.campaignId), r.campaign]));
+  const adGroups = rollUp(entities.googleAdGroups, (r) => r.adgroupId, (r) => ({ adgroup: r.adgroup, campaign: campaignNameById.get(String(r.campaignId)) || null }));
   const ads = rollUp(entities.googleAds, (r) => r.adId, (r) => ({
     ad: r.ad, adId: r.adId, adType: r.adType, status: r.status,
     /* Where it ran, carried so Ad Analytics can segment by surface without a
