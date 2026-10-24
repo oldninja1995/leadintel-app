@@ -20,11 +20,11 @@
                       <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= r.leads %></td><td data-li-slot="bookings" style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= r.bookings %></td>
                       <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:<%= r.closeColor %>;"><%= r.close %></td>
                       <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:<%= r.respColor %>;"><%= r.resp %></td>
-                      <td style="padding:9px 8px; min-width:110px;"><div style="display:flex; align-items:center; gap:7px;"><div style="flex:1; height:5px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= r.comp %>; border-radius:99px; background:<%= r.compColor %>;"></div></div><span style="font-size:10.5px; color:var(--color-neutral-500);"><%= r.comp %></span></div></td>
+                      <td style="padding:9px 8px; min-width:110px;"><div style="display:flex; align-items:center; gap:7px;"><div style="flex:1; height:5px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= /%$/.test(r.comp) ? r.comp : 0 %>; border-radius:99px; background:<%= r.compColor %>;"></div></div><span style="font-size:10.5px; color:var(--color-neutral-500);"><%= r.comp %></span></div></td>
                       <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= r.calls %></td>
                       <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= r.wa %></td>
                       <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= r.abv %></td>
-                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);">★ <%= r.rating %></td>
+                      <td style="padding:9px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-300);"><%= r.rating === '—' ? '—' : '★ ' + r.rating %></td>
                       <td style="padding:9px 0 9px 8px;"><span style="font-size:10.5px; color:var(--color-accent-300);"><%= r.coach %></span></td>
                     </tr>
                   <% }); %>
@@ -77,4 +77,4 @@
               <table style="width:100%; border-collapse:collapse; font-size:12px;">
                 <thead><tr style="color:var(--color-neutral-600); font-size:10.5px; text-align:left;"><th style="padding:9px 8px 9px 0; font-weight:5
 <% } %>
-<div style="margin:18px 0; padding:12px 14px; border:1px solid var(--color-neutral-800); border-radius:9px; font-size:11.5px; color:var(--color-neutral-500); line-height:1.6;"><i class="ph ph-scissors" style="font-size:13px;"></i> This screen is incomplete: the design file exceeded the 256 KiB read cap and was cut off here.</div>
+<div style="margin:12px 0; padding:10px 14px; border:1px solid var(--color-neutral-800); border-radius:9px; font-size:11.5px; color:var(--color-neutral-500); line-height:1.6;"><i class="ph ph-info" style="font-size:13px;"></i> Response, follow-up compliance, calls, WhatsApp, rating and AI coaching are not measured yet: they need TeleCRM's lead-event stream, which arrives by webhook (Connections › TeleCRM › Push intake).</div>

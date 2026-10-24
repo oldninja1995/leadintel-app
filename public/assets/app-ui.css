@@ -885,3 +885,24 @@ main [style*="grid-template-columns"] > * { min-width: 0; }
    into the heading beside it. */
 .li-chip { display: inline-flex; align-items: center; padding: 1px 7px; margin: 0 0 0 4px; border: 1px solid var(--color-neutral-800); border-radius: 5px; font-size: 10.5px; font-weight: 500; line-height: 1.6; color: var(--color-neutral-400); white-space: nowrap; vertical-align: middle; }
 td > .li-chip:first-child { margin-left: 0; }
+
+/* Guests by revenue: name, bar, value, count and channel are fixed widths that
+   add up to ~460px, so on a phone the row ran off the card. The channel goes
+   and the bar shrinks first. */
+@media (max-width: 600px) {
+  .li-aud-guest .li-aud-from { display: none; }
+  .li-aud-guest > div { min-width: 24px; }
+}
+
+/* A bar whose value is a dash. Projections send "—" for an unmeasured share,
+   so the template writes `width:—`; a browser drops the invalid declaration and
+   the bar falls back to auto — FULL width beside a dash, which reads as 100%.
+   Every inline bar on every screen is covered here rather than one by one. */
+[style*="width:—"], [style*="width: —"], [style*="width:NaN"], [style*="width:undefined"] { width: 0 !important; }
+
+/* "Show all" for a long table without script: a hidden checkbox before the
+   table, rows past the first screenful carry .li-more-row. */
+.li-more-toggle:not(:checked) ~ table .li-more-row { display: none; }
+.li-more-label { display: inline-block; margin-top: 10px; font-size: 11.5px; color: var(--color-accent-300); cursor: pointer; }
+.li-more-label:hover { color: var(--color-accent-200); }
+.li-more-toggle:checked ~ .li-more-label .li-more-show, .li-more-toggle:not(:checked) ~ .li-more-label .li-more-hide { display: none; }

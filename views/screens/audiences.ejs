@@ -121,12 +121,12 @@
                 <span style="font-size:10.5px; color:var(--color-neutral-600);">how much of the money sits with how few people</span>
               </div>
               <% audTopGuests.forEach(function (g) { %>
-                <div style="display:flex; align-items:center; gap:9px; padding:5.5px 0; font-size:11.5px;">
-                  <span style="width:150px; flex:none; color:var(--color-neutral-300); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= g.name %></span>
+                <div class="li-aud-guest" style="display:flex; align-items:center; gap:9px; padding:5.5px 0; font-size:11.5px;">
+                  <span style="width:150px; flex:0 1 150px; min-width:0; color:var(--color-neutral-300); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><%= g.name %></span>
                   <div style="flex:1; height:6px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= g.w %>; border-radius:99px; background:var(--color-accent-600);"></div></div>
                   <span style="width:66px; flex:none; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-100); font-weight:500;"><%= g.rev %></span>
-                  <span style="width:74px; flex:none; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-600);"><%= g.bookings %> bookings</span>
-                  <span style="width:130px; flex:none; text-align:right; color:var(--color-neutral-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="The channel the CRM tagged their bookings with"><%= g.from %></span>
+                  <span style="width:74px; flex:none; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-600);"><%= g.bookings %> booking<%= g.bookings === '1' ? '' : 's' %></span>
+                  <span class="li-aud-from" style="width:130px; flex:none; text-align:right; color:var(--color-neutral-600); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="The channel the CRM tagged their bookings with"><%= g.from %></span>
                 </div>
               <% }); %>
               <% if (typeof audGuestNote !== 'undefined' && audGuestNote) { %>
@@ -145,7 +145,7 @@
                   <tr class="hv-1" style="border-top:1px solid var(--color-neutral-900);">
                     <td style="padding:8.5px 8px 8.5px 0; color:var(--color-neutral-200); font-weight:500; white-space:nowrap;"><%= sg.name %></td>
                     <td style="padding:8.5px 8px; white-space:nowrap;"><span style="font-size:10px; border:1px solid var(--color-neutral-800); border-radius:5px; padding:1.5px 7px; color:var(--color-neutral-400);"><%= sg.type %></span></td>
-                    <td style="padding:8.5px 8px; min-width:100px;"><div style="display:flex; align-items:center; gap:7px;"><div style="flex:1; height:5px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= sg.sat %>; border-radius:99px; background:<%= sg.satColor %>;"></div></div><span style="font-size:10.5px; color:var(--color-neutral-500);"><%= sg.sat %></span></div></td>
+                    <td style="padding:8.5px 8px; min-width:100px;"><div style="display:flex; align-items:center; gap:7px;"><div style="flex:1; height:5px; border-radius:99px; background:var(--color-neutral-900);"><div style="height:100%; width:<%= /%$/.test(sg.sat) ? sg.sat : 0 %>; border-radius:99px; background:<%= sg.satColor %>;"></div></div><span style="font-size:10.5px; color:var(--color-neutral-500);"><%= sg.sat %></span></div></td>
                     <td style="padding:8.5px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= sg.spend %></td>
                     <td style="padding:8.5px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-400);"><%= sg.leads %></td>
                     <td style="padding:8.5px 8px; text-align:right; font-variant-numeric:tabular-nums; color:var(--color-neutral-200);"><%= sg.bookings %></td>
