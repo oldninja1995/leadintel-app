@@ -878,3 +878,10 @@ main [style*="grid-template-columns"] > * { min-width: 0; }
 .li-fa-summary-item::before { content: ""; position: absolute; left: 2px; top: 7px; width: 7px; height: 7px; border-radius: 50%; background: var(--color-neutral-500); }
 .li-fa-summary-item--good::before { background: var(--c-up); }
 .li-fa-summary-item--bad::before { background: var(--c-down); }
+
+/* A small outlined tag beside a title or in a table cell — "380 keywords",
+   "enabled", "wasted". The class was only ever styled in marketing.css, which
+   the app does not load, so inside the app every chip read as bare words run
+   into the heading beside it. */
+.li-chip { display: inline-flex; align-items: center; padding: 1px 7px; margin: 0 0 0 4px; border: 1px solid var(--color-neutral-800); border-radius: 5px; font-size: 10.5px; font-weight: 500; line-height: 1.6; color: var(--color-neutral-400); white-space: nowrap; vertical-align: middle; }
+td > .li-chip:first-child { margin-left: 0; }
