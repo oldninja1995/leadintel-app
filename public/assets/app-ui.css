@@ -906,3 +906,24 @@ td > .li-chip:first-child { margin-left: 0; }
 .li-more-label { display: inline-block; margin-top: 10px; font-size: 11.5px; color: var(--color-accent-300); cursor: pointer; }
 .li-more-label:hover { color: var(--color-accent-200); }
 .li-more-toggle:checked ~ .li-more-label .li-more-show, .li-more-toggle:not(:checked) ~ .li-more-label .li-more-hide { display: none; }
+
+/* AI Command Center — Copilot conversation (public/assets/ai-copilot.js). */
+.li-cp-msg { max-width: 86%; font-size: 12.5px; line-height: 1.6; border-radius: 10px; padding: 9px 13px; overflow-wrap: anywhere; }
+.li-cp-user { align-self: flex-end; border: 1px solid var(--color-accent-600); color: var(--color-neutral-100); }
+.li-cp-assistant { align-self: flex-start; background: var(--color-section, rgba(127,127,127,.08)); color: var(--color-neutral-200); }
+.li-cp-msg p { margin: 0 0 6px; }
+.li-cp-msg p:last-child { margin-bottom: 0; }
+.li-cp-msg ul, .li-cp-msg ol { margin: 4px 0 6px; padding-left: 18px; }
+.li-cp-msg li { margin: 2px 0; }
+.li-cp-msg code { font-size: 11.5px; background: rgba(127,127,127,.15); padding: 0 4px; border-radius: 4px; }
+.li-cp-h { font-weight: 600; margin: 6px 0 4px; }
+.li-cp-meta { margin-top: 6px; font-size: 10.5px; color: var(--color-neutral-600); }
+.li-cp-error { color: #c88a8a; }
+.li-cp-error a { color: var(--color-accent-300); }
+.li-cp-wait { color: var(--color-neutral-500); }
+.li-cp-dots { display: inline-flex; gap: 3px; margin-right: 6px; vertical-align: middle; }
+.li-cp-dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--color-accent-300); animation: li-cp-dot 1s infinite ease-in-out; }
+.li-cp-dots i:nth-child(2) { animation-delay: .15s; }
+.li-cp-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes li-cp-dot { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+@media (max-width: 760px) { .li-copilot { grid-template-columns: minmax(0, 1fr) !important; } .li-cp-msg { max-width: 100%; } }

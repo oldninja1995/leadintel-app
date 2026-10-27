@@ -374,7 +374,11 @@ const openSource = canManage
                   </a>
                 <% } %>
                 <% if (c.configured && c.sendOnly) { %>
-                  <button type="submit" formaction="/connections/email/test-email" class="li-conn-secondary" title="Send a test message to the address above"><i class="ph ph-paper-plane-tilt"></i>Send test email</button>
+                  <% if (c.source === 'anthropic') { %>
+                    <button type="submit" formaction="/connections/anthropic/test-ai" class="li-conn-secondary" title="Ask Claude one short question with this key"><i class="ph ph-pulse"></i>Test key</button>
+                  <% } else { %>
+                    <button type="submit" formaction="/connections/email/test-email" class="li-conn-secondary" title="Send a test message to the address above"><i class="ph ph-paper-plane-tilt"></i>Send test email</button>
+                  <% } %>
                   <button type="submit" formaction="/connections/<%= c.source %>/remove" class="li-conn-danger"><i class="ph ph-plugs"></i>Disconnect</button>
                 <% } else if (c.configured) { %>
                   <button type="submit" formaction="/connections/<%= c.source %>/test" class="li-conn-secondary"><i class="ph ph-pulse"></i>Test</button>

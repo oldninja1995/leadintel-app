@@ -45,6 +45,7 @@ const metrics = require('./lib/metrics');
 const resolve = require('./lib/metrics/resolve');
 const reports = require('./lib/reports');
 const { createReasoner } = require('./lib/ai/reasoner');
+const copilot = require('./lib/ai/copilot');
 const rules = require('./lib/rules');
 const channels = require('./lib/rules/channels');
 const { FireLog } = require('./lib/rules/firelog');
@@ -2515,6 +2516,56 @@ app.post('/connections/email/test-email', express.urlencoded({ extended: false }
       return res.redirect(303, `/connections?source=email&saved=${encodeURIComponent(`Test email sent to ${creds.address} — check that inbox`)}`);
     } catch (err) {
       return res.redirect(303, `/connections?source=email&error=${encodeURIComponent(err.message)}`);
+    }
+  });
+
+/* The AI Command Center's Copilot: a typed question, answered by Claude over a
+   brief built from the same figures the screens show, for the range the reader
+   is looking at. JSON in and out — the tab posts it without leaving the page. */
+app.post('/ai/ask', express.json({ limit: '200kb' }), async (req, res) => {
+  const body = req.body || {};
+  const apiKey = (() => { try { return (connections.secretsFor(req.workspace, 'anthropic') || {}).apiKey; } catch (err) { return null; } })();
+  if (!apiKey) {
+    return res.status(409).json({ error: 'No AI assistant is connected yet. Add an Anthropic API key on the "AI assistant (Claude)" card in Connections.', connect: '/connections?source=anthropic' });
+  }
+  try {
+    const query = {};
+    for (const k of ['period', 'from', 'to', 'property', 'channel', 'campaign']) {
+      if (typeof body[k] === 'string' && body[k]) query[k] = body[k];
+    }
+    const params = readParams(query, req.workspace);
+    const payload = (await repo.read('ai', params)) || {};
+    const over = params.over;
+    const range = over && over.from && over.to
+      ? `${String(over.from).slice(0, 10)} to ${new Date(Date.parse(over.to) - 1).toISOString().slice(0, 10)}`
+      : null;
+    const all = entitiesFor(req.workspace);
+    const context = copilot.brief({
+      range,
+      payload,
+      values: params.values,
+      previous: params.previous,
+      registry: params.registry,
+      format: params.format,
+      entities: metrics.period.within(all, over),
+      allLeads: all.leads || [],
+    });
+    const out = await copilot.ask({ apiKey, question: body.question, history: body.history, context });
+    return res.json({ answer: out.answer, model: out.model, range });
+  } catch (err) {
+    console.warn('ai/ask:', err.message);
+    return res.status(502).json({ error: err.message });
+  }
+});
+app.post('/connections/anthropic/test-ai', express.urlencoded({ extended: false }),
+  gatekeeper.gate('connection.manage', () => ({ source: 'anthropic', action: 'test' })),
+  async (req, res) => {
+    try {
+      const apiKey = (connections.secretsFor(req.workspace, 'anthropic') || {}).apiKey;
+      await copilot.ask({ apiKey, question: 'Reply with the single word: ready', context: 'WINDOW: test' });
+      return res.redirect(303, `/connections?source=anthropic&saved=${encodeURIComponent('The key works — ask a question on the Copilot tab of the AI Command Center')}`);
+    } catch (err) {
+      return res.redirect(303, `/connections?source=anthropic&error=${encodeURIComponent(err.message)}`);
     }
   });
 

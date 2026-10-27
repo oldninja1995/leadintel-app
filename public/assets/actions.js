@@ -20,7 +20,6 @@ const NAVIGATE = {
   aiGoHealth: '/ai?v=aiHealth',
   pipeKanban: '/pipeline?v=pipeIsKanban',
   pipeListGo: '/pipeline?v=pipeIsList',
-  toggleAi: '/ai',
 };
 
 /* Panels the server renders on a query flag, so the toggle just flips it. */
@@ -64,6 +63,14 @@ function screenCsv() {
 }
 
 const HANDLERS = {
+  /* The Copilot, on the range the reader is looking at: its answers are about
+     the window in the address bar, so the window travels with the click. */
+  toggleAi() {
+    const here = new URLSearchParams(window.location.search);
+    const next = new URLSearchParams({ v: 'aiChat' });
+    for (const k of ['period', 'from', 'to']) if (here.get(k)) next.set(k, here.get(k));
+    window.location.href = `/ai?${next.toString()}`;
+  },
   exportCsv() {
     const csv = screenCsv();
     if (!csv) { toast('Nothing to export on this screen'); return; }
