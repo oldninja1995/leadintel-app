@@ -162,6 +162,19 @@ test('a workspace sees only its own rows', opts, async () => {
   await b.clear();
 });
 
+test('a returning guest\'s new win on the same lead is its own booking', opts, async () => {
+  /* Won in September, reopened (an open lead stores no deal), won again in
+     October: the deal row reads won throughout, and only TeleCRM's won date
+     tells the two bookings apart. */
+  const s = new PgRawStore(`test_rep_${Date.now()}`);
+  const deal = (value, wonAt, upd) => rec('deal', 'L1', { deal_id: 'L1', lead_id: 'L1', outcome: 'won', value, won_at: wonAt, updated_at: upd });
+  await s.append('telecrm', [deal('10000', '2026-09-05T10:00:00.000Z', '2026-09-05T10:00:00.000Z')], { fetchedAt: '2026-09-05T11:00:00.000Z', transport: 'http' });
+  await s.append('telecrm', [deal('12000', '2026-10-27T05:00:00.000Z', '2026-10-27T05:00:00.000Z')], { fetchedAt: '2026-10-27T06:00:00.000Z', transport: 'http' });
+  const deals = (await s.replay()).filter((r) => r.kind === 'deal').map((r) => `${r.externalId}=${r.body.value}@${r.body.won_at.slice(0, 10)}`).sort();
+  assert.deepEqual(deals, ['L1#b1=10000@2026-09-05', 'L1=12000@2026-10-27']);
+  await s.clear();
+});
+
 /* ── documents and line logs ────────────────────────────────────────────────
  *
  * These shapes did not have to change — they are small and read whole, and the

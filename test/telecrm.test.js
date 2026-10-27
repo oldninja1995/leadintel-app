@@ -462,7 +462,7 @@ test('a booking already read keeps its stored mark; only new bookings read histo
   await telecrm.request({ kind: 'deal', window: WINDOW, credentials: CREDS, fetchImpl });
   const store = {
     currentBodies: async () => new Map([
-      ['a', { re_enquiry: false, booking_ref: 'R1', won_at: '2026-03-01T10:00:00.000Z' }],
+      ['a', { re_enquiry: false, booking_ref: 'R1', won_at: '2026-03-01T10:00:00.000Z', won_read_for: '|' }],
       ['b', { re_enquiry: false, booking_ref: 'OLD' }],
       ['c', { booking_ref: 'R3' }],
     ]),
@@ -476,6 +476,32 @@ test('a booking already read keeps its stored mark; only new bookings read histo
   await telecrm.enrich(rows, { kind: 'deal', credentials: CREDS, fetchImpl, store });
   assert.deepStrictEqual(read.sort(), ['b', 'c', 'd']);
   assert.deepStrictEqual(rows.map((r) => r.re_enquiry), [false, true, true, true]);
+});
+
+test('a returning guest\'s new booking on the same lead is read again, not given the old date', async () => {
+  telecrm.clearPipelineCache();
+  const pipeline = { statuses: [{ id: 5, label: 'Won/Converted', stage: 'WON' }, { id: 19, label: 'Re-enquiry', stage: 'ACTIVE' }] };
+  const read = [];
+  const fetchImpl = async (url) => {
+    const m = /\/lead\/([^/]+)\/action\/search/.exec(url);
+    if (m) read.push(m[1]);
+    return json(m ? { data: [
+      { type: 'STATUS_CHANGE', fromStatusid: 19, toStatusid: 5, created_on: '2026-09-05T10:00:00Z' },
+      { type: 'STATUS_CHANGE', fromStatusid: 5, toStatusid: 19, created_on: '2026-10-26T10:00:00Z' },
+      { type: 'STATUS_CHANGE', fromStatusid: 19, toStatusid: 5, created_on: '2026-10-27T05:00:00Z' },
+    ] } : pipeline);
+  };
+  await telecrm.request({ kind: 'deal', window: WINDOW, credentials: CREDS, fetchImpl });
+  const stored = { re_enquiry: false, won_at: '2026-09-05T10:00:00.000Z', won_read_for: '10000|won/converted' };
+  const store = { currentBodies: async () => new Map([['same', stored], ['again', stored]]) };
+  const rows = [
+    { lead_id: 'same', outcome: 'won', stage: 'Won/Converted', value: '10000' },
+    { lead_id: 'again', outcome: 'won', stage: 'Won/Converted', value: '12000' },
+  ];
+  await telecrm.enrich(rows, { kind: 'deal', credentials: CREDS, fetchImpl, store });
+  assert.deepStrictEqual(read, ['again']);
+  assert.deepStrictEqual(rows.map((r) => r.won_at.slice(0, 10)), ['2026-09-05', '2026-10-27']);
+  assert.deepStrictEqual(rows.map((r) => r.re_enquiry), [false, true]);
 });
 
 test('a booking is dated by the status change that won it, not the lead\'s last edit', async () => {
