@@ -1,0 +1,272 @@
+<%# More Marketing infographics, from lib/marketing-insights.js
+    (mktCharts.insights). Inline SVG on theme tokens; every mark opens a popup. %>
+<%
+var ins = (charts && charts.insights) || {};
+var grain = (charts && charts.grain) || '';
+var panel = 'background:var(--color-surface); border-radius:12px; box-shadow:var(--shadow-sm); padding:16px; min-width:0;';
+var head = 'display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px;';
+var title = 'font-size:13px; font-weight:500;';
+var sub = 'font-size:10.5px; color:var(--color-neutral-600);';
+var key = 'display:flex; align-items:center; gap:5px; font-size:11px; color:var(--color-neutral-400);';
+var stat = 'color:var(--color-neutral-200); font-weight:500;';
+var statRow = 'display:flex; gap:16px; flex-wrap:wrap; margin-bottom:8px; font-size:11.5px; color:var(--color-neutral-500);';
+var emptyBox = 'height:160px; display:grid; place-items:center; font-size:11.5px; color:var(--color-neutral-600); text-align:center; padding:0 24px;';
+var grid = '<g stroke="var(--color-neutral-900)" stroke-width="1"><line x1="0" y1="30" x2="640" y2="30"></line><line x1="0" y1="105" x2="640" y2="105"></line><line x1="0" y1="180" x2="640" y2="180"></line></g>';
+var none = { empty: true, reason: 'No data.' };
+var section = 'display:flex; align-items:baseline; gap:10px; margin:22px 0 10px;';
+%>
+
+<div style="<%= section %>">
+  <h2 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:15px;">Repeat customers</h2>
+  <span style="<%= sub %>">won bookings, cancellations excluded · repeat = CRM Re-enquiry mark, the same phone enquiring before, or a second booking on one lead</span>
+</div>
+
+<% var rs = ins.repeatSplit || none; var rch = ins.repeatByChannel || none; var gap = ins.rebookGap || none; %>
+<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:12px;">
+  <div style="<%= panel %>">
+    <div style="<%= head %>"><div style="<%= title %>">First-time vs repeat</div><span style="<%= sub %>">bookings won in range</span></div>
+    <% if (rs.empty) { %><div style="<%= emptyBox %>"><%= rs.reason %></div><% } else { %>
+      <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+        <svg viewBox="0 0 140 140" style="width:112px; height:112px; flex:none;">
+          <circle cx="70" cy="70" r="54" fill="none" stroke="var(--color-neutral-900)" stroke-width="16"></circle>
+          <% rs.slices.forEach(function (s) { if (!s.n) return; %>
+            <circle cx="70" cy="70" r="54" fill="none" stroke="<%= s.colour %>" stroke-width="16" stroke-dasharray="<%= s.dash %>" stroke-dashoffset="<%= s.offset %>" transform="rotate(-90 70 70)" class="li-pop-mark" data-li-pop="<%= JSON.stringify(s.pop) %>" tabindex="0" role="button"><title><%= s.label %> · <%= s.nText %> bookings · <%= s.vText %></title></circle>
+          <% }); %>
+          <text x="70" y="68" text-anchor="middle" fill="var(--color-neutral-200)" font-size="20" font-weight="500" font-family="Inter"><%= rs.repeatShare %></text>
+          <text x="70" y="84" text-anchor="middle" fill="var(--color-neutral-600)" font-size="9" font-family="Inter">repeat</text>
+        </svg>
+        <div style="flex:1; min-width:130px; display:flex; flex-direction:column; gap:8px; font-size:11.5px;">
+          <% rs.slices.forEach(function (s) { %>
+            <div class="li-pop-mark" data-li-pop="<%= JSON.stringify(s.pop) %>" tabindex="0" role="button">
+              <div style="display:flex; align-items:center; gap:7px;"><span style="width:8px;height:8px;border-radius:2px;background:<%= s.colour %>;"></span><span style="flex:1; color:var(--color-neutral-400);"><%= s.label %></span><span style="font-variant-numeric:tabular-nums;"><%= s.nText %></span><span style="width:34px; text-align:right; color:var(--color-neutral-500);"><%= s.share %></span></div>
+              <div style="<%= sub %> padding-left:15px;"><%= s.vText %> value</div>
+            </div>
+          <% }); %>
+        </div>
+      </div>
+      <div style="margin-top:12px; font-size:11px; color:var(--color-neutral-500);">Average booking<% if (rs.lift) { %> · repeat <strong style="<%= stat %>"><%= rs.lift %></strong> vs first-time<% } %></div>
+      <div style="display:flex; flex-direction:column; gap:5px; margin-top:5px;">
+        <% rs.avg.forEach(function (a) { %>
+          <div style="display:flex; align-items:center; gap:8px; font-size:10.5px;"><span style="width:62px; color:var(--color-neutral-500);"><%= a.label %></span><div style="flex:1; height:6px; border-radius:3px; background:var(--color-neutral-900);"><div style="height:6px; border-radius:3px; width:<%= a.w %>; background:<%= a.colour %>;"></div></div><span style="min-width:58px; text-align:right; font-variant-numeric:tabular-nums;"><%= a.text %></span></div>
+        <% }); %>
+      </div>
+      <% if (rs.reasons.length) { %><div style="<%= sub %> margin-top:10px; line-height:1.6;">Why repeat: <% rs.reasons.forEach(function (r, i) { %><%= i ? ' · ' : '' %><%= r.label %> <strong style="font-weight:500; color:var(--color-neutral-400);"><%= r.n %></strong><% }); %></div><% } %>
+    <% } %>
+  </div>
+
+  <div style="<%= panel %>">
+    <div style="<%= head %>"><div style="<%= title %>">Repeat share by channel</div><span style="<%= sub %>">repeat bookings ÷ all bookings</span></div>
+    <% if (rch.empty) { %><div style="<%= emptyBox %>"><%= rch.reason %></div><% } else { %>
+      <%- include('mkt-hbars', { rows: rch.rows }) %>
+      <div style="<%= sub %> margin-top:10px; line-height:1.5;">Which door returning guests come back through. A channel's bookings are the channel TeleCRM recorded on the lead; no tag counts as organic.</div>
+    <% } %>
+  </div>
+
+  <div style="<%= panel %>">
+    <div style="<%= head %>"><div style="<%= title %>">Time to come back</div><span style="<%= sub %>"><%= gap.empty ? 'lifetime' : gap.n + ' return bookings · lifetime' %></span><div style="flex:1;"></div><% if (!gap.empty) { %><span style="font-size:11px; color:var(--color-neutral-400);">Median <strong style="font-weight:500; color:var(--color-accent-300);"><%= gap.median %></strong></span><% } %></div>
+    <% if (gap.empty) { %><div style="<%= emptyBox %>"><%= gap.reason %></div><% } else { %>
+      <%- include('mkt-hbars', { rows: gap.rows }) %>
+      <div style="<%= sub %> margin-top:10px; line-height:1.5;">Days between one won booking and the same customer's next. Good for timing a "come back" campaign.</div>
+    <% } %>
+  </div>
+</div>
+
+<% var rt = ins.repeatTrend || none; var trc = ins.topRepeatCustomers || none; %>
+<div style="display:grid; grid-template-columns:1.4fr 1fr; gap:12px; margin-bottom:12px;">
+  <div style="<%= panel %>">
+    <div style="<%= head %>">
+      <div style="<%= title %>">Repeat bookings over time</div>
+      <span style="<%= sub %>"><%= grain %> · bookings won</span>
+      <div style="flex:1;"></div>
+      <span style="<%= key %>"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-600);"></span>First-time</span>
+      <span style="<%= key %>"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-300);"></span>Repeat</span>
+    </div>
+    <% if (rt.empty) { %><div style="<%= emptyBox %>"><%= rt.reason %></div><% } else { %>
+      <svg viewBox="0 0 640 200" style="width:100%; height:200px;" preserveAspectRatio="none">
+        <%- grid %>
+        <% rt.bars.forEach(function (b) { %>
+          <g class="li-pop-mark" data-li-pop="<%= JSON.stringify(b.pop) %>" tabindex="0" role="button"><title><%= b.tip %></title>
+            <rect x="<%= b.x.toFixed(1) %>" y="20" width="<%= b.w.toFixed(1) %>" height="160" fill="transparent"></rect>
+            <% if (b.fh > 0) { %><rect x="<%= b.x.toFixed(1) %>" y="<%= b.fy.toFixed(1) %>" width="<%= b.w.toFixed(1) %>" height="<%= b.fh.toFixed(1) %>" fill="var(--color-accent-600)"></rect><% } %>
+            <% if (b.rh > 0) { %><rect x="<%= b.x.toFixed(1) %>" y="<%= b.ry.toFixed(1) %>" width="<%= b.w.toFixed(1) %>" height="<%= b.rh.toFixed(1) %>" fill="var(--color-accent-300)"></rect><% } %>
+          </g>
+        <% }); %>
+      </svg>
+      <div style="position:relative; height:14px; font-size:10px; color:var(--color-neutral-600);">
+        <% rt.axis.forEach(function (a) { %><span style="position:absolute; left:<%= (a.x / 6.4).toFixed(2) %>%; transform:translateX(-50%); white-space:nowrap;"><%= a.text %></span><% }); %>
+      </div>
+      <div style="<%= sub %> margin-top:6px;">Top line = <%= rt.topText %> bookings. Each bar is the bookings won in that period; the light top is repeat customers.</div>
+    <% } %>
+  </div>
+
+  <div style="<%= panel %>">
+    <div style="<%= head %>"><div style="<%= title %>">Top repeat customers</div><span style="<%= sub %>">2+ won bookings · lifetime</span></div>
+    <% if (trc.empty) { %><div style="<%= emptyBox %>"><%= trc.reason %></div><% } else { %>
+      <div style="<%= statRow %>">
+        <span><strong style="<%= stat %>"><%= trc.customers %></strong> repeat customers (<%= trc.rate %> of bookers)</span>
+        <span><strong style="<%= stat %>"><%= trc.value %></strong> lifetime value (<%= trc.valueShare %>)</span>
+      </div>
+      <%- include('mkt-hbars', { rows: trc.rows }) %>
+      <div style="<%= sub %> margin-top:10px;">Only as far back as the stored CRM history. Tap a name for every booking.</div>
+    <% } %>
+  </div>
+</div>
+
+<% var rl = ins.returningLeads || none; var lt = ins.leadToBooking || none; %>
+<div style="display:grid; grid-template-columns:1.4fr 1fr; gap:12px; margin-bottom:12px;">
+  <div style="<%= panel %>">
+    <div style="<%= head %>">
+      <div style="<%= title %>">New vs returning enquiries</div>
+      <span style="<%= sub %>"><%= grain %> · leads by arrival</span>
+      <div style="flex:1;"></div>
+      <span style="<%= key %>"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-800);"></span>New</span>
+      <span style="<%= key %>"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-300);"></span>Returning</span>
+    </div>
+    <% if (rl.empty) { %><div style="<%= emptyBox %>"><%= rl.reason %></div><% } else { %>
+      <div style="<%= statRow %>"><span><strong style="<%= stat %>"><%= rl.returning %></strong> of <strong style="<%= stat %>"><%= rl.total %></strong> leads came from returning guests (<strong style="<%= stat %>"><%= rl.rate %></strong>)</span></div>
+      <svg viewBox="0 0 640 200" style="width:100%; height:180px;" preserveAspectRatio="none">
+        <%- grid %>
+        <% rl.bars.forEach(function (b) { %>
+          <g class="li-pop-mark" data-li-pop="<%= JSON.stringify(b.pop) %>" tabindex="0" role="button"><title><%= b.tip %></title>
+            <rect x="<%= b.x.toFixed(1) %>" y="20" width="<%= b.w.toFixed(1) %>" height="160" fill="transparent"></rect>
+            <% if (b.fh > 0) { %><rect x="<%= b.x.toFixed(1) %>" y="<%= b.fy.toFixed(1) %>" width="<%= b.w.toFixed(1) %>" height="<%= b.fh.toFixed(1) %>" fill="var(--color-accent-800)"></rect><% } %>
+            <% if (b.rh > 0) { %><rect x="<%= b.x.toFixed(1) %>" y="<%= b.ry.toFixed(1) %>" width="<%= b.w.toFixed(1) %>" height="<%= b.rh.toFixed(1) %>" fill="var(--color-accent-300)"></rect><% } %>
+          </g>
+        <% }); %>
+      </svg>
+      <div style="position:relative; height:14px; font-size:10px; color:var(--color-neutral-600);">
+        <% rl.axis.forEach(function (a) { %><span style="position:absolute; left:<%= (a.x / 6.4).toFixed(2) %>%; transform:translateX(-50%); white-space:nowrap;"><%= a.text %></span><% }); %>
+      </div>
+      <div style="<%= sub %> margin-top:6px;">Top line = <%= rl.topText %> leads. Returning = the same phone or email enquired before, or TeleCRM marked the lead Re-enquiry.</div>
+    <% } %>
+  </div>
+
+  <div style="<%= panel %>">
+    <div style="<%= head %>"><div style="<%= title %>">Enquiry to booking</div><span style="<%= sub %>">first-time bookings won in range</span><div style="flex:1;"></div><% if (!lt.empty) { %><span style="font-size:11px; color:var(--color-neutral-400);">Median <strong style="font-weight:500; color:var(--color-accent-300);"><%= lt.median %></strong></span><% } %></div>
+    <% if (lt.empty) { %><div style="<%= emptyBox %>"><%= lt.reason %></div><% } else { %>
+      <div style="<%= statRow %>"><span><strong style="<%= stat %>"><%= lt.inWeek %></strong> booked within a week of enquiring (<%= lt.n %> bookings)</span></div>
+      <%- include('mkt-hbars', { rows: lt.rows }) %>
+    <% } %>
+  </div>
+</div>
+
+<div style="<%= section %>">
+  <h2 style="margin:0; font-family:var(--font-heading); font-weight:500; font-size:15px;">Spend, value &amp; team</h2>
+  <span style="<%= sub %>">the range and channel picked above</span>
+</div>
+
+<% var sr = ins.spendVsRevenue || none; var vb = ins.valueBands || none; %>
+<div style="display:grid; grid-template-columns:1.4fr 1fr; gap:12px; margin-bottom:12px;">
+  <div style="<%= panel %>">
+    <div style="<%= head %>">
+      <div style="<%= title %>">Ad spend vs booking value</div>
+      <span style="<%= sub %>"><%= grain %> · Meta + Google</span>
+      <div style="flex:1;"></div>
+      <span style="<%= key %>"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-neutral-600);"></span>Spend</span>
+      <span style="<%= key %>"><span style="width:12px;height:2px;background:var(--color-accent-300);"></span>Booking value</span>
+    </div>
+    <% if (sr.empty) { %><div style="<%= emptyBox %>"><%= sr.reason %></div><% } else { %>
+      <div style="<%= statRow %>">
+        <span><strong style="<%= stat %>"><%= sr.spend %></strong> spend</span>
+        <span><strong style="<%= stat %>"><%= sr.revenue %></strong> booked</span>
+        <span><strong style="<%= stat %>"><%= sr.roas %></strong> ROAS</span>
+      </div>
+      <svg viewBox="0 0 640 200" style="width:100%; height:200px;" preserveAspectRatio="none">
+        <%- grid %>
+        <% sr.bars.forEach(function (b) { %>
+          <g class="li-pop-mark" data-li-pop="<%= JSON.stringify(b.pop) %>" tabindex="0" role="button"><title><%= b.tip %></title>
+            <rect x="<%= b.x.toFixed(1) %>" y="20" width="<%= b.w.toFixed(1) %>" height="160" fill="transparent"></rect>
+            <rect x="<%= b.x.toFixed(1) %>" y="<%= b.y.toFixed(1) %>" width="<%= b.w.toFixed(1) %>" height="<%= Math.max(0, b.h).toFixed(1) %>" rx="2" fill="var(--color-neutral-700)"></rect>
+          </g>
+        <% }); %>
+        <polyline points="<%= sr.line %>" fill="none" stroke="var(--color-accent-300)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>
+        <% sr.dots.forEach(function (d) { if (!d.show) return; %><circle cx="<%= d.cx.toFixed(1) %>" cy="<%= d.cy.toFixed(1) %>" r="2.6" fill="var(--color-accent-300)"></circle><% }); %>
+      </svg>
+      <div style="position:relative; height:14px; font-size:10px; color:var(--color-neutral-600);">
+        <% sr.axis.forEach(function (a) { %><span style="position:absolute; left:<%= (a.x / 6.4).toFixed(2) %>%; transform:translateX(-50%); white-space:nowrap;"><%= a.text %></span><% }); %>
+      </div>
+      <div style="<%= sub %> margin-top:6px;">Bars: ad spend (scale to <%= sr.sTop %>). Line: value of bookings won (scale to <%= sr.rTop %>). Two scales — tap a bar for ROAS.</div>
+    <% } %>
+  </div>
+
+  <div style="<%= panel %>">
+    <div style="<%= head %>"><div style="<%= title %>">Booking value bands</div><span style="<%= sub %>">count of won bookings</span></div>
+    <% if (vb.empty) { %><div style="<%= emptyBox %>"><%= vb.reason %></div><% } else { %>
+      <div style="<%= statRow %>"><span>Average <strong style="<%= stat %>"><%= vb.average %></strong></span><span>Median <strong style="<%= stat %>"><%= vb.median %></strong></span></div>
+      <%- include('mkt-hbars', { rows: vb.rows }) %>
+    <% } %>
+  </div>
+</div>
+
+<% var pc = ins.pacing || none; var wd = ins.weekdays || none; %>
+<div style="display:grid; grid-template-columns:1.4fr 1fr; gap:12px; margin-bottom:12px;">
+  <div style="<%= panel %>">
+    <div style="<%= head %>">
+      <div style="<%= title %>">Running total: booked vs spent</div>
+      <span style="<%= sub %>">cumulative · one rupee scale</span>
+      <div style="flex:1;"></div>
+      <span style="<%= key %>"><span style="width:12px;height:2px;background:var(--color-accent-400);"></span>Booked</span>
+      <span style="<%= key %>"><span style="width:12px;height:2px;background:var(--color-neutral-500);"></span>Spent</span>
+    </div>
+    <% if (pc.empty) { %><div style="<%= emptyBox %>"><%= pc.reason %></div><% } else { %>
+      <div style="<%= statRow %>"><span><strong style="<%= stat %>"><%= pc.revenue %></strong> booked</span><span><strong style="<%= stat %>"><%= pc.spend %></strong> spent</span><span><strong style="<%= stat %>"><%= pc.roas %></strong> ROAS</span></div>
+      <svg viewBox="0 0 640 200" style="width:100%; height:200px;" preserveAspectRatio="none">
+        <%- grid %>
+        <polygon points="<%= pc.revenueArea %>" fill="var(--color-accent-500)" opacity=".16"></polygon>
+        <polyline points="<%= pc.revenueLine %>" fill="none" stroke="var(--color-accent-400)" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>
+        <polyline points="<%= pc.spendLine %>" fill="none" stroke="var(--color-neutral-500)" stroke-width="2" stroke-dasharray="5 4" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>
+        <% pc.marks.forEach(function (m) { %><rect class="li-pop-mark" data-li-pop="<%= JSON.stringify(m.pop) %>" tabindex="0" role="button" x="<%= m.x.toFixed(1) %>" y="20" width="<%= m.w.toFixed(1) %>" height="160" fill="transparent"><title><%= m.tip %></title></rect><% }); %>
+      </svg>
+      <div style="position:relative; height:14px; font-size:10px; color:var(--color-neutral-600);">
+        <% pc.axis.forEach(function (a) { %><span style="position:absolute; left:<%= (a.x / 6.4).toFixed(2) %>%; transform:translateX(-50%); white-space:nowrap;"><%= a.text %></span><% }); %>
+      </div>
+      <div style="<%= sub %> margin-top:6px;">Top line = <%= pc.topText %>. The gap between the lines is what the ads returned over what they cost. Tap anywhere for the total so far.</div>
+    <% } %>
+  </div>
+
+  <div style="<%= panel %>">
+    <div style="<%= head %>">
+      <div style="<%= title %>">Day of week</div>
+      <span style="<%= sub %>">India time</span>
+      <div style="flex:1;"></div>
+      <span style="<%= key %>"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-800);"></span>Leads</span>
+      <span style="<%= key %>"><span style="width:8px;height:8px;border-radius:2px;background:var(--color-accent-300);"></span>Bookings</span>
+    </div>
+    <% if (wd.empty) { %><div style="<%= emptyBox %>"><%= wd.reason %></div><% } else { %>
+      <div style="<%= statRow %>"><span>Most leads: <strong style="<%= stat %>"><%= wd.busy %></strong></span><span>Most bookings: <strong style="<%= stat %>"><%= wd.best %></strong></span></div>
+      <svg viewBox="0 0 640 200" style="width:100%; height:180px;" preserveAspectRatio="none">
+        <%- grid %>
+        <% wd.groups.forEach(function (g) { %>
+          <g class="li-pop-mark" data-li-pop="<%= JSON.stringify(g.pop) %>" tabindex="0" role="button"><title><%= g.tip %></title>
+            <rect x="<%= (g.cx - 45).toFixed(1) %>" y="20" width="90" height="160" fill="transparent"></rect>
+            <rect x="<%= g.lx.toFixed(1) %>" y="<%= g.ly.toFixed(1) %>" width="<%= g.w.toFixed(1) %>" height="<%= Math.max(0, g.lh).toFixed(1) %>" rx="2" fill="var(--color-accent-800)"></rect>
+            <rect x="<%= g.bx.toFixed(1) %>" y="<%= g.by.toFixed(1) %>" width="<%= g.w.toFixed(1) %>" height="<%= Math.max(0, g.bh).toFixed(1) %>" rx="2" fill="var(--color-accent-300)"></rect>
+          </g>
+        <% }); %>
+      </svg>
+      <div style="position:relative; height:14px; font-size:10px; color:var(--color-neutral-600);">
+        <% wd.groups.forEach(function (g) { %><span style="position:absolute; left:<%= (g.cx / 6.4).toFixed(2) %>%; transform:translateX(-50%);"><%= g.day %></span><% }); %>
+      </div>
+      <div style="<%= sub %> margin-top:6px;">Leads by the day they arrived, bookings by the day they were won, each on its own scale.</div>
+    <% } %>
+  </div>
+</div>
+
+<% var ta = ins.topAds || none; var ow = ins.owners || none; %>
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+  <div style="<%= panel %>">
+    <div style="<%= head %>"><div style="<%= title %>">Ads that booked the most</div><span style="<%= sub %>"><%= ta.empty ? 'booking value by the ad on the lead' : ta.ads + ' ads with a booking · by booking value' %></span></div>
+    <% if (ta.empty) { %><div style="<%= emptyBox %>"><%= ta.reason %></div><% } else { %>
+      <%- include('mkt-hbars', { rows: ta.rows }) %>
+      <div style="<%= sub %> margin-top:10px;">The ad name TeleCRM recorded on each booked lead. Mostly Meta — Google leads carry no ad name.</div>
+    <% } %>
+  </div>
+
+  <div style="<%= panel %>">
+    <div style="<%= head %>"><div style="<%= title %>">Team: leads to bookings</div><span style="<%= sub %>">by lead owner · booking value</span></div>
+    <% if (ow.empty) { %><div style="<%= emptyBox %>"><%= ow.reason %></div><% } else { %>
+      <%- include('mkt-hbars', { rows: ow.rows }) %>
+      <div style="<%= sub %> margin-top:10px;">Bookings won in range by the owner of their lead, beside the leads each owner received in range.</div>
+    <% } %>
+  </div>
+</div>
